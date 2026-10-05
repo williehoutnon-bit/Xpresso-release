@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+
+    <!-- Soft ambient badge circle -->
+    <path
+        android:fillColor="#22FFFFFF"
+        android:pathData="M96,16 C140.18,16 176,51.82 176,96 C176,140.18 140.18,176 96,176 C51.82,176 16,140.18 16,96 C16,51.82 51.82,16 96,16 Z" />
+
+    <!-- Open Book - Left Page -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M96,52 C78,42 46,42 28,48 C24,50 20,54 20,60 L20,126 C20,131 24,135 30,133 C46,128 78,128 96,138 Z" />
+
+    <!-- Open Book - Right Page -->
+    <path
+        android:fillColor="#F4F4F6"
+        android:pathData="M96,52 C114,42 146,42 164,48 C168,50 172,54 172,60 L172,126 C172,131 168,135 162,133 C146,128 114,128 96,138 Z" />
+
+    <!-- Spine Center Divider -->
+    <path
+        android:strokeColor="#FF5B14"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M96,52 L96,138" />
+
+    <!-- Stylized "X" Crossing Accents on Book Pages -->
+    <path
+        android:strokeColor="#FF5B14"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M72,74 L120,116" />
+
+    <path
+        android:strokeColor="#FF5B14"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M120,74 L72,116" />
+
+    <!-- Educational Star / Knowledge Spark above Book -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M96,28 L98.5,36.5 L107.5,36.5 L100,42 L103,50.5 L96,45 L89,50.5 L92,42 L84.5,36.5 L93.5,36.5 Z" />
+</vector>

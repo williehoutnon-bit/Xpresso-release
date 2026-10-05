@@ -1,0 +1,2682 @@
+Loading svelte-check in workspace: /app/applet
+Getting Svelte diagnostics...
+
+/app/applet/src/views/LoginView.svelte:13:21
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+  let identifier = $state(''); // Email or Phone
+
+/app/applet/src/views/LoginView.svelte:13:36
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+  let identifier = $state(''); // Email or Phone
+
+/app/applet/src/views/LoginView.svelte:13:63
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+  let identifier = $state(''); // Email or Phone
+
+/app/applet/src/views/LoginView.svelte:13:91
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+  let identifier = $state(''); // Email or Phone
+
+/app/applet/src/views/SignupView.svelte:252:21
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let step = $state(1);
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+
+/app/applet/src/views/SignupView.svelte:252:36
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let step = $state(1);
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+
+/app/applet/src/views/SignupView.svelte:252:63
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let step = $state(1);
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+
+/app/applet/src/views/SignupView.svelte:252:91
+Warn: This reference only captures the initial value of `initialRole`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let step = $state(1);
+  let role = $state(initialRole && initialRole !== 'guest' && initialRole !== 'landing' ? initialRole : 'student');
+
+/app/applet/src/views/TeacherDashboard.svelte:622:27
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                        <div class="space-y-1.5">
+                          <label class="text-[9px] font-bold text-sage uppercase tracking-widest">Duration (Mins)</label>
+                          <input type="number" placeholder="45" class="w-full p-3 bg-cream border border-sage/10 rounded-[20px] text-xs font-bold" />
+
+/app/applet/src/views/TeacherDashboard.svelte:626:27
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                        <div class="space-y-1.5">
+                          <label class="text-[9px] font-bold text-sage uppercase tracking-widest">Exam Title</label>
+                          <input type="text" placeholder="Mid Term Biology" class="w-full p-3 bg-cream border border-sage/10 rounded-[20px] text-xs font-bold" />
+
+/app/applet/src/views/TeacherDashboard.svelte:636:23
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="space-y-1.5">
+                      <label class="text-[9px] font-bold text-sage uppercase tracking-widest flex items-center justify-between">
+                        {isSimulatedExam ? 'Question 1' : 'Ask a Question'}
+                        {#if isSimulatedExam}
+                          <span class="text-olive">+ Add Another</span>
+                        {/if}
+                      </label>
+                      <textarea
+
+/app/applet/src/views/TeacherDashboard.svelte:727:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+           <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-sage uppercase tracking-widest ml-1">Full Name</label>
+              <input type="text" placeholder="e.g. Sarah Nakato" class="w-full p-4 bg-cream border border-sage/10 rounded-[20px] text-xs font-bold " />
+
+/app/applet/src/views/TeacherDashboard.svelte:731:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+           <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-sage uppercase tracking-widest ml-1">Assign to Class</label>
+              <button
+
+/app/applet/src/views/TeacherDashboard.svelte:743:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+           <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-sage uppercase tracking-widest ml-1">Group Name</label>
+              <input type="text" placeholder="e.g. Senior 4 Beta" class="w-full p-4 bg-cream border border-sage/10 rounded-[20px] text-xs font-bold " />
+
+/app/applet/src/views/TeacherDashboard.svelte:747:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+           <div class="space-y-1.5">
+              <label class="text-[10px] font-bold text-sage uppercase tracking-widest ml-1">Primary Subject</label>
+              <button
+
+/app/applet/src/views/ShareNotesView.svelte:25:16
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div>
+               <label class="text-[10px] font-bold text-sage uppercase tracking-widest mb-2 block">Note Title</label>
+               <input type="text" placeholder="e.g., Summary of Cell Biology" class="w-full bg-paper p-3 rounded-[20px] border border-sage/20 text-sm focus:outline-none focus:border-olive shadow-inner" />
+
+/app/applet/src/views/ShareNotesView.svelte:30:16
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div>
+               <label class="text-[10px] font-bold text-sage uppercase tracking-widest mb-2 block">Content</label>
+               <textarea rows="5" placeholder="Type your notes here, or attach below..." class="w-full bg-paper p-3 rounded-[20px] border border-sage/20 text-sm focus:outline-none focus:border-olive shadow-inner resize-none"></textarea>
+
+/app/applet/src/views/ShareNotesView.svelte:35:16
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div>
+               <label class="text-[10px] font-bold text-sage uppercase tracking-widest mb-2 block">Upload Media (Optional)</label>
+               <div class="grid grid-cols-3 gap-2">
+
+/app/applet/src/views/ShareNotesView.svelte:53:16
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div>
+               <label class="text-[10px] font-bold text-sage uppercase tracking-widest mb-2 block">Share Reach</label>
+               <div class="grid grid-cols-2 gap-2">
+
+/app/applet/src/views/SocialView.svelte:749:15
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+            <div class="bg-paper p-4 rounded-[20px] border border-sage/10 flex flex-col items-center text-center shadow-sm">
+              <div onclick={(e) => openProfileLightbox(e, user)} class="w-14 h-14 rounded-full overflow-hidden mb-3 cursor-pointer border border-sage/10 relative">
+                <img src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt={user.name} class="w-full h-full object-cover" />
+                {#if authService.computeIsOnline(user, currentTime)}
+                   <div class="absolute bottom-0 right-0 w-3 h-3 bg-accent border-2 border-paper rounded-full"></div>
+                {/if}
+              </div>
+              <div class="font-bold text-ink text-xs mb-1 truncate w-full">{user.name}</div>
+
+/app/applet/src/views/SocialView.svelte:749:15
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+            <div class="bg-paper p-4 rounded-[20px] border border-sage/10 flex flex-col items-center text-center shadow-sm">
+              <div onclick={(e) => openProfileLightbox(e, user)} class="w-14 h-14 rounded-full overflow-hidden mb-3 cursor-pointer border border-sage/10 relative">
+                <img src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt={user.name} class="w-full h-full object-cover" />
+                {#if authService.computeIsOnline(user, currentTime)}
+                   <div class="absolute bottom-0 right-0 w-3 h-3 bg-accent border-2 border-paper rounded-full"></div>
+                {/if}
+              </div>
+              <div class="font-bold text-ink text-xs mb-1 truncate w-full">{user.name}</div>
+
+/app/applet/src/views/SocialView.svelte:877:17
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, comp)}>{comp.name}</div>
+                <div class="text-[9px] text-sage font-bold uppercase tracking-widest mb-5">{comp.school}</div>
+
+/app/applet/src/views/SocialView.svelte:877:17
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, comp)}>{comp.name}</div>
+                <div class="text-[9px] text-sage font-bold uppercase tracking-widest mb-5">{comp.school}</div>
+
+/app/applet/src/views/SocialView.svelte:902:17
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+              <div class="bg-paper p-5 rounded-[20px] border border-sage/10 min-w-[150px] flex flex-col items-center text-center shadow-sm">
+                <div onclick={(e) => openProfileLightbox(e, comp)} class="w-16 h-16 rounded-full overflow-hidden bg-cream flex items-center justify-center font-bold text-lg text-sage mb-4 border border-sage/10 relative cursor-pointer hover:border-olive transition-colors">
+                  <img src={comp.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comp.name}`} alt={comp.name} class="w-full h-full object-cover bg-cream" />
+                  <div class="absolute bottom-1 right-1 w-4 h-4 {authService.computeIsOnline(comp, currentTime) ? 'bg-accent' : 'bg-sage/40'} border-2 border-paper rounded-full z-10"></div>
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, comp)}>{comp.name}</div>
+
+/app/applet/src/views/SocialView.svelte:902:17
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+              <div class="bg-paper p-5 rounded-[20px] border border-sage/10 min-w-[150px] flex flex-col items-center text-center shadow-sm">
+                <div onclick={(e) => openProfileLightbox(e, comp)} class="w-16 h-16 rounded-full overflow-hidden bg-cream flex items-center justify-center font-bold text-lg text-sage mb-4 border border-sage/10 relative cursor-pointer hover:border-olive transition-colors">
+                  <img src={comp.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comp.name}`} alt={comp.name} class="w-full h-full object-cover bg-cream" />
+                  <div class="absolute bottom-1 right-1 w-4 h-4 {authService.computeIsOnline(comp, currentTime) ? 'bg-accent' : 'bg-sage/40'} border-2 border-paper rounded-full z-10"></div>
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, comp)}>{comp.name}</div>
+
+/app/applet/src/views/SocialView.svelte:906:17
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, comp)}>{comp.name}</div>
+                <div class="text-[9px] text-sage font-bold uppercase tracking-widest mb-5">{comp.school}</div>
+
+/app/applet/src/views/SocialView.svelte:906:17
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, comp)}>{comp.name}</div>
+                <div class="text-[9px] text-sage font-bold uppercase tracking-widest mb-5">{comp.school}</div>
+
+/app/applet/src/views/SocialView.svelte:933:17
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+              <div class="bg-paper p-5 rounded-[20px] border border-sage/10 min-w-[150px] flex flex-col items-center text-center shadow-sm">
+                <div onclick={(e) => openProfileLightbox(e, staff)} class="w-16 h-16 rounded-full overflow-hidden bg-cream flex items-center justify-center font-bold text-lg text-sage mb-4 border border-sage/10 relative cursor-pointer hover:border-olive transition-colors">
+                  <img src={staff.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${staff.name}`} alt={staff.name} class="w-full h-full object-cover bg-cream" />
+                  <div class="absolute bottom-1 right-1 w-4 h-4 bg-olive border-2 border-paper rounded-full z-10"></div>
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, staff)}>{staff.name}</div>
+
+/app/applet/src/views/SocialView.svelte:933:17
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+              <div class="bg-paper p-5 rounded-[20px] border border-sage/10 min-w-[150px] flex flex-col items-center text-center shadow-sm">
+                <div onclick={(e) => openProfileLightbox(e, staff)} class="w-16 h-16 rounded-full overflow-hidden bg-cream flex items-center justify-center font-bold text-lg text-sage mb-4 border border-sage/10 relative cursor-pointer hover:border-olive transition-colors">
+                  <img src={staff.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${staff.name}`} alt={staff.name} class="w-full h-full object-cover bg-cream" />
+                  <div class="absolute bottom-1 right-1 w-4 h-4 bg-olive border-2 border-paper rounded-full z-10"></div>
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, staff)}>{staff.name}</div>
+
+/app/applet/src/views/SocialView.svelte:937:17
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, staff)}>{staff.name}</div>
+                <div class="text-[10px] text-sage font-bold uppercase tracking-widest mb-1">{staff.position}</div>
+
+/app/applet/src/views/SocialView.svelte:937:17
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                </div>
+                <div class="font-bold text-ink text-sm mb-1 cursor-pointer hover:underline" onclick={(e) => openProfileLightbox(e, staff)}>{staff.name}</div>
+                <div class="text-[10px] text-sage font-bold uppercase tracking-widest mb-1">{staff.position}</div>
+
+/app/applet/src/views/SocialView.svelte:964:13
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+            </h3>
+            <span onclick={viewAllInstitutions} class="text-[9px] font-bold text-olive uppercase tracking-wider underline cursor-pointer">Registry</span>
+          </div>
+
+/app/applet/src/views/SocialView.svelte:964:13
+Warn: `<span>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+            </h3>
+            <span onclick={viewAllInstitutions} class="text-[9px] font-bold text-olive uppercase tracking-wider underline cursor-pointer">Registry</span>
+          </div>
+
+/app/applet/src/views/SocialView.svelte:982:25
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                      <div class="w-full flex items-center justify-between transition-colors">
+                        <div 
+                          onclick={() => toggleSchool(school.$id || school.name)}
+                          class="flex-1 p-4 flex items-center justify-between cursor-pointer hover:bg-cream/50 transition-colors"
+                        >
+                          <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-[20px] bg-cream text-sage flex items-center justify-center border border-sage/5 overflow-hidden">
+                              {#if school.logoUrl}
+                                <img src={school.logoUrl} alt={school.name} class="w-full h-full object-cover" />
+                              {:else}
+                                <School size={24} />
+                              {/if}
+                            </div>
+                            <div>
+                              <div class="font-bold text-ink text-sm leading-tight">{school.name}</div>
+                              <div class="text-[10px] text-sage font-bold uppercase tracking-widest mt-0.5">
+                                {school.studentsCount || 0} Members · <span class="text-olive font-black">{school.onlineCount || 0}</span> Online
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronDown size={20} class="text-olive transition-transform duration-300 {expandedSchool === (school.$id || school.name) ? 'rotate-180' : ''}" />
+                        </div>
+                        <div class="pr-5">
+
+/app/applet/src/views/SocialView.svelte:982:25
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                      <div class="w-full flex items-center justify-between transition-colors">
+                        <div 
+                          onclick={() => toggleSchool(school.$id || school.name)}
+                          class="flex-1 p-4 flex items-center justify-between cursor-pointer hover:bg-cream/50 transition-colors"
+                        >
+                          <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-[20px] bg-cream text-sage flex items-center justify-center border border-sage/5 overflow-hidden">
+                              {#if school.logoUrl}
+                                <img src={school.logoUrl} alt={school.name} class="w-full h-full object-cover" />
+                              {:else}
+                                <School size={24} />
+                              {/if}
+                            </div>
+                            <div>
+                              <div class="font-bold text-ink text-sm leading-tight">{school.name}</div>
+                              <div class="text-[10px] text-sage font-bold uppercase tracking-widest mt-0.5">
+                                {school.studentsCount || 0} Members · <span class="text-olive font-black">{school.onlineCount || 0}</span> Online
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronDown size={20} class="text-olive transition-transform duration-300 {expandedSchool === (school.$id || school.name) ? 'rotate-180' : ''}" />
+                        </div>
+                        <div class="pr-5">
+
+/app/applet/src/views/SocialView.svelte:1027:31
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                            <div class="bg-paper border border-sage/10 rounded-[18px] p-3 flex items-center justify-between shadow-sm hover:border-olive transition-colors">
+                              <div onclick={() => openClassProfile(cls)} class="flex items-center gap-3 cursor-pointer">
+                                <div class="w-8 h-8 rounded-lg bg-cream flex items-center justify-center text-sage">
+                                  <BookOpen size={16} />
+                                </div>
+                                <div class="flex flex-col">
+                                  <div class="font-bold text-xs text-ink">{cls.name}</div>
+                                  <div class="text-[9px] text-sage font-bold uppercase tracking-widest">{cls.teacherName}</div>
+                                </div>
+                              </div>
+                              <button
+
+/app/applet/src/views/SocialView.svelte:1027:31
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                            <div class="bg-paper border border-sage/10 rounded-[18px] p-3 flex items-center justify-between shadow-sm hover:border-olive transition-colors">
+                              <div onclick={() => openClassProfile(cls)} class="flex items-center gap-3 cursor-pointer">
+                                <div class="w-8 h-8 rounded-lg bg-cream flex items-center justify-center text-sage">
+                                  <BookOpen size={16} />
+                                </div>
+                                <div class="flex flex-col">
+                                  <div class="font-bold text-xs text-ink">{cls.name}</div>
+                                  <div class="text-[9px] text-sage font-bold uppercase tracking-widest">{cls.teacherName}</div>
+                                </div>
+                              </div>
+                              <button
+
+/app/applet/src/views/SocialView.svelte:1121:1
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+{#if isSchoolProfileOpen && schoolProfileData}
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isSchoolProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="h-24 bg-gradient-to-r from-olive/20 to-accent/20 relative">
+          <button onclick={() => isSchoolProfileOpen = false} class="absolute top-4 right-4 bg-paper/80 p-2 rounded-full border-none cursor-pointer hover:bg-paper transition-colors">
+              <Lock size={16} class="text-sage rotate-45" /> <!-- using lock as simple close x -->
+          </button>
+      </div>
+      <div class="px-8 pb-8 -mt-10 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-[24px] bg-paper p-1 shadow-lg mb-4">
+              <div class="w-full h-full rounded-[20px] bg-cream border border-sage/10 flex items-center justify-center overflow-hidden">
+                  {#if schoolProfileData.logoUrl}
+                      <img src={schoolProfileData.logoUrl} alt={schoolProfileData.name} class="w-full h-full object-cover" />
+                  {:else}
+                      <School size={32} class="text-sage" />
+                  {/if}
+              </div>
+          </div>
+          <h3 class="text-xl font-bold text-ink mb-1">{schoolProfileData.name}</h3>
+          <p class="text-[10px] text-sage font-bold uppercase tracking-[0.2em] mb-4">{schoolProfileData.district || ''} · {schoolProfileData.studentsCount || 0} Students</p>
+          
+          {#if schoolProfileData.motto}
+              <p class="text-xs italic text-sage bg-olive/5 py-3 px-6 rounded-2xl mb-6">"{schoolProfileData.motto}"</p>
+          {/if}
+
+          <div class="w-full grid grid-cols-2 gap-3 mb-8">
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Online Now</div>
+                  <div class="text-sm font-bold text-olive">{schoolProfileData.onlineCount || 0}</div>
+              </div>
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Status</div>
+                  <div class="text-sm font-bold text-ink">Verified</div>
+              </div>
+          </div>
+
+          <button 
+              onclick={() => { isSchoolProfileOpen = false; toggleSchool(schoolProfileData.$id || schoolProfileData.name); }}
+              class="w-full bg-olive text-white border-none py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-olive/20 transition-all cursor-pointer mb-6"
+          >
+              View Class Registry
+          </button>
+
+          <div class="w-full text-left">
+              <h4 class="text-[10px] font-bold text-sage uppercase tracking-widest mb-4 px-1">Top Active Students</h4>
+              {#if isLoadingSchoolStudents}
+                  <div class="flex gap-2 animate-pulse">
+                      {#each Array(3) as _}
+                          <div class="w-10 h-10 rounded-full bg-cream border border-sage/10"></div>
+                      {/each}
+                  </div>
+              {:else if schoolStudents.length === 0}
+                  <div class="text-[10px] text-sage italic px-1">No registered students found for this school.</div>
+              {:else}
+                  <div class="flex -space-x-3 overflow-hidden mb-4">
+                      {#each schoolStudents.slice(0, 5) as student}
+                          <div onclick={(e) => openProfileLightbox(e, { ...student, name: student.fullName })} class="w-10 h-10 rounded-full bg-paper border-2 border-paper ring-1 ring-sage/10 overflow-hidden cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.fullName}`} alt={student.fullName} class="w-full h-full object-cover" />
+                          </div>
+                      {/each}
+                      {#if schoolStudents.length > 5}
+                          <div class="w-10 h-10 rounded-full bg-olive/10 text-olive flex items-center justify-center text-[9px] font-bold border-2 border-paper ring-1 ring-sage/10">
+                              +{schoolStudents.length - 5}
+                          </div>
+                      {/if}
+                  </div>
+                  <div class="space-y-2">
+                       {#each schoolStudents.slice(0, 3) as student}
+                         <div class="flex items-center justify-between p-2 rounded-xl bg-cream/50 border border-sage/5">
+                            <div class="flex items-center gap-2">
+                               <div class="w-2 h-2 rounded-full {authService.computeIsOnline(student, currentTime) ? 'bg-accent' : 'bg-sage/40'}"></div>
+                               <span class="text-[10px] font-bold text-ink">{student.fullName}</span>
+                            </div>
+                            <span class="text-[8px] text-sage font-bold uppercase">{student.studentClass || 'Student'}</span>
+                         </div>
+                       {/each}
+                  </div>
+              {/if}
+          </div>
+      </div>
+  </div>
+</div>
+{/if}
+
+/app/applet/src/views/SocialView.svelte:1121:1
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+{#if isSchoolProfileOpen && schoolProfileData}
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isSchoolProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="h-24 bg-gradient-to-r from-olive/20 to-accent/20 relative">
+          <button onclick={() => isSchoolProfileOpen = false} class="absolute top-4 right-4 bg-paper/80 p-2 rounded-full border-none cursor-pointer hover:bg-paper transition-colors">
+              <Lock size={16} class="text-sage rotate-45" /> <!-- using lock as simple close x -->
+          </button>
+      </div>
+      <div class="px-8 pb-8 -mt-10 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-[24px] bg-paper p-1 shadow-lg mb-4">
+              <div class="w-full h-full rounded-[20px] bg-cream border border-sage/10 flex items-center justify-center overflow-hidden">
+                  {#if schoolProfileData.logoUrl}
+                      <img src={schoolProfileData.logoUrl} alt={schoolProfileData.name} class="w-full h-full object-cover" />
+                  {:else}
+                      <School size={32} class="text-sage" />
+                  {/if}
+              </div>
+          </div>
+          <h3 class="text-xl font-bold text-ink mb-1">{schoolProfileData.name}</h3>
+          <p class="text-[10px] text-sage font-bold uppercase tracking-[0.2em] mb-4">{schoolProfileData.district || ''} · {schoolProfileData.studentsCount || 0} Students</p>
+          
+          {#if schoolProfileData.motto}
+              <p class="text-xs italic text-sage bg-olive/5 py-3 px-6 rounded-2xl mb-6">"{schoolProfileData.motto}"</p>
+          {/if}
+
+          <div class="w-full grid grid-cols-2 gap-3 mb-8">
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Online Now</div>
+                  <div class="text-sm font-bold text-olive">{schoolProfileData.onlineCount || 0}</div>
+              </div>
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Status</div>
+                  <div class="text-sm font-bold text-ink">Verified</div>
+              </div>
+          </div>
+
+          <button 
+              onclick={() => { isSchoolProfileOpen = false; toggleSchool(schoolProfileData.$id || schoolProfileData.name); }}
+              class="w-full bg-olive text-white border-none py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-olive/20 transition-all cursor-pointer mb-6"
+          >
+              View Class Registry
+          </button>
+
+          <div class="w-full text-left">
+              <h4 class="text-[10px] font-bold text-sage uppercase tracking-widest mb-4 px-1">Top Active Students</h4>
+              {#if isLoadingSchoolStudents}
+                  <div class="flex gap-2 animate-pulse">
+                      {#each Array(3) as _}
+                          <div class="w-10 h-10 rounded-full bg-cream border border-sage/10"></div>
+                      {/each}
+                  </div>
+              {:else if schoolStudents.length === 0}
+                  <div class="text-[10px] text-sage italic px-1">No registered students found for this school.</div>
+              {:else}
+                  <div class="flex -space-x-3 overflow-hidden mb-4">
+                      {#each schoolStudents.slice(0, 5) as student}
+                          <div onclick={(e) => openProfileLightbox(e, { ...student, name: student.fullName })} class="w-10 h-10 rounded-full bg-paper border-2 border-paper ring-1 ring-sage/10 overflow-hidden cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.fullName}`} alt={student.fullName} class="w-full h-full object-cover" />
+                          </div>
+                      {/each}
+                      {#if schoolStudents.length > 5}
+                          <div class="w-10 h-10 rounded-full bg-olive/10 text-olive flex items-center justify-center text-[9px] font-bold border-2 border-paper ring-1 ring-sage/10">
+                              +{schoolStudents.length - 5}
+                          </div>
+                      {/if}
+                  </div>
+                  <div class="space-y-2">
+                       {#each schoolStudents.slice(0, 3) as student}
+                         <div class="flex items-center justify-between p-2 rounded-xl bg-cream/50 border border-sage/5">
+                            <div class="flex items-center gap-2">
+                               <div class="w-2 h-2 rounded-full {authService.computeIsOnline(student, currentTime) ? 'bg-accent' : 'bg-sage/40'}"></div>
+                               <span class="text-[10px] font-bold text-ink">{student.fullName}</span>
+                            </div>
+                            <span class="text-[8px] text-sage font-bold uppercase">{student.studentClass || 'Student'}</span>
+                         </div>
+                       {/each}
+                  </div>
+              {/if}
+          </div>
+      </div>
+  </div>
+</div>
+{/if}
+
+/app/applet/src/views/SocialView.svelte:1122:3
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isSchoolProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="h-24 bg-gradient-to-r from-olive/20 to-accent/20 relative">
+          <button onclick={() => isSchoolProfileOpen = false} class="absolute top-4 right-4 bg-paper/80 p-2 rounded-full border-none cursor-pointer hover:bg-paper transition-colors">
+              <Lock size={16} class="text-sage rotate-45" /> <!-- using lock as simple close x -->
+          </button>
+      </div>
+      <div class="px-8 pb-8 -mt-10 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-[24px] bg-paper p-1 shadow-lg mb-4">
+              <div class="w-full h-full rounded-[20px] bg-cream border border-sage/10 flex items-center justify-center overflow-hidden">
+                  {#if schoolProfileData.logoUrl}
+                      <img src={schoolProfileData.logoUrl} alt={schoolProfileData.name} class="w-full h-full object-cover" />
+                  {:else}
+                      <School size={32} class="text-sage" />
+                  {/if}
+              </div>
+          </div>
+          <h3 class="text-xl font-bold text-ink mb-1">{schoolProfileData.name}</h3>
+          <p class="text-[10px] text-sage font-bold uppercase tracking-[0.2em] mb-4">{schoolProfileData.district || ''} · {schoolProfileData.studentsCount || 0} Students</p>
+          
+          {#if schoolProfileData.motto}
+              <p class="text-xs italic text-sage bg-olive/5 py-3 px-6 rounded-2xl mb-6">"{schoolProfileData.motto}"</p>
+          {/if}
+
+          <div class="w-full grid grid-cols-2 gap-3 mb-8">
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Online Now</div>
+                  <div class="text-sm font-bold text-olive">{schoolProfileData.onlineCount || 0}</div>
+              </div>
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Status</div>
+                  <div class="text-sm font-bold text-ink">Verified</div>
+              </div>
+          </div>
+
+          <button 
+              onclick={() => { isSchoolProfileOpen = false; toggleSchool(schoolProfileData.$id || schoolProfileData.name); }}
+              class="w-full bg-olive text-white border-none py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-olive/20 transition-all cursor-pointer mb-6"
+          >
+              View Class Registry
+          </button>
+
+          <div class="w-full text-left">
+              <h4 class="text-[10px] font-bold text-sage uppercase tracking-widest mb-4 px-1">Top Active Students</h4>
+              {#if isLoadingSchoolStudents}
+                  <div class="flex gap-2 animate-pulse">
+                      {#each Array(3) as _}
+                          <div class="w-10 h-10 rounded-full bg-cream border border-sage/10"></div>
+                      {/each}
+                  </div>
+              {:else if schoolStudents.length === 0}
+                  <div class="text-[10px] text-sage italic px-1">No registered students found for this school.</div>
+              {:else}
+                  <div class="flex -space-x-3 overflow-hidden mb-4">
+                      {#each schoolStudents.slice(0, 5) as student}
+                          <div onclick={(e) => openProfileLightbox(e, { ...student, name: student.fullName })} class="w-10 h-10 rounded-full bg-paper border-2 border-paper ring-1 ring-sage/10 overflow-hidden cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.fullName}`} alt={student.fullName} class="w-full h-full object-cover" />
+                          </div>
+                      {/each}
+                      {#if schoolStudents.length > 5}
+                          <div class="w-10 h-10 rounded-full bg-olive/10 text-olive flex items-center justify-center text-[9px] font-bold border-2 border-paper ring-1 ring-sage/10">
+                              +{schoolStudents.length - 5}
+                          </div>
+                      {/if}
+                  </div>
+                  <div class="space-y-2">
+                       {#each schoolStudents.slice(0, 3) as student}
+                         <div class="flex items-center justify-between p-2 rounded-xl bg-cream/50 border border-sage/5">
+                            <div class="flex items-center gap-2">
+                               <div class="w-2 h-2 rounded-full {authService.computeIsOnline(student, currentTime) ? 'bg-accent' : 'bg-sage/40'}"></div>
+                               <span class="text-[10px] font-bold text-ink">{student.fullName}</span>
+                            </div>
+                            <span class="text-[8px] text-sage font-bold uppercase">{student.studentClass || 'Student'}</span>
+                         </div>
+                       {/each}
+                  </div>
+              {/if}
+          </div>
+      </div>
+  </div>
+</div>
+
+/app/applet/src/views/SocialView.svelte:1122:3
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isSchoolProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="h-24 bg-gradient-to-r from-olive/20 to-accent/20 relative">
+          <button onclick={() => isSchoolProfileOpen = false} class="absolute top-4 right-4 bg-paper/80 p-2 rounded-full border-none cursor-pointer hover:bg-paper transition-colors">
+              <Lock size={16} class="text-sage rotate-45" /> <!-- using lock as simple close x -->
+          </button>
+      </div>
+      <div class="px-8 pb-8 -mt-10 flex flex-col items-center text-center">
+          <div class="w-20 h-20 rounded-[24px] bg-paper p-1 shadow-lg mb-4">
+              <div class="w-full h-full rounded-[20px] bg-cream border border-sage/10 flex items-center justify-center overflow-hidden">
+                  {#if schoolProfileData.logoUrl}
+                      <img src={schoolProfileData.logoUrl} alt={schoolProfileData.name} class="w-full h-full object-cover" />
+                  {:else}
+                      <School size={32} class="text-sage" />
+                  {/if}
+              </div>
+          </div>
+          <h3 class="text-xl font-bold text-ink mb-1">{schoolProfileData.name}</h3>
+          <p class="text-[10px] text-sage font-bold uppercase tracking-[0.2em] mb-4">{schoolProfileData.district || ''} · {schoolProfileData.studentsCount || 0} Students</p>
+          
+          {#if schoolProfileData.motto}
+              <p class="text-xs italic text-sage bg-olive/5 py-3 px-6 rounded-2xl mb-6">"{schoolProfileData.motto}"</p>
+          {/if}
+
+          <div class="w-full grid grid-cols-2 gap-3 mb-8">
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Online Now</div>
+                  <div class="text-sm font-bold text-olive">{schoolProfileData.onlineCount || 0}</div>
+              </div>
+              <div class="bg-cream p-3 rounded-2xl border border-sage/5">
+                  <div class="text-[9px] font-bold text-sage uppercase tracking-widest mb-1">Status</div>
+                  <div class="text-sm font-bold text-ink">Verified</div>
+              </div>
+          </div>
+
+          <button 
+              onclick={() => { isSchoolProfileOpen = false; toggleSchool(schoolProfileData.$id || schoolProfileData.name); }}
+              class="w-full bg-olive text-white border-none py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-olive/20 transition-all cursor-pointer mb-6"
+          >
+              View Class Registry
+          </button>
+
+          <div class="w-full text-left">
+              <h4 class="text-[10px] font-bold text-sage uppercase tracking-widest mb-4 px-1">Top Active Students</h4>
+              {#if isLoadingSchoolStudents}
+                  <div class="flex gap-2 animate-pulse">
+                      {#each Array(3) as _}
+                          <div class="w-10 h-10 rounded-full bg-cream border border-sage/10"></div>
+                      {/each}
+                  </div>
+              {:else if schoolStudents.length === 0}
+                  <div class="text-[10px] text-sage italic px-1">No registered students found for this school.</div>
+              {:else}
+                  <div class="flex -space-x-3 overflow-hidden mb-4">
+                      {#each schoolStudents.slice(0, 5) as student}
+                          <div onclick={(e) => openProfileLightbox(e, { ...student, name: student.fullName })} class="w-10 h-10 rounded-full bg-paper border-2 border-paper ring-1 ring-sage/10 overflow-hidden cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.fullName}`} alt={student.fullName} class="w-full h-full object-cover" />
+                          </div>
+                      {/each}
+                      {#if schoolStudents.length > 5}
+                          <div class="w-10 h-10 rounded-full bg-olive/10 text-olive flex items-center justify-center text-[9px] font-bold border-2 border-paper ring-1 ring-sage/10">
+                              +{schoolStudents.length - 5}
+                          </div>
+                      {/if}
+                  </div>
+                  <div class="space-y-2">
+                       {#each schoolStudents.slice(0, 3) as student}
+                         <div class="flex items-center justify-between p-2 rounded-xl bg-cream/50 border border-sage/5">
+                            <div class="flex items-center gap-2">
+                               <div class="w-2 h-2 rounded-full {authService.computeIsOnline(student, currentTime) ? 'bg-accent' : 'bg-sage/40'}"></div>
+                               <span class="text-[10px] font-bold text-ink">{student.fullName}</span>
+                            </div>
+                            <span class="text-[8px] text-sage font-bold uppercase">{student.studentClass || 'Student'}</span>
+                         </div>
+                       {/each}
+                  </div>
+              {/if}
+          </div>
+      </div>
+  </div>
+</div>
+
+/app/applet/src/views/SocialView.svelte:1176:27
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                      {#each schoolStudents.slice(0, 5) as student}
+                          <div onclick={(e) => openProfileLightbox(e, { ...student, name: student.fullName })} class="w-10 h-10 rounded-full bg-paper border-2 border-paper ring-1 ring-sage/10 overflow-hidden cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.fullName}`} alt={student.fullName} class="w-full h-full object-cover" />
+                          </div>
+                      {/each}
+
+/app/applet/src/views/SocialView.svelte:1176:27
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                      {#each schoolStudents.slice(0, 5) as student}
+                          <div onclick={(e) => openProfileLightbox(e, { ...student, name: student.fullName })} class="w-10 h-10 rounded-full bg-paper border-2 border-paper ring-1 ring-sage/10 overflow-hidden cursor-pointer hover:z-10 transition-transform hover:scale-110">
+                              <img src={student.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.fullName}`} alt={student.fullName} class="w-full h-full object-cover" />
+                          </div>
+                      {/each}
+
+/app/applet/src/views/SocialView.svelte:1206:1
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+{#if isClassProfileOpen && classProfileData}
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isClassProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="bg-olive/10 p-6 flex items-center justify-between">
+          <h3 class="font-bold text-ink text-lg">Class Profile</h3>
+          <button onclick={() => isClassProfileOpen = false} class="bg-paper/80 p-2 rounded-full border-none cursor-pointer">
+              <Search size={16} class="text-sage rotate-45" /> 
+          </button>
+      </div>
+      <div class="p-8">
+          <div class="flex items-center gap-4 mb-8">
+              <div class="w-16 h-16 rounded-2xl bg-olive flex items-center justify-center shrink-0">
+                  <BookOpen size={28} class="text-white" />
+              </div>
+              <div>
+                  <h4 class="text-xl font-bold text-ink leading-tight">{classProfileData.name}</h4>
+                  <p class="text-[10px] text-sage font-bold uppercase tracking-widest mt-1">Instructor Managed</p>
+              </div>
+          </div>
+
+          <div class="space-y-4 mb-8">
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Instructor</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.teacherName}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <MessageSquare size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Inscribed Students</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.studentsCount || 0} members</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <UserPlus size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Last Activity</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.$createdAt ? new Date(classProfileData.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <Globe size={14} class="text-olive" />
+                  </div>
+              </div>
+          </div>
+
+          <button 
+              onclick={(e) => { isClassProfileOpen = false; handleRequestJoin(classProfileData.$id || classProfileData.id, e); }}
+              disabled={requestedClasses.has(classProfileData.$id || classProfileData.id)}
+              class="w-full py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest transition-all {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'bg-olive/10 text-olive border border-olive/20' : 'bg-olive text-white border-none shadow-lg hover:shadow-olive/20 cursor-pointer'}"
+          >
+              {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'Already Applied' : 'Request to Join Class'}
+          </button>
+      </div>
+  </div>
+</div>
+{/if}
+
+/app/applet/src/views/SocialView.svelte:1206:1
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+{#if isClassProfileOpen && classProfileData}
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isClassProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="bg-olive/10 p-6 flex items-center justify-between">
+          <h3 class="font-bold text-ink text-lg">Class Profile</h3>
+          <button onclick={() => isClassProfileOpen = false} class="bg-paper/80 p-2 rounded-full border-none cursor-pointer">
+              <Search size={16} class="text-sage rotate-45" /> 
+          </button>
+      </div>
+      <div class="p-8">
+          <div class="flex items-center gap-4 mb-8">
+              <div class="w-16 h-16 rounded-2xl bg-olive flex items-center justify-center shrink-0">
+                  <BookOpen size={28} class="text-white" />
+              </div>
+              <div>
+                  <h4 class="text-xl font-bold text-ink leading-tight">{classProfileData.name}</h4>
+                  <p class="text-[10px] text-sage font-bold uppercase tracking-widest mt-1">Instructor Managed</p>
+              </div>
+          </div>
+
+          <div class="space-y-4 mb-8">
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Instructor</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.teacherName}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <MessageSquare size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Inscribed Students</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.studentsCount || 0} members</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <UserPlus size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Last Activity</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.$createdAt ? new Date(classProfileData.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <Globe size={14} class="text-olive" />
+                  </div>
+              </div>
+          </div>
+
+          <button 
+              onclick={(e) => { isClassProfileOpen = false; handleRequestJoin(classProfileData.$id || classProfileData.id, e); }}
+              disabled={requestedClasses.has(classProfileData.$id || classProfileData.id)}
+              class="w-full py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest transition-all {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'bg-olive/10 text-olive border border-olive/20' : 'bg-olive text-white border-none shadow-lg hover:shadow-olive/20 cursor-pointer'}"
+          >
+              {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'Already Applied' : 'Request to Join Class'}
+          </button>
+      </div>
+  </div>
+</div>
+{/if}
+
+/app/applet/src/views/SocialView.svelte:1207:3
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isClassProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="bg-olive/10 p-6 flex items-center justify-between">
+          <h3 class="font-bold text-ink text-lg">Class Profile</h3>
+          <button onclick={() => isClassProfileOpen = false} class="bg-paper/80 p-2 rounded-full border-none cursor-pointer">
+              <Search size={16} class="text-sage rotate-45" /> 
+          </button>
+      </div>
+      <div class="p-8">
+          <div class="flex items-center gap-4 mb-8">
+              <div class="w-16 h-16 rounded-2xl bg-olive flex items-center justify-center shrink-0">
+                  <BookOpen size={28} class="text-white" />
+              </div>
+              <div>
+                  <h4 class="text-xl font-bold text-ink leading-tight">{classProfileData.name}</h4>
+                  <p class="text-[10px] text-sage font-bold uppercase tracking-widest mt-1">Instructor Managed</p>
+              </div>
+          </div>
+
+          <div class="space-y-4 mb-8">
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Instructor</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.teacherName}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <MessageSquare size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Inscribed Students</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.studentsCount || 0} members</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <UserPlus size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Last Activity</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.$createdAt ? new Date(classProfileData.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <Globe size={14} class="text-olive" />
+                  </div>
+              </div>
+          </div>
+
+          <button 
+              onclick={(e) => { isClassProfileOpen = false; handleRequestJoin(classProfileData.$id || classProfileData.id, e); }}
+              disabled={requestedClasses.has(classProfileData.$id || classProfileData.id)}
+              class="w-full py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest transition-all {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'bg-olive/10 text-olive border border-olive/20' : 'bg-olive text-white border-none shadow-lg hover:shadow-olive/20 cursor-pointer'}"
+          >
+              {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'Already Applied' : 'Request to Join Class'}
+          </button>
+      </div>
+  </div>
+</div>
+
+/app/applet/src/views/SocialView.svelte:1207:3
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+<div class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick={() => isClassProfileOpen = false}>
+  <div class="bg-paper w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+      <div class="bg-olive/10 p-6 flex items-center justify-between">
+          <h3 class="font-bold text-ink text-lg">Class Profile</h3>
+          <button onclick={() => isClassProfileOpen = false} class="bg-paper/80 p-2 rounded-full border-none cursor-pointer">
+              <Search size={16} class="text-sage rotate-45" /> 
+          </button>
+      </div>
+      <div class="p-8">
+          <div class="flex items-center gap-4 mb-8">
+              <div class="w-16 h-16 rounded-2xl bg-olive flex items-center justify-center shrink-0">
+                  <BookOpen size={28} class="text-white" />
+              </div>
+              <div>
+                  <h4 class="text-xl font-bold text-ink leading-tight">{classProfileData.name}</h4>
+                  <p class="text-[10px] text-sage font-bold uppercase tracking-widest mt-1">Instructor Managed</p>
+              </div>
+          </div>
+
+          <div class="space-y-4 mb-8">
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Instructor</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.teacherName}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <MessageSquare size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Inscribed Students</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.studentsCount || 0} members</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <UserPlus size={14} class="text-olive" />
+                  </div>
+              </div>
+
+              <div class="flex items-center justify-between p-4 bg-cream rounded-2xl border border-sage/5">
+                  <div>
+                      <div class="text-[9px] font-bold text-sage uppercase tracking-widest">Last Activity</div>
+                      <div class="text-sm font-bold text-ink">{classProfileData.$createdAt ? new Date(classProfileData.$createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</div>
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-paper flex items-center justify-center border border-sage/10">
+                      <Globe size={14} class="text-olive" />
+                  </div>
+              </div>
+          </div>
+
+          <button 
+              onclick={(e) => { isClassProfileOpen = false; handleRequestJoin(classProfileData.$id || classProfileData.id, e); }}
+              disabled={requestedClasses.has(classProfileData.$id || classProfileData.id)}
+              class="w-full py-4 rounded-[20px] font-bold text-xs uppercase tracking-widest transition-all {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'bg-olive/10 text-olive border border-olive/20' : 'bg-olive text-white border-none shadow-lg hover:shadow-olive/20 cursor-pointer'}"
+          >
+              {requestedClasses.has(classProfileData.$id || classProfileData.id) ? 'Already Applied' : 'Request to Join Class'}
+          </button>
+      </div>
+  </div>
+</div>
+
+/app/applet/src/views/VirtualClassroomView.svelte:27:28
+Warn: This reference only captures the initial value of `role`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let activeTab = $state<'chat' | 'participants'>(initialActiveTab);
+  const initialBoardMode = role === 'teacher' ? 'text' : 'audio';
+  let boardMode = $state<'audio' | 'image' | 'text'>(initialBoardMode);
+
+/app/applet/src/views/ProfileView.svelte:260:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Surname</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:269:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Given Name</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:280:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div class="space-y-1.5">
+              <label class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Short Bio</label>
+              <textarea
+
+/app/applet/src/views/ProfileView.svelte:291:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">School</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:300:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">District</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:312:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Class/Level</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:321:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Age</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:332:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div class="space-y-1.5 border-t border-black/5 pt-4">
+              <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">House (Optional)</label>
+              <input
+
+/app/applet/src/views/ProfileView.svelte:343:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Combination</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:352:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+              <div class="space-y-1.5">
+                <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Best Subjects</label>
+                <input
+
+/app/applet/src/views/ProfileView.svelte:363:15
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+            <div class="space-y-1.5 border-t border-black/5 pt-4">
+              <label class="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Clubs & Societies</label>
+              <input
+
+/app/applet/src/views/InboxView.svelte:698:23
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                   <div class="flex items-center justify-between p-4 {i < incomingRequests.length - 1 ? 'border-b border-sage/10' : ''}">
+                      <div class="flex items-center gap-3 cursor-pointer" onclick={(e) => openProfileLightbox(e, req)}>
+                         {#if req.avatarUrl}
+                             <img src={req.avatarUrl} alt="Avatar" class="w-12 h-12 rounded-full object-cover shrink-0" />
+                         {:else}
+                             <div class="w-12 h-12 rounded-full bg-sage/10 text-ink flex items-center justify-center shrink-0 font-bold text-lg">
+                               {req.name.charAt(0).toUpperCase()}
+                             </div>
+                         {/if}
+                         <div>
+                           <h4 class="font-bold text-ink">{req.name}</h4>
+                           <p class="text-xs text-sage font-bold uppercase tracking-widest mt-1">{req.school} {#if req.studentClass}· {req.studentClass}{/if}</p>
+                         </div>
+                      </div>
+                      <div class="flex flex-col gap-2 shrink-0">
+
+/app/applet/src/views/InboxView.svelte:698:23
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                   <div class="flex items-center justify-between p-4 {i < incomingRequests.length - 1 ? 'border-b border-sage/10' : ''}">
+                      <div class="flex items-center gap-3 cursor-pointer" onclick={(e) => openProfileLightbox(e, req)}>
+                         {#if req.avatarUrl}
+                             <img src={req.avatarUrl} alt="Avatar" class="w-12 h-12 rounded-full object-cover shrink-0" />
+                         {:else}
+                             <div class="w-12 h-12 rounded-full bg-sage/10 text-ink flex items-center justify-center shrink-0 font-bold text-lg">
+                               {req.name.charAt(0).toUpperCase()}
+                             </div>
+                         {/if}
+                         <div>
+                           <h4 class="font-bold text-ink">{req.name}</h4>
+                           <p class="text-xs text-sage font-bold uppercase tracking-widest mt-1">{req.school} {#if req.studentClass}· {req.studentClass}{/if}</p>
+                         </div>
+                      </div>
+                      <div class="flex flex-col gap-2 shrink-0">
+
+/app/applet/src/views/MathMessageCanvas.svelte:554:3
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+  <!-- Canvas Area -->
+  <div class="flex-1 relative overflow-hidden"
+       bind:this={canvasEl}
+       onpointermove={onCanvasPointerMove}
+       onpointerup={onCanvasPointerUp}
+       ontouchstart={onCanvasTouchStart}
+       ontouchend={onCanvasTouchEnd}
+       onclick={onCanvasClick}
+       ondblclick={onCanvasDoubleClick}
+       style="background-color: #fdfdfd; background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px;">
+       
+     <!-- Remote Cursors -->
+     {#each activePresences.filter(p => p.userId !== currentUserId) as presence}
+        <div class="absolute inset-0 pointer-events-none z-50 transition-opacity duration-300"
+             style="transform: translate({presence.cursorX}px, {presence.cursorY}px);">
+           <MousePointer2 size={18} fill={presence.color || '#3b82f6'} class="text-white drop-shadow-md relative -left-1.5 -top-1.5" />
+           <div class="absolute top-4 left-3 px-2 py-0.5 rounded shadow-sm text-[10px] font-bold text-white whitespace-nowrap {presence.isChalkHolder ? 'bg-amber-500' : 'bg-blue-500'}">
+              {presence.displayName}
+              {#if presence.isChalkHolder}
+                <span class="ml-1 text-[8px] uppercase tracking-widest opacity-80">Chalk</span>
+              {/if}
+           </div>
+        </div>
+     {/each}
+
+     <!-- Start Hint -->
+     {#if elements.length === 0}
+        <div class="absolute inset-0 flex flex-col items-center justify-center opacity-50 pointer-events-none">
+           <div class="flex gap-4 mb-8">
+              <div class="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center font-serif text-xl italic text-gray-500">√x</div>
+              <div class="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center font-serif text-xl italic text-gray-500">x²</div>
+           </div>
+           <div class="text-sm font-bold text-gray-800">Double tap to write</div>
+           <div class="text-xs text-gray-500 mt-2 max-w-[200px] text-center leading-relaxed">Use the toolbar to add math elements, equations, diagrams and more.</div>
+        </div>
+     {/if}
+     
+     <!-- Elements -->
+     {#each elements as el}
+       {#if !el.isAnnotation || showAnnotations}
+         <!-- svelte-ignore a11y_click_events_have_key_events -->
+         <!-- svelte-ignore a11y_no_static_element_interactions -->
+         <div class="absolute group touch-none {el.isAnnotation ? 'z-20' : 'z-10'} {selectedElementId === el.id ? '!z-30' : ''} cursor-move"
+              style="transform: translate({el.x}px, {el.y}px) rotate({el.rotation || 0}deg); width: {el.width}px; height: {el.height}px;"
+              onpointerdown={(e) => onElementPointerDown(e, el.id)}
+              ondblclick={(e) => { e.stopPropagation(); if(el.type === 'text' || el.type === 'equation') { editingElementId = el.id; } else { propertiesLightboxOpen = el.id; } }}>
+            
+            <!-- CreatedBy Tag for Annotations/Sticky Notes -->
+            {#if el.isAnnotation && el.createdBy}
+               <div class="absolute -top-5 left-0 text-[8px] font-bold text-gray-500 bg-white/80 px-1 py-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  {el.createdBy}
+               </div>
+            {/if}
+
+            <!-- Content rendering based on type -->
+           {#if el.type === 'equation' || el.type === 'text'}
+             {#if editingElementId === el.id}
+               <!-- svelte-ignore a11y_autofocus -->
+               <textarea 
+                  bind:value={el.content} 
+                  bind:this={activeTextareaRef}
+                  inputmode="none"
+                  class="w-full h-full bg-transparent border-none outline-none font-serif text-3xl text-indigo-900 tracking-wide resize-none" 
+                  autofocus
+                  onpointerdown={(e) => e.stopPropagation()}
+                  onmouseup={() => { if(document.getSelection()?.toString().trim().length) propertiesLightboxOpen = el.id; }}
+               ></textarea>
+             {:else}
+               <div class="w-full h-full flex items-center justify-center font-serif text-3xl text-indigo-900 tracking-wide pointer-events-none whitespace-pre-wrap text-center" onselectstart={(e) => e.stopPropagation()}>
+                 {el.content}
+               </div>
+             {/if}
+           {:else if el.type === 'probability_tree'}
+             <div class="w-full h-full border border-green-500 rounded-xl bg-green-50 flex items-center justify-center text-xs font-bold text-green-800 pointer-events-none relative overflow-hidden">
+                <div class="absolute w-[2px] h-[50%] bg-green-400 rotate-45 top-[10%] left-[30%]"></div>
+                <div class="absolute w-[2px] h-[50%] bg-green-400 -rotate-45 bottom-[10%] left-[30%]"></div>
+                <div class="z-10 bg-white px-2 py-0.5 rounded shadow-sm text-[10px]">Prob. Tree</div>
+             </div>
+           {:else if el.type === 'venn_diagram'}
+             <div class="w-full h-full relative pointer-events-none flex items-center justify-center">
+                <div class="absolute w-[60%] h-[60%] border-2 border-indigo-400 rounded-full left-[10%] bg-indigo-100/30"></div>
+                <div class="absolute w-[60%] h-[60%] border-2 border-blue-400 rounded-full right-[10%] bg-blue-100/30"></div>
+                <span class="text-xs font-bold text-indigo-800 z-10">Venn</span>
+             </div>
+           {:else if el.type === 'matrix_grid'}
+             <div class="w-full h-full flex items-center justify-center font-mono text-xs text-indigo-900 pointer-events-none border-l-2 border-r-2 border-indigo-700 rounded-sm">
+                <div class="grid grid-cols-2 gap-2 text-center p-2">
+                   <span>a</span><span>b</span>
+                   <span>c</span><span>d</span>
+                </div>
+             </div>
+           {:else if el.type === 'trig_unit_circle'}
+             <div class="w-full h-full relative pointer-events-none border border-orange-200 rounded-xl bg-orange-50/50 flex items-center justify-center overflow-hidden">
+                <div class="absolute w-full h-[1px] bg-orange-300"></div>
+                <div class="absolute h-full w-[1px] bg-orange-300"></div>
+                <div class="absolute w-[80%] h-[80%] border-2 border-orange-500 rounded-full"></div>
+                <div class="absolute w-[40%] h-[1px] bg-red-500 origin-left rotate-[-30deg]"></div>
+             </div>
+           {:else if el.type === 'pie_chart'}
+             <div class="w-full h-full rounded-full bg-blue-100 border-2 border-blue-500 pointer-events-none flex items-center justify-center text-xs font-bold text-blue-800">Pie Chart</div>
+           {:else if el.type === 'table'}
+             <div class="w-full h-full border-2 border-indigo-500 bg-white grid grid-cols-2 grid-rows-2 pointer-events-none text-xs text-center"><div class="border-b border-r border-indigo-200 p-1">A</div><div class="border-b border-indigo-200 p-1">B</div><div class="border-r border-indigo-200 p-1">C</div><div class="p-1">D</div></div>
+           {:else if el.type === 'curve'}
+             <div class="w-full h-full border-b-2 border-l-2 border-gray-400 relative pointer-events-none flex items-end">
+                <div class="w-full h-[150%] border-b-2 border-l-2 border-blue-500 rounded-bl-full" style="border-radius: 0 0 0 100%;"></div>
+             </div>
+           {:else if el.type === 'rectangle'}
+             <div class="w-full h-full border-2 border-indigo-800 pointer-events-none"></div>
+           {:else if el.type === 'circle'}
+             <div class="w-full h-full border-2 border-indigo-800 rounded-full pointer-events-none"></div>
+           {:else}
+             <div class="w-full h-full border border-gray-300 flex items-center justify-center text-xs text-gray-500 pointer-events-none">{el.type}</div>
+           {/if}
+            
+           <!-- Transform Box & Handles -->
+           {#if selectedElementId === el.id}
+             <!-- Transform box border -->
+             <div class="absolute inset-0 border-[1.5px] border-[#075985] border-dashed pointer-events-none z-10"></div>
+             
+             <!-- Handles -->
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -top-2 -left-2 cursor-nwse-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'nw')}></div>
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -top-2 -right-2 cursor-nesw-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'ne')}></div>
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -bottom-2 -left-2 cursor-nesw-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'sw')}></div>
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -bottom-2 -right-2 cursor-nwse-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'se')}></div>
+             
+             <!-- Rotate handle -->
+             <!-- svelte-ignore a11y_click_events_have_key_events -->
+             <!-- svelte-ignore a11y_no_static_element_interactions -->
+             <div class="absolute w-4 h-4 bg-white border border-[#075985] rounded-full -top-8 left-1/2 -translate-x-1/2 cursor-grab z-20 flex items-center justify-center hover:scale-125 transition-transform active:cursor-grabbing" onpointerdown={startRotating}>
+                <div class="w-1.5 h-1.5 rounded-full bg-[#075985]"></div>
+             </div>
+             <!-- Rotate link line -->
+             <div class="absolute w-[1.5px] h-5 bg-[#075985] -top-5 left-1/2 pointer-events-none"></div>
+           {/if}
+        </div>
+       {/if}
+     {/each}
+
+     <!-- Transform Quick Actions floating toolbar -->
+     {#if selectedElementId && !propertiesLightboxOpen}
+       <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-gray-100 px-3 py-1.5 flex gap-2 z-30 animate-in slide-in-from-bottom-4 duration-200">
+         <button class="p-2 text-gray-600 hover:text-black hover:bg-gray-50 rounded-full border-none bg-transparent cursor-pointer"><Copy size={18} /></button>
+         <button class="p-2 text-gray-600 hover:text-black hover:bg-gray-50 rounded-full border-none bg-transparent cursor-pointer"><Lock size={18} /></button>
+         <button onclick={(e) => { e.stopPropagation(); elements = elements.filter(el => el.id !== selectedElementId); selectedElementId = null; myIsEditing = true; }} class="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"><Trash2 size={18} /></button>
+         <div class="w-[1px] h-6 bg-gray-200 my-auto"></div>
+         <button class="p-2 text-gray-600 hover:text-black hover:bg-gray-50 rounded-full border-none bg-transparent cursor-pointer"><MoreHorizontal size={18} /></button>
+       </div>
+     {/if}
+  </div>
+
+/app/applet/src/views/MathMessageCanvas.svelte:554:3
+Warn: `<div>` with a pointermove, pointerup, touchstart, touchend, click or dblclick handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+  <!-- Canvas Area -->
+  <div class="flex-1 relative overflow-hidden"
+       bind:this={canvasEl}
+       onpointermove={onCanvasPointerMove}
+       onpointerup={onCanvasPointerUp}
+       ontouchstart={onCanvasTouchStart}
+       ontouchend={onCanvasTouchEnd}
+       onclick={onCanvasClick}
+       ondblclick={onCanvasDoubleClick}
+       style="background-color: #fdfdfd; background-image: radial-gradient(#e5e7eb 1px, transparent 1px); background-size: 20px 20px;">
+       
+     <!-- Remote Cursors -->
+     {#each activePresences.filter(p => p.userId !== currentUserId) as presence}
+        <div class="absolute inset-0 pointer-events-none z-50 transition-opacity duration-300"
+             style="transform: translate({presence.cursorX}px, {presence.cursorY}px);">
+           <MousePointer2 size={18} fill={presence.color || '#3b82f6'} class="text-white drop-shadow-md relative -left-1.5 -top-1.5" />
+           <div class="absolute top-4 left-3 px-2 py-0.5 rounded shadow-sm text-[10px] font-bold text-white whitespace-nowrap {presence.isChalkHolder ? 'bg-amber-500' : 'bg-blue-500'}">
+              {presence.displayName}
+              {#if presence.isChalkHolder}
+                <span class="ml-1 text-[8px] uppercase tracking-widest opacity-80">Chalk</span>
+              {/if}
+           </div>
+        </div>
+     {/each}
+
+     <!-- Start Hint -->
+     {#if elements.length === 0}
+        <div class="absolute inset-0 flex flex-col items-center justify-center opacity-50 pointer-events-none">
+           <div class="flex gap-4 mb-8">
+              <div class="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center font-serif text-xl italic text-gray-500">√x</div>
+              <div class="w-12 h-12 rounded-full border-2 border-gray-200 flex items-center justify-center font-serif text-xl italic text-gray-500">x²</div>
+           </div>
+           <div class="text-sm font-bold text-gray-800">Double tap to write</div>
+           <div class="text-xs text-gray-500 mt-2 max-w-[200px] text-center leading-relaxed">Use the toolbar to add math elements, equations, diagrams and more.</div>
+        </div>
+     {/if}
+     
+     <!-- Elements -->
+     {#each elements as el}
+       {#if !el.isAnnotation || showAnnotations}
+         <!-- svelte-ignore a11y_click_events_have_key_events -->
+         <!-- svelte-ignore a11y_no_static_element_interactions -->
+         <div class="absolute group touch-none {el.isAnnotation ? 'z-20' : 'z-10'} {selectedElementId === el.id ? '!z-30' : ''} cursor-move"
+              style="transform: translate({el.x}px, {el.y}px) rotate({el.rotation || 0}deg); width: {el.width}px; height: {el.height}px;"
+              onpointerdown={(e) => onElementPointerDown(e, el.id)}
+              ondblclick={(e) => { e.stopPropagation(); if(el.type === 'text' || el.type === 'equation') { editingElementId = el.id; } else { propertiesLightboxOpen = el.id; } }}>
+            
+            <!-- CreatedBy Tag for Annotations/Sticky Notes -->
+            {#if el.isAnnotation && el.createdBy}
+               <div class="absolute -top-5 left-0 text-[8px] font-bold text-gray-500 bg-white/80 px-1 py-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  {el.createdBy}
+               </div>
+            {/if}
+
+            <!-- Content rendering based on type -->
+           {#if el.type === 'equation' || el.type === 'text'}
+             {#if editingElementId === el.id}
+               <!-- svelte-ignore a11y_autofocus -->
+               <textarea 
+                  bind:value={el.content} 
+                  bind:this={activeTextareaRef}
+                  inputmode="none"
+                  class="w-full h-full bg-transparent border-none outline-none font-serif text-3xl text-indigo-900 tracking-wide resize-none" 
+                  autofocus
+                  onpointerdown={(e) => e.stopPropagation()}
+                  onmouseup={() => { if(document.getSelection()?.toString().trim().length) propertiesLightboxOpen = el.id; }}
+               ></textarea>
+             {:else}
+               <div class="w-full h-full flex items-center justify-center font-serif text-3xl text-indigo-900 tracking-wide pointer-events-none whitespace-pre-wrap text-center" onselectstart={(e) => e.stopPropagation()}>
+                 {el.content}
+               </div>
+             {/if}
+           {:else if el.type === 'probability_tree'}
+             <div class="w-full h-full border border-green-500 rounded-xl bg-green-50 flex items-center justify-center text-xs font-bold text-green-800 pointer-events-none relative overflow-hidden">
+                <div class="absolute w-[2px] h-[50%] bg-green-400 rotate-45 top-[10%] left-[30%]"></div>
+                <div class="absolute w-[2px] h-[50%] bg-green-400 -rotate-45 bottom-[10%] left-[30%]"></div>
+                <div class="z-10 bg-white px-2 py-0.5 rounded shadow-sm text-[10px]">Prob. Tree</div>
+             </div>
+           {:else if el.type === 'venn_diagram'}
+             <div class="w-full h-full relative pointer-events-none flex items-center justify-center">
+                <div class="absolute w-[60%] h-[60%] border-2 border-indigo-400 rounded-full left-[10%] bg-indigo-100/30"></div>
+                <div class="absolute w-[60%] h-[60%] border-2 border-blue-400 rounded-full right-[10%] bg-blue-100/30"></div>
+                <span class="text-xs font-bold text-indigo-800 z-10">Venn</span>
+             </div>
+           {:else if el.type === 'matrix_grid'}
+             <div class="w-full h-full flex items-center justify-center font-mono text-xs text-indigo-900 pointer-events-none border-l-2 border-r-2 border-indigo-700 rounded-sm">
+                <div class="grid grid-cols-2 gap-2 text-center p-2">
+                   <span>a</span><span>b</span>
+                   <span>c</span><span>d</span>
+                </div>
+             </div>
+           {:else if el.type === 'trig_unit_circle'}
+             <div class="w-full h-full relative pointer-events-none border border-orange-200 rounded-xl bg-orange-50/50 flex items-center justify-center overflow-hidden">
+                <div class="absolute w-full h-[1px] bg-orange-300"></div>
+                <div class="absolute h-full w-[1px] bg-orange-300"></div>
+                <div class="absolute w-[80%] h-[80%] border-2 border-orange-500 rounded-full"></div>
+                <div class="absolute w-[40%] h-[1px] bg-red-500 origin-left rotate-[-30deg]"></div>
+             </div>
+           {:else if el.type === 'pie_chart'}
+             <div class="w-full h-full rounded-full bg-blue-100 border-2 border-blue-500 pointer-events-none flex items-center justify-center text-xs font-bold text-blue-800">Pie Chart</div>
+           {:else if el.type === 'table'}
+             <div class="w-full h-full border-2 border-indigo-500 bg-white grid grid-cols-2 grid-rows-2 pointer-events-none text-xs text-center"><div class="border-b border-r border-indigo-200 p-1">A</div><div class="border-b border-indigo-200 p-1">B</div><div class="border-r border-indigo-200 p-1">C</div><div class="p-1">D</div></div>
+           {:else if el.type === 'curve'}
+             <div class="w-full h-full border-b-2 border-l-2 border-gray-400 relative pointer-events-none flex items-end">
+                <div class="w-full h-[150%] border-b-2 border-l-2 border-blue-500 rounded-bl-full" style="border-radius: 0 0 0 100%;"></div>
+             </div>
+           {:else if el.type === 'rectangle'}
+             <div class="w-full h-full border-2 border-indigo-800 pointer-events-none"></div>
+           {:else if el.type === 'circle'}
+             <div class="w-full h-full border-2 border-indigo-800 rounded-full pointer-events-none"></div>
+           {:else}
+             <div class="w-full h-full border border-gray-300 flex items-center justify-center text-xs text-gray-500 pointer-events-none">{el.type}</div>
+           {/if}
+            
+           <!-- Transform Box & Handles -->
+           {#if selectedElementId === el.id}
+             <!-- Transform box border -->
+             <div class="absolute inset-0 border-[1.5px] border-[#075985] border-dashed pointer-events-none z-10"></div>
+             
+             <!-- Handles -->
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -top-2 -left-2 cursor-nwse-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'nw')}></div>
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -top-2 -right-2 cursor-nesw-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'ne')}></div>
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -bottom-2 -left-2 cursor-nesw-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'sw')}></div>
+             <div class="absolute w-3.5 h-3.5 bg-white border border-[#075985] rounded-full -bottom-2 -right-2 cursor-nwse-resize z-20 hover:scale-125 transition-transform" onpointerdown={(e) => startDraggingScale(e, 'se')}></div>
+             
+             <!-- Rotate handle -->
+             <!-- svelte-ignore a11y_click_events_have_key_events -->
+             <!-- svelte-ignore a11y_no_static_element_interactions -->
+             <div class="absolute w-4 h-4 bg-white border border-[#075985] rounded-full -top-8 left-1/2 -translate-x-1/2 cursor-grab z-20 flex items-center justify-center hover:scale-125 transition-transform active:cursor-grabbing" onpointerdown={startRotating}>
+                <div class="w-1.5 h-1.5 rounded-full bg-[#075985]"></div>
+             </div>
+             <!-- Rotate link line -->
+             <div class="absolute w-[1.5px] h-5 bg-[#075985] -top-5 left-1/2 pointer-events-none"></div>
+           {/if}
+        </div>
+       {/if}
+     {/each}
+
+     <!-- Transform Quick Actions floating toolbar -->
+     {#if selectedElementId && !propertiesLightboxOpen}
+       <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-full shadow-[0_4px_20px_-4px_rgba(0,0,0,0.15)] border border-gray-100 px-3 py-1.5 flex gap-2 z-30 animate-in slide-in-from-bottom-4 duration-200">
+         <button class="p-2 text-gray-600 hover:text-black hover:bg-gray-50 rounded-full border-none bg-transparent cursor-pointer"><Copy size={18} /></button>
+         <button class="p-2 text-gray-600 hover:text-black hover:bg-gray-50 rounded-full border-none bg-transparent cursor-pointer"><Lock size={18} /></button>
+         <button onclick={(e) => { e.stopPropagation(); elements = elements.filter(el => el.id !== selectedElementId); selectedElementId = null; myIsEditing = true; }} class="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-full border-none bg-transparent cursor-pointer"><Trash2 size={18} /></button>
+         <div class="w-[1px] h-6 bg-gray-200 my-auto"></div>
+         <button class="p-2 text-gray-600 hover:text-black hover:bg-gray-50 rounded-full border-none bg-transparent cursor-pointer"><MoreHorizontal size={18} /></button>
+       </div>
+     {/if}
+  </div>
+
+/app/applet/src/views/MathMessageCanvas.svelte:287:7
+Warn: `canvasEl` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+https://svelte.dev/e/non_reactive_update (svelte)
+  let originalRot = 0;
+  let canvasEl: HTMLDivElement;
+
+/app/applet/src/views/MathMessageCanvas.svelte:543:30
+Error: Cannot find name 'isChalkHolder'. (ts)
+      <!-- Chalk holder toggle -->
+      <button onclick={() => isChalkHolder = !isChalkHolder} class="p-2 text-gray-500 hover:bg-gray-100 rounded-full cursor-pointer transition-colors border-none bg-transparent" title="Take Chalk">
+        <span class={isChalkHolder ? 'text-amber-500 font-bold' : 'text-gray-400 opacity-50'}>✏️</span>
+
+/app/applet/src/views/MathMessageCanvas.svelte:543:47
+Error: Cannot find name 'isChalkHolder'. (ts)
+      <!-- Chalk holder toggle -->
+      <button onclick={() => isChalkHolder = !isChalkHolder} class="p-2 text-gray-500 hover:bg-gray-100 rounded-full cursor-pointer transition-colors border-none bg-transparent" title="Take Chalk">
+        <span class={isChalkHolder ? 'text-amber-500 font-bold' : 'text-gray-400 opacity-50'}>✏️</span>
+
+/app/applet/src/views/MathMessageCanvas.svelte:544:22
+Error: Cannot find name 'isChalkHolder'. (ts)
+      <button onclick={() => isChalkHolder = !isChalkHolder} class="p-2 text-gray-500 hover:bg-gray-100 rounded-full cursor-pointer transition-colors border-none bg-transparent" title="Take Chalk">
+        <span class={isChalkHolder ? 'text-amber-500 font-bold' : 'text-gray-400 opacity-50'}>✏️</span>
+      </button>
+
+/app/applet/src/views/ChatWindow.svelte:124:37
+Warn: This reference only captures the initial value of `conversationId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let isInitialLoadDone = $state(false);
+  let activeConversationId = $state(conversationId);
+  let syncTimeout: any;
+
+/app/applet/src/views/ChatWindow.svelte:820:27
+Warn: This reference only captures the initial value of `conversationId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  // Handle Case where conversationId prop changes
+  let lastProcessedProp = conversationId;
+  $effect(() => {
+
+/app/applet/src/views/ChatWindow.svelte:2186:5
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+
+    <div 
+      bind:this={messagesContainer} 
+      onscroll={handleScroll}
+      onclick={() => showMathKeyboard = false}
+      class="flex-1 overflow-y-auto px-5 pt-6 {showMathKeyboard ? 'pb-[360px]' : 'pb-40'} space-y-8 scroll-smooth relative transition-all duration-300"
+      ontouchstart={(e) => { if (!swipingMessageId && !swipingPinnedId) handleTouchStart(e, 'undo', 'undo') }}
+      ontouchmove={handleTouchMove}
+      ontouchend={handleTouchEnd}
+    >
+      {#if isLoading && messages.length === 0}
+        <div class="flex-1 flex flex-col items-center justify-center pt-32 gap-6">
+           <div class="relative">
+              <div class="w-16 h-16 border-4 border-orange-500/20 rounded-full"></div>
+              <div class="absolute inset-0 w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+           </div>
+           <div class="flex flex-col items-center gap-1">
+             <p class="text-sm font-bold text-[#00274d] animate-pulse uppercase tracking-widest">Opening Secure Channel</p>
+             <p class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Syncing learning stories...</p>
+           </div>
+        </div>
+      {:else if messages.length === 0 && !isLoading}
+        <div class="flex-1 flex flex-col items-center justify-center pt-20 pb-4 text-center px-10 animate-in fade-in duration-300">
+           <div class="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mb-6 shadow-sm border border-orange-100">
+              <MessageSquare size={32} />
+           </div>
+           <h3 class="text-lg font-bold text-slate-800 mb-2">Start a conversation</h3>
+           <p class="text-sm text-slate-500 leading-relaxed">
+             Say hello to <span class="text-orange-500 font-bold">{contactName}</span>! It's the beginning of a great learning journey together.
+           </p>
+           <div class="mt-8 flex gap-2 flex-wrap justify-center">
+              <button 
+                onclick={() => msg = 'Hello! 👋'} 
+                class="px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                Hello! 👋
+              </button>
+              <button 
+                onclick={() => msg = 'How are you?'} 
+                class="px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                How are you?
+              </button>
+           </div>
+        </div>
+      {/if}
+      
+      {#if isSyncing && messages.length > 0}
+         <div class="absolute top-2 left-1/2 -translate-x-1/2 z-50">
+            <div class="px-3 py-1 bg-[#00274d]/80 backdrop-blur-md rounded-full text-[9px] font-bold text-white uppercase tracking-widest flex items-center gap-2 shadow-xl border border-white/10 animate-in slide-in-from-top-4">
+               <div class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
+               Updating Chat...
+            </div>
+         </div>
+      {/if}
+      {#snippet replyBox(msgObj)}
+        {#if msgObj.attachments?.find((a: any) => a.type === 'reply')}
+          {@const replyInfo = msgObj.attachments.find((a: any) => a.type === 'reply')}
+          <button 
+             type="button"
+             onclick={(e) => { e.stopPropagation(); scrollToMessage(replyInfo.replyToId); }}
+             class="mb-2 p-1.5 px-2.5 text-left cursor-pointer transition-all hover:brightness-95 hover:scale-[1.01] active:scale-[0.98] w-full rounded-r-lg rounded-l-[4px] border-none flex flex-col gap-0.5 bg-black/[0.04] dark:bg-white/[0.06] border-l-[4px] relative overflow-hidden self-stretch"
+             style="border-left-color: {replyInfo.replyToSenderId === currentUserId ? '#FF5B14' : '#00274d'}; text-align: left; display: flex; flex-direction: column;"
+             title="Jump to original message"
+          >
+             <span class="font-bold text-[11px] leading-tight" style="color: {replyInfo.replyToSenderId === currentUserId ? '#FF5B14' : '#00274d'};">
+                {replyInfo.replyToSenderId === currentUserId ? 'You' : contactName}
+             </span>
+             <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-normal w-full m-0 break-words whitespace-normal line-clamp-4">
+                {replyInfo.replyToType === 'audio' ? '🎤 Voice note' : replyInfo.replyToType === 'image' ? '📷 Image' : replyInfo.replyToType === 'video' ? '🎥 Video' : replyInfo.replyToContent}
+             </p>
+          </button>
+        {/if}
+      {/snippet}
+      {#snippet statusTicks(msgObj: any, textClass: string = 'text-gray-400', readColorClass: string = 'text-orange-500')}
+        <div class="flex items-center">
+          {#if msgObj.status === 'pending'}
+            <Clock size={12} class="{textClass} animate-pulse" />
+          {:else if msgObj.status === 'sent'}
+            <Check size={12} class={textClass} />
+          {:else if msgObj.status === 'delivered'}
+            <CheckCheck size={12} class={textClass} />
+          {:else if msgObj.status === 'read'}
+            <CheckCheck size={12} class={readColorClass} />
+          {:else if msgObj.status === 'error'}
+            <X size={12} class="text-red-500 font-bold" />
+          {:else}
+            <Check size={12} class={textClass} />
+          {/if}
+        </div>
+      {/snippet}
+
+      <!-- Undo Indicator (Right swipe) -->
+      {#if swipingUndo && swipeDistance > 30}
+         <div class="absolute inset-y-0 left-0 w-[140px] bg-green-500 flex items-center justify-center text-white z-50 rounded-r-[32px] shadow-2xl animate-in slide-in-from-left duration-300">
+            <span class="text-xs font-bold uppercase flex items-center gap-2 px-4 text-center leading-tight">
+               <ChevronLeft size={18} class="rotate-180 flex-shrink-0" /> 
+               {lastDeletedMessage ? 'Release to Restore' : 'Nothing to undo'}
+            </span>
+         </div>
+      {/if}
+      {#each renderedMessages as m, i (m.id)}
+        {@const isMe = m.isMe}
+        {@const msgType = m.type?.startsWith('f:') ? m.type.substring(2) : m.type}
+        {@const audioAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'audio')}
+        {@const displayContent = getDisplayContent(m)}
+        {@const _d = debugMessage(m)}
+
+        <!-- Unread divider based on PDF -->
+        {#if i === firstUnreadIndex}
+          <div 
+            bind:this={unreadMarkerEl}
+            class="flex items-center gap-4 my-8 px-4"
+          >
+            <div class="flex-1 h-px bg-orange-100/50"></div>
+            <div class="px-4 py-1.5 rounded-full bg-orange-50 border border-orange-100/50 shadow-sm flex items-center gap-2">
+              <div class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
+              <span class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Unread Messages</span>
+            </div>
+            <div class="flex-1 h-px bg-orange-100/50"></div>
+          </div>
+        {/if}
+        
+        <div 
+          id={`msg-${m.id}`} 
+          class={`flex flex-col w-full group transition-all duration-500 rounded-2xl relative overflow-hidden ${isMe ? 'items-end' : 'items-start'} ${highlightedMessageId === m.id ? 'bg-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02] shadow-md z-10 duration-200' : ''}`}
+          ontouchstart={(e) => handleTouchStart(e, m.id, 'msg')}
+          ontouchmove={handleTouchMove}
+          ontouchend={handleTouchEnd}
+          oncontextmenu={(e) => { e.preventDefault(); handlePin(m.id); }}
+          use:markRead={{ messageId: m.id, myUserId: currentUserId, senderId: m.senderId ?? m.sender_id }}
+        >
+          <!-- Reply Indicator background -->
+          {#if swipingMessageId === m.id && swipeDirection === 'right' && swipeDistance > 10}
+            <div 
+              class="absolute inset-y-0 left-0 bg-blue-500 flex items-center justify-start text-white pl-6"
+              style="width: {swipeDistance}px;"
+            >
+              <CornerUpLeft size={24} class={swipeDistance > 55 ? 'scale-110 text-white transition-all' : 'scale-90 text-white/75 transition-all'} />
+            </div>
+          {/if}
+
+          <!-- Delete Indicator background -->
+          {#if swipingMessageId === m.id && swipeDirection === 'left' && swipeDistance > 10}
+            <div 
+              class="absolute inset-y-0 right-0 bg-red-500 flex items-center justify-center text-white"
+              style="width: {swipeDistance}px;"
+            >
+              <Trash2 size={24} />
+            </div>
+          {/if}
+
+          <div 
+            class={`flex items-end gap-3 transition-transform duration-100 ${isMe ? 'flex-row-reverse' : ''}`}
+            style={swipingMessageId === m.id ? `transform: translateX(${swipeDirection === 'left' ? '-' : ''}${swipeDistance}px)` : ''}
+          >
+            {#if !isMe}
+              <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-md flex-shrink-0 mb-1">
+                <img src={resolvedProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resolvedProfile?.fullName || contactName}`} alt="avatar" class="w-full h-full" />
+              </div>
+            {/if}
+
+            <div class={`max-w-[85%] relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              {#if m.is_pinned}
+                <div class="flex items-center gap-1 text-[9px] font-bold text-orange-500 uppercase tracking-tighter mb-1">
+                  <Pin size={10} fill="currentColor" /> Pinned
+                </div>
+              {/if}
+              
+              {#if msgType === 'video' && m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'video')}
+                 {@const videoAttachment = m.attachments.find((a: any) => typeof a === 'object' && a.type === 'video')}
+                 {@render replyBox(m)}
+                 <div 
+                   class="w-full max-w-[300px] aspect-video relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/video bg-black"
+                   onclick={() => zoomedImageId = m.id}
+                 >
+                    {#if videoAttachment.thumbnail}
+                      <img src={videoAttachment.thumbnail} alt="video thumbnail" class="w-full h-full object-cover opacity-80" />
+                    {/if}
+                    <div class="absolute inset-0 flex items-center justify-center">
+                       <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 group-hover/video:scale-110 transition-transform">
+                          <PlayCircle size={32} fill="white" />
+                       </div>
+                    </div>
+                    <div class="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                       <Video size={12} />
+                       VIDEO
+                    </div>
+                    <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                       {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                       {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                    </div>
+                  </div>
+              {:else if msgType === 'image'}
+                 {@const imgAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'image')}
+                 {@render replyBox(m)}
+                 {#if imgAttachment}
+                    <div 
+                      class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/img"
+                      onclick={() => zoomedImageId = m.id}
+                    >
+                       <img src={imgAttachment.url} alt="attached" class="w-full h-full object-cover" />
+                       <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                          {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                       </div>
+                    </div>
+                 {/if}
+                 {#if displayContent && msgType !== 'image'}
+                    <div 
+                       class={`mt-2 py-2.5 px-4 rounded-[20px] text-[14px] leading-relaxed shadow-sm flex flex-col justify-between gap-1 w-full max-w-[300px] ${isMe ? 'bg-orange-50 text-orange-950 rounded-br-[4px] border border-orange-100' : 'bg-blue-100 text-blue-950 rounded-bl-[4px] border border-blue-200'}`}
+                    >
+                       {@render replyBox(m)}
+                       <div class="flex flex-col gap-1 w-full">
+                          <p class="m-0 break-words whitespace-pre-wrap text-[14px] leading-relaxed w-full">
+                             {displayContent}
+                          </p>
+                          <div class="flex items-center gap-2 mt-1 justify-end">
+                             <span class="text-[9px] font-bold text-gray-500">
+                                {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </span>
+                             <button onclick={() => setReplyingTo(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                             <button onclick={() => handleShare(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                             {#if isMe}
+                               {@render statusTicks(m)}
+                             {/if}
+                          </div>
+                       </div>
+                    </div>
+                 {/if}
+              {:else if msgType === 'audio' || audioAttachment}
+                 {@render replyBox(m)}
+                 <AudioMessagePlayer 
+                   messageId={m.id} 
+                   url={audioAttachment?.url || ''} 
+                   duration={audioAttachment?.duration || 0} 
+                   waveform={audioAttachment?.waveform || []} 
+                   isMe={isMe} 
+                 />
+              {:else if msgType === 'math_canvas'}
+                  {@render replyBox(m)}
+                  {#if m.mathMeta}
+                     <div 
+                        class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/mathcanvas bg-white p-1"
+                        onclick={() => openCanvas(m)}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCanvas(m); } }}
+                     >
+                        <img src={m.mathMeta.thumbnailData} alt="Math canvas" class="w-full h-full object-contain p-2" />
+                        
+                        <!-- pi badge positioned absolute top-right of the image -->
+                        <div class="absolute top-3 right-3 bg-indigo-600 text-white w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center font-serif font-bold text-sm shadow-md select-none z-10 leading-none">
+                           π
+                        </div>
+
+                        <!-- Subject tag at bottom-left if any -->
+                        {#if m.mathMeta.subject}
+                           <div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase z-10">
+                              {m.mathMeta.subject}
+                           </div>
+                        {/if}
+
+                        <!-- If another user is currently editing: show chalk indicator -->
+                        {#if m.mathMeta.chalkHolder && m.mathMeta.chalkHolder !== currentUserId}
+                           <div class="absolute inset-x-3 top-3 left-3 max-w-[170px] bg-amber-500/95 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm font-sans z-10 animate-pulse">
+                              ✏️ {m.mathMeta.chalkHolderName || 'Someone'} is editing
+                           </div>
+                        {/if}
+                        
+                        <div class="absolute bottom-2.5 right-2.5 text-[9px] font-bold text-gray-700 bg-white/75 backdrop-blur-[2px] px-2 py-0.5 rounded-full flex items-center gap-2 z-10">
+                           {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-800 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={10} /></button>
+                           <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-800 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={10} /></button>
+                           {#if isMe}{@render statusTicks(m)}{/if}
+                        </div>
+                     </div>
+                  {/if}
+              {:else if msgType === 'math'}
+                 {@const sketchAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'math_sketch')}
+                 {@render replyBox(m)}
+                 <div role="button" tabindex="0" onclick={openMathCanvas} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMathCanvas(); } }} class={`w-full max-w-[325px] p-4 rounded-[24px] shadow-sm relative flex flex-col gap-3 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md ${isMe ? 'bg-indigo-50 text-indigo-950 rounded-br-[4px] border border-indigo-100' : 'bg-emerald-50 text-emerald-950 rounded-bl-[4px] border border-emerald-100'}`}>
+                    
+                    <!-- Math Badge Header -->
+                    <div class="flex items-center gap-1.5 opacity-75">
+                       <div class={`p-1 rounded-lg ${isMe ? 'bg-indigo-500/10 text-indigo-650' : 'bg-emerald-500/10 text-emerald-650'}`}>
+                          <Pi size={14} strokeWidth={2.5} />
+                       </div>
+                       <span class="text-[9px] font-bold tracking-widest uppercase">Specialised Math Message</span>
+                    </div>
+
+                    <!-- Formula Card (Serif/Academic) -->
+                    {#if displayContent}
+                       <div class="bg-white/90 p-3.5 rounded-xl border border-black/5 flex flex-col items-center justify-center min-h-[50px] shadow-inner relative overflow-hidden">
+                          <!-- Grid Watermark -->
+                          <div class="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none"></div>
+                          <p class="font-serif text-[15px] text-center font-bold relative z-10 m-0 leading-relaxed text-[#1e293b] select-all tracking-wide break-words w-full">
+                             {displayContent}
+                          </p>
+                       </div>
+                    {/if}
+
+                    <!-- Hand-Drawn Sketch (if any) -->
+                    {#if sketchAttachment}
+                       <div 
+                         class="w-full text-left bg-white/95 p-1.5 rounded-xl border border-black/5 overflow-hidden shadow-inner group/mathsketch relative block"
+                       >
+                          <div class="absolute top-2 left-2 px-1.5 py-0.5 bg-black/5 rounded text-[8px] font-mono text-gray-400">MATH SKETCH</div>
+                          <img src={sketchAttachment.url} alt="Math Sketch" class="w-full h-auto aspect-[16/10] object-contain rounded-lg filter drop-shadow bg-slate-50 border border-slate-100" />
+                       </div>
+                    {/if}
+
+                    <!-- Details & Actions -->
+                    <div class="flex items-center gap-2 justify-end" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+              {:else}
+                 <div 
+                    class={`py-2.5 px-4 rounded-[22px] text-[14px] leading-relaxed shadow-sm w-full max-w-[300px] ${isMe ? 'bg-orange-50 text-orange-950 rounded-br-[4px] border border-orange-100' : 'bg-blue-100 text-blue-950 rounded-bl-[4px] border border-blue-200'}`}
+                 >
+                    {@render replyBox(m)}
+                    <p class="m-0 break-words whitespace-pre-wrap text-[14px] leading-relaxed w-full">{displayContent}</p>
+                    <div class={`flex items-center gap-2 mt-1 justify-end`}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={() => setReplyingTo(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={() => handleShare(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+              {/if}
+
+              <!-- Reactions Blocked in Text Bubbles (User Request) -->
+            </div>
+          </div>
+        </div>
+      {/each}
+
+      {#if typingUsersInThisConvo.length > 0}
+        <div class="flex items-start gap-3 my-4 max-w-[300px] animate-in fade-in slide-in-from-bottom-2 duration-300">
+           <div class="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-black/5 bg-[#ffe7db] flex items-center justify-center">
+              {#if resolvedProfile?.avatarUrl}
+                 <img src={resolvedProfile.avatarUrl} alt="Avatar" class="w-full h-full object-cover" />
+              {:else}
+                 <span class="text-xs font-bold text-orange-600">
+                   {contactName.charAt(0).toUpperCase()}
+                 </span>
+              {/if}
+           </div>
+           <div class="flex flex-col gap-1">
+              <span class="text-[10px] font-bold text-gray-500 capitalize tracking-wider px-1">{contactName} is typing...</span>
+              <div class="py-2.5 px-4 rounded-[20px] rounded-bl-[4px] bg-blue-100 text-blue-950 border border-blue-200 flex items-center justify-center gap-1 w-12 h-8">
+                 <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: -0.3s;"></div>
+                 <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: -0.15s;"></div>
+                 <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+              </div>
+           </div>
+        </div>
+      {/if}
+    </div>
+
+/app/applet/src/views/ChatWindow.svelte:2186:5
+Warn: `<div>` with a click, touchstart, touchmove or touchend handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+
+    <div 
+      bind:this={messagesContainer} 
+      onscroll={handleScroll}
+      onclick={() => showMathKeyboard = false}
+      class="flex-1 overflow-y-auto px-5 pt-6 {showMathKeyboard ? 'pb-[360px]' : 'pb-40'} space-y-8 scroll-smooth relative transition-all duration-300"
+      ontouchstart={(e) => { if (!swipingMessageId && !swipingPinnedId) handleTouchStart(e, 'undo', 'undo') }}
+      ontouchmove={handleTouchMove}
+      ontouchend={handleTouchEnd}
+    >
+      {#if isLoading && messages.length === 0}
+        <div class="flex-1 flex flex-col items-center justify-center pt-32 gap-6">
+           <div class="relative">
+              <div class="w-16 h-16 border-4 border-orange-500/20 rounded-full"></div>
+              <div class="absolute inset-0 w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+           </div>
+           <div class="flex flex-col items-center gap-1">
+             <p class="text-sm font-bold text-[#00274d] animate-pulse uppercase tracking-widest">Opening Secure Channel</p>
+             <p class="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Syncing learning stories...</p>
+           </div>
+        </div>
+      {:else if messages.length === 0 && !isLoading}
+        <div class="flex-1 flex flex-col items-center justify-center pt-20 pb-4 text-center px-10 animate-in fade-in duration-300">
+           <div class="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mb-6 shadow-sm border border-orange-100">
+              <MessageSquare size={32} />
+           </div>
+           <h3 class="text-lg font-bold text-slate-800 mb-2">Start a conversation</h3>
+           <p class="text-sm text-slate-500 leading-relaxed">
+             Say hello to <span class="text-orange-500 font-bold">{contactName}</span>! It's the beginning of a great learning journey together.
+           </p>
+           <div class="mt-8 flex gap-2 flex-wrap justify-center">
+              <button 
+                onclick={() => msg = 'Hello! 👋'} 
+                class="px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                Hello! 👋
+              </button>
+              <button 
+                onclick={() => msg = 'How are you?'} 
+                class="px-4 py-2 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors"
+              >
+                How are you?
+              </button>
+           </div>
+        </div>
+      {/if}
+      
+      {#if isSyncing && messages.length > 0}
+         <div class="absolute top-2 left-1/2 -translate-x-1/2 z-50">
+            <div class="px-3 py-1 bg-[#00274d]/80 backdrop-blur-md rounded-full text-[9px] font-bold text-white uppercase tracking-widest flex items-center gap-2 shadow-xl border border-white/10 animate-in slide-in-from-top-4">
+               <div class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
+               Updating Chat...
+            </div>
+         </div>
+      {/if}
+      {#snippet replyBox(msgObj)}
+        {#if msgObj.attachments?.find((a: any) => a.type === 'reply')}
+          {@const replyInfo = msgObj.attachments.find((a: any) => a.type === 'reply')}
+          <button 
+             type="button"
+             onclick={(e) => { e.stopPropagation(); scrollToMessage(replyInfo.replyToId); }}
+             class="mb-2 p-1.5 px-2.5 text-left cursor-pointer transition-all hover:brightness-95 hover:scale-[1.01] active:scale-[0.98] w-full rounded-r-lg rounded-l-[4px] border-none flex flex-col gap-0.5 bg-black/[0.04] dark:bg-white/[0.06] border-l-[4px] relative overflow-hidden self-stretch"
+             style="border-left-color: {replyInfo.replyToSenderId === currentUserId ? '#FF5B14' : '#00274d'}; text-align: left; display: flex; flex-direction: column;"
+             title="Jump to original message"
+          >
+             <span class="font-bold text-[11px] leading-tight" style="color: {replyInfo.replyToSenderId === currentUserId ? '#FF5B14' : '#00274d'};">
+                {replyInfo.replyToSenderId === currentUserId ? 'You' : contactName}
+             </span>
+             <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-normal w-full m-0 break-words whitespace-normal line-clamp-4">
+                {replyInfo.replyToType === 'audio' ? '🎤 Voice note' : replyInfo.replyToType === 'image' ? '📷 Image' : replyInfo.replyToType === 'video' ? '🎥 Video' : replyInfo.replyToContent}
+             </p>
+          </button>
+        {/if}
+      {/snippet}
+      {#snippet statusTicks(msgObj: any, textClass: string = 'text-gray-400', readColorClass: string = 'text-orange-500')}
+        <div class="flex items-center">
+          {#if msgObj.status === 'pending'}
+            <Clock size={12} class="{textClass} animate-pulse" />
+          {:else if msgObj.status === 'sent'}
+            <Check size={12} class={textClass} />
+          {:else if msgObj.status === 'delivered'}
+            <CheckCheck size={12} class={textClass} />
+          {:else if msgObj.status === 'read'}
+            <CheckCheck size={12} class={readColorClass} />
+          {:else if msgObj.status === 'error'}
+            <X size={12} class="text-red-500 font-bold" />
+          {:else}
+            <Check size={12} class={textClass} />
+          {/if}
+        </div>
+      {/snippet}
+
+      <!-- Undo Indicator (Right swipe) -->
+      {#if swipingUndo && swipeDistance > 30}
+         <div class="absolute inset-y-0 left-0 w-[140px] bg-green-500 flex items-center justify-center text-white z-50 rounded-r-[32px] shadow-2xl animate-in slide-in-from-left duration-300">
+            <span class="text-xs font-bold uppercase flex items-center gap-2 px-4 text-center leading-tight">
+               <ChevronLeft size={18} class="rotate-180 flex-shrink-0" /> 
+               {lastDeletedMessage ? 'Release to Restore' : 'Nothing to undo'}
+            </span>
+         </div>
+      {/if}
+      {#each renderedMessages as m, i (m.id)}
+        {@const isMe = m.isMe}
+        {@const msgType = m.type?.startsWith('f:') ? m.type.substring(2) : m.type}
+        {@const audioAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'audio')}
+        {@const displayContent = getDisplayContent(m)}
+        {@const _d = debugMessage(m)}
+
+        <!-- Unread divider based on PDF -->
+        {#if i === firstUnreadIndex}
+          <div 
+            bind:this={unreadMarkerEl}
+            class="flex items-center gap-4 my-8 px-4"
+          >
+            <div class="flex-1 h-px bg-orange-100/50"></div>
+            <div class="px-4 py-1.5 rounded-full bg-orange-50 border border-orange-100/50 shadow-sm flex items-center gap-2">
+              <div class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
+              <span class="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Unread Messages</span>
+            </div>
+            <div class="flex-1 h-px bg-orange-100/50"></div>
+          </div>
+        {/if}
+        
+        <div 
+          id={`msg-${m.id}`} 
+          class={`flex flex-col w-full group transition-all duration-500 rounded-2xl relative overflow-hidden ${isMe ? 'items-end' : 'items-start'} ${highlightedMessageId === m.id ? 'bg-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02] shadow-md z-10 duration-200' : ''}`}
+          ontouchstart={(e) => handleTouchStart(e, m.id, 'msg')}
+          ontouchmove={handleTouchMove}
+          ontouchend={handleTouchEnd}
+          oncontextmenu={(e) => { e.preventDefault(); handlePin(m.id); }}
+          use:markRead={{ messageId: m.id, myUserId: currentUserId, senderId: m.senderId ?? m.sender_id }}
+        >
+          <!-- Reply Indicator background -->
+          {#if swipingMessageId === m.id && swipeDirection === 'right' && swipeDistance > 10}
+            <div 
+              class="absolute inset-y-0 left-0 bg-blue-500 flex items-center justify-start text-white pl-6"
+              style="width: {swipeDistance}px;"
+            >
+              <CornerUpLeft size={24} class={swipeDistance > 55 ? 'scale-110 text-white transition-all' : 'scale-90 text-white/75 transition-all'} />
+            </div>
+          {/if}
+
+          <!-- Delete Indicator background -->
+          {#if swipingMessageId === m.id && swipeDirection === 'left' && swipeDistance > 10}
+            <div 
+              class="absolute inset-y-0 right-0 bg-red-500 flex items-center justify-center text-white"
+              style="width: {swipeDistance}px;"
+            >
+              <Trash2 size={24} />
+            </div>
+          {/if}
+
+          <div 
+            class={`flex items-end gap-3 transition-transform duration-100 ${isMe ? 'flex-row-reverse' : ''}`}
+            style={swipingMessageId === m.id ? `transform: translateX(${swipeDirection === 'left' ? '-' : ''}${swipeDistance}px)` : ''}
+          >
+            {#if !isMe}
+              <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-md flex-shrink-0 mb-1">
+                <img src={resolvedProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resolvedProfile?.fullName || contactName}`} alt="avatar" class="w-full h-full" />
+              </div>
+            {/if}
+
+            <div class={`max-w-[85%] relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              {#if m.is_pinned}
+                <div class="flex items-center gap-1 text-[9px] font-bold text-orange-500 uppercase tracking-tighter mb-1">
+                  <Pin size={10} fill="currentColor" /> Pinned
+                </div>
+              {/if}
+              
+              {#if msgType === 'video' && m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'video')}
+                 {@const videoAttachment = m.attachments.find((a: any) => typeof a === 'object' && a.type === 'video')}
+                 {@render replyBox(m)}
+                 <div 
+                   class="w-full max-w-[300px] aspect-video relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/video bg-black"
+                   onclick={() => zoomedImageId = m.id}
+                 >
+                    {#if videoAttachment.thumbnail}
+                      <img src={videoAttachment.thumbnail} alt="video thumbnail" class="w-full h-full object-cover opacity-80" />
+                    {/if}
+                    <div class="absolute inset-0 flex items-center justify-center">
+                       <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 group-hover/video:scale-110 transition-transform">
+                          <PlayCircle size={32} fill="white" />
+                       </div>
+                    </div>
+                    <div class="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                       <Video size={12} />
+                       VIDEO
+                    </div>
+                    <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                       {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                       {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                    </div>
+                  </div>
+              {:else if msgType === 'image'}
+                 {@const imgAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'image')}
+                 {@render replyBox(m)}
+                 {#if imgAttachment}
+                    <div 
+                      class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/img"
+                      onclick={() => zoomedImageId = m.id}
+                    >
+                       <img src={imgAttachment.url} alt="attached" class="w-full h-full object-cover" />
+                       <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                          {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                       </div>
+                    </div>
+                 {/if}
+                 {#if displayContent && msgType !== 'image'}
+                    <div 
+                       class={`mt-2 py-2.5 px-4 rounded-[20px] text-[14px] leading-relaxed shadow-sm flex flex-col justify-between gap-1 w-full max-w-[300px] ${isMe ? 'bg-orange-50 text-orange-950 rounded-br-[4px] border border-orange-100' : 'bg-blue-100 text-blue-950 rounded-bl-[4px] border border-blue-200'}`}
+                    >
+                       {@render replyBox(m)}
+                       <div class="flex flex-col gap-1 w-full">
+                          <p class="m-0 break-words whitespace-pre-wrap text-[14px] leading-relaxed w-full">
+                             {displayContent}
+                          </p>
+                          <div class="flex items-center gap-2 mt-1 justify-end">
+                             <span class="text-[9px] font-bold text-gray-500">
+                                {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </span>
+                             <button onclick={() => setReplyingTo(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                             <button onclick={() => handleShare(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                             {#if isMe}
+                               {@render statusTicks(m)}
+                             {/if}
+                          </div>
+                       </div>
+                    </div>
+                 {/if}
+              {:else if msgType === 'audio' || audioAttachment}
+                 {@render replyBox(m)}
+                 <AudioMessagePlayer 
+                   messageId={m.id} 
+                   url={audioAttachment?.url || ''} 
+                   duration={audioAttachment?.duration || 0} 
+                   waveform={audioAttachment?.waveform || []} 
+                   isMe={isMe} 
+                 />
+              {:else if msgType === 'math_canvas'}
+                  {@render replyBox(m)}
+                  {#if m.mathMeta}
+                     <div 
+                        class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/mathcanvas bg-white p-1"
+                        onclick={() => openCanvas(m)}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCanvas(m); } }}
+                     >
+                        <img src={m.mathMeta.thumbnailData} alt="Math canvas" class="w-full h-full object-contain p-2" />
+                        
+                        <!-- pi badge positioned absolute top-right of the image -->
+                        <div class="absolute top-3 right-3 bg-indigo-600 text-white w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center font-serif font-bold text-sm shadow-md select-none z-10 leading-none">
+                           π
+                        </div>
+
+                        <!-- Subject tag at bottom-left if any -->
+                        {#if m.mathMeta.subject}
+                           <div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase z-10">
+                              {m.mathMeta.subject}
+                           </div>
+                        {/if}
+
+                        <!-- If another user is currently editing: show chalk indicator -->
+                        {#if m.mathMeta.chalkHolder && m.mathMeta.chalkHolder !== currentUserId}
+                           <div class="absolute inset-x-3 top-3 left-3 max-w-[170px] bg-amber-500/95 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm font-sans z-10 animate-pulse">
+                              ✏️ {m.mathMeta.chalkHolderName || 'Someone'} is editing
+                           </div>
+                        {/if}
+                        
+                        <div class="absolute bottom-2.5 right-2.5 text-[9px] font-bold text-gray-700 bg-white/75 backdrop-blur-[2px] px-2 py-0.5 rounded-full flex items-center gap-2 z-10">
+                           {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-800 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={10} /></button>
+                           <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-800 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={10} /></button>
+                           {#if isMe}{@render statusTicks(m)}{/if}
+                        </div>
+                     </div>
+                  {/if}
+              {:else if msgType === 'math'}
+                 {@const sketchAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'math_sketch')}
+                 {@render replyBox(m)}
+                 <div role="button" tabindex="0" onclick={openMathCanvas} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMathCanvas(); } }} class={`w-full max-w-[325px] p-4 rounded-[24px] shadow-sm relative flex flex-col gap-3 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md ${isMe ? 'bg-indigo-50 text-indigo-950 rounded-br-[4px] border border-indigo-100' : 'bg-emerald-50 text-emerald-950 rounded-bl-[4px] border border-emerald-100'}`}>
+                    
+                    <!-- Math Badge Header -->
+                    <div class="flex items-center gap-1.5 opacity-75">
+                       <div class={`p-1 rounded-lg ${isMe ? 'bg-indigo-500/10 text-indigo-650' : 'bg-emerald-500/10 text-emerald-650'}`}>
+                          <Pi size={14} strokeWidth={2.5} />
+                       </div>
+                       <span class="text-[9px] font-bold tracking-widest uppercase">Specialised Math Message</span>
+                    </div>
+
+                    <!-- Formula Card (Serif/Academic) -->
+                    {#if displayContent}
+                       <div class="bg-white/90 p-3.5 rounded-xl border border-black/5 flex flex-col items-center justify-center min-h-[50px] shadow-inner relative overflow-hidden">
+                          <!-- Grid Watermark -->
+                          <div class="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none"></div>
+                          <p class="font-serif text-[15px] text-center font-bold relative z-10 m-0 leading-relaxed text-[#1e293b] select-all tracking-wide break-words w-full">
+                             {displayContent}
+                          </p>
+                       </div>
+                    {/if}
+
+                    <!-- Hand-Drawn Sketch (if any) -->
+                    {#if sketchAttachment}
+                       <div 
+                         class="w-full text-left bg-white/95 p-1.5 rounded-xl border border-black/5 overflow-hidden shadow-inner group/mathsketch relative block"
+                       >
+                          <div class="absolute top-2 left-2 px-1.5 py-0.5 bg-black/5 rounded text-[8px] font-mono text-gray-400">MATH SKETCH</div>
+                          <img src={sketchAttachment.url} alt="Math Sketch" class="w-full h-auto aspect-[16/10] object-contain rounded-lg filter drop-shadow bg-slate-50 border border-slate-100" />
+                       </div>
+                    {/if}
+
+                    <!-- Details & Actions -->
+                    <div class="flex items-center gap-2 justify-end" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+              {:else}
+                 <div 
+                    class={`py-2.5 px-4 rounded-[22px] text-[14px] leading-relaxed shadow-sm w-full max-w-[300px] ${isMe ? 'bg-orange-50 text-orange-950 rounded-br-[4px] border border-orange-100' : 'bg-blue-100 text-blue-950 rounded-bl-[4px] border border-blue-200'}`}
+                 >
+                    {@render replyBox(m)}
+                    <p class="m-0 break-words whitespace-pre-wrap text-[14px] leading-relaxed w-full">{displayContent}</p>
+                    <div class={`flex items-center gap-2 mt-1 justify-end`}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={() => setReplyingTo(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={() => handleShare(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+              {/if}
+
+              <!-- Reactions Blocked in Text Bubbles (User Request) -->
+            </div>
+          </div>
+        </div>
+      {/each}
+
+      {#if typingUsersInThisConvo.length > 0}
+        <div class="flex items-start gap-3 my-4 max-w-[300px] animate-in fade-in slide-in-from-bottom-2 duration-300">
+           <div class="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-black/5 bg-[#ffe7db] flex items-center justify-center">
+              {#if resolvedProfile?.avatarUrl}
+                 <img src={resolvedProfile.avatarUrl} alt="Avatar" class="w-full h-full object-cover" />
+              {:else}
+                 <span class="text-xs font-bold text-orange-600">
+                   {contactName.charAt(0).toUpperCase()}
+                 </span>
+              {/if}
+           </div>
+           <div class="flex flex-col gap-1">
+              <span class="text-[10px] font-bold text-gray-500 capitalize tracking-wider px-1">{contactName} is typing...</span>
+              <div class="py-2.5 px-4 rounded-[20px] rounded-bl-[4px] bg-blue-100 text-blue-950 border border-blue-200 flex items-center justify-center gap-1 w-12 h-8">
+                 <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: -0.3s;"></div>
+                 <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: -0.15s;"></div>
+                 <div class="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+              </div>
+           </div>
+        </div>
+      {/if}
+    </div>
+
+/app/applet/src/views/ChatWindow.svelte:2308:9
+Warn: `<div>` with a touchstart, touchmove, touchend or contextmenu handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+        
+        <div 
+          id={`msg-${m.id}`} 
+          class={`flex flex-col w-full group transition-all duration-500 rounded-2xl relative overflow-hidden ${isMe ? 'items-end' : 'items-start'} ${highlightedMessageId === m.id ? 'bg-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02] shadow-md z-10 duration-200' : ''}`}
+          ontouchstart={(e) => handleTouchStart(e, m.id, 'msg')}
+          ontouchmove={handleTouchMove}
+          ontouchend={handleTouchEnd}
+          oncontextmenu={(e) => { e.preventDefault(); handlePin(m.id); }}
+          use:markRead={{ messageId: m.id, myUserId: currentUserId, senderId: m.senderId ?? m.sender_id }}
+        >
+          <!-- Reply Indicator background -->
+          {#if swipingMessageId === m.id && swipeDirection === 'right' && swipeDistance > 10}
+            <div 
+              class="absolute inset-y-0 left-0 bg-blue-500 flex items-center justify-start text-white pl-6"
+              style="width: {swipeDistance}px;"
+            >
+              <CornerUpLeft size={24} class={swipeDistance > 55 ? 'scale-110 text-white transition-all' : 'scale-90 text-white/75 transition-all'} />
+            </div>
+          {/if}
+
+          <!-- Delete Indicator background -->
+          {#if swipingMessageId === m.id && swipeDirection === 'left' && swipeDistance > 10}
+            <div 
+              class="absolute inset-y-0 right-0 bg-red-500 flex items-center justify-center text-white"
+              style="width: {swipeDistance}px;"
+            >
+              <Trash2 size={24} />
+            </div>
+          {/if}
+
+          <div 
+            class={`flex items-end gap-3 transition-transform duration-100 ${isMe ? 'flex-row-reverse' : ''}`}
+            style={swipingMessageId === m.id ? `transform: translateX(${swipeDirection === 'left' ? '-' : ''}${swipeDistance}px)` : ''}
+          >
+            {#if !isMe}
+              <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-md flex-shrink-0 mb-1">
+                <img src={resolvedProfile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${resolvedProfile?.fullName || contactName}`} alt="avatar" class="w-full h-full" />
+              </div>
+            {/if}
+
+            <div class={`max-w-[85%] relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              {#if m.is_pinned}
+                <div class="flex items-center gap-1 text-[9px] font-bold text-orange-500 uppercase tracking-tighter mb-1">
+                  <Pin size={10} fill="currentColor" /> Pinned
+                </div>
+              {/if}
+              
+              {#if msgType === 'video' && m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'video')}
+                 {@const videoAttachment = m.attachments.find((a: any) => typeof a === 'object' && a.type === 'video')}
+                 {@render replyBox(m)}
+                 <div 
+                   class="w-full max-w-[300px] aspect-video relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/video bg-black"
+                   onclick={() => zoomedImageId = m.id}
+                 >
+                    {#if videoAttachment.thumbnail}
+                      <img src={videoAttachment.thumbnail} alt="video thumbnail" class="w-full h-full object-cover opacity-80" />
+                    {/if}
+                    <div class="absolute inset-0 flex items-center justify-center">
+                       <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 group-hover/video:scale-110 transition-transform">
+                          <PlayCircle size={32} fill="white" />
+                       </div>
+                    </div>
+                    <div class="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                       <Video size={12} />
+                       VIDEO
+                    </div>
+                    <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                       {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                       {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                    </div>
+                  </div>
+              {:else if msgType === 'image'}
+                 {@const imgAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'image')}
+                 {@render replyBox(m)}
+                 {#if imgAttachment}
+                    <div 
+                      class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/img"
+                      onclick={() => zoomedImageId = m.id}
+                    >
+                       <img src={imgAttachment.url} alt="attached" class="w-full h-full object-cover" />
+                       <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                          {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                       </div>
+                    </div>
+                 {/if}
+                 {#if displayContent && msgType !== 'image'}
+                    <div 
+                       class={`mt-2 py-2.5 px-4 rounded-[20px] text-[14px] leading-relaxed shadow-sm flex flex-col justify-between gap-1 w-full max-w-[300px] ${isMe ? 'bg-orange-50 text-orange-950 rounded-br-[4px] border border-orange-100' : 'bg-blue-100 text-blue-950 rounded-bl-[4px] border border-blue-200'}`}
+                    >
+                       {@render replyBox(m)}
+                       <div class="flex flex-col gap-1 w-full">
+                          <p class="m-0 break-words whitespace-pre-wrap text-[14px] leading-relaxed w-full">
+                             {displayContent}
+                          </p>
+                          <div class="flex items-center gap-2 mt-1 justify-end">
+                             <span class="text-[9px] font-bold text-gray-500">
+                                {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </span>
+                             <button onclick={() => setReplyingTo(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                             <button onclick={() => handleShare(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                             {#if isMe}
+                               {@render statusTicks(m)}
+                             {/if}
+                          </div>
+                       </div>
+                    </div>
+                 {/if}
+              {:else if msgType === 'audio' || audioAttachment}
+                 {@render replyBox(m)}
+                 <AudioMessagePlayer 
+                   messageId={m.id} 
+                   url={audioAttachment?.url || ''} 
+                   duration={audioAttachment?.duration || 0} 
+                   waveform={audioAttachment?.waveform || []} 
+                   isMe={isMe} 
+                 />
+              {:else if msgType === 'math_canvas'}
+                  {@render replyBox(m)}
+                  {#if m.mathMeta}
+                     <div 
+                        class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/mathcanvas bg-white p-1"
+                        onclick={() => openCanvas(m)}
+                        role="button"
+                        tabindex="0"
+                        onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCanvas(m); } }}
+                     >
+                        <img src={m.mathMeta.thumbnailData} alt="Math canvas" class="w-full h-full object-contain p-2" />
+                        
+                        <!-- pi badge positioned absolute top-right of the image -->
+                        <div class="absolute top-3 right-3 bg-indigo-600 text-white w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center font-serif font-bold text-sm shadow-md select-none z-10 leading-none">
+                           π
+                        </div>
+
+                        <!-- Subject tag at bottom-left if any -->
+                        {#if m.mathMeta.subject}
+                           <div class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase z-10">
+                              {m.mathMeta.subject}
+                           </div>
+                        {/if}
+
+                        <!-- If another user is currently editing: show chalk indicator -->
+                        {#if m.mathMeta.chalkHolder && m.mathMeta.chalkHolder !== currentUserId}
+                           <div class="absolute inset-x-3 top-3 left-3 max-w-[170px] bg-amber-500/95 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm font-sans z-10 animate-pulse">
+                              ✏️ {m.mathMeta.chalkHolderName || 'Someone'} is editing
+                           </div>
+                        {/if}
+                        
+                        <div class="absolute bottom-2.5 right-2.5 text-[9px] font-bold text-gray-700 bg-white/75 backdrop-blur-[2px] px-2 py-0.5 rounded-full flex items-center gap-2 z-10">
+                           {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-800 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={10} /></button>
+                           <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-800 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={10} /></button>
+                           {#if isMe}{@render statusTicks(m)}{/if}
+                        </div>
+                     </div>
+                  {/if}
+              {:else if msgType === 'math'}
+                 {@const sketchAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'math_sketch')}
+                 {@render replyBox(m)}
+                 <div role="button" tabindex="0" onclick={openMathCanvas} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMathCanvas(); } }} class={`w-full max-w-[325px] p-4 rounded-[24px] shadow-sm relative flex flex-col gap-3 cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md ${isMe ? 'bg-indigo-50 text-indigo-950 rounded-br-[4px] border border-indigo-100' : 'bg-emerald-50 text-emerald-950 rounded-bl-[4px] border border-emerald-100'}`}>
+                    
+                    <!-- Math Badge Header -->
+                    <div class="flex items-center gap-1.5 opacity-75">
+                       <div class={`p-1 rounded-lg ${isMe ? 'bg-indigo-500/10 text-indigo-650' : 'bg-emerald-500/10 text-emerald-650'}`}>
+                          <Pi size={14} strokeWidth={2.5} />
+                       </div>
+                       <span class="text-[9px] font-bold tracking-widest uppercase">Specialised Math Message</span>
+                    </div>
+
+                    <!-- Formula Card (Serif/Academic) -->
+                    {#if displayContent}
+                       <div class="bg-white/90 p-3.5 rounded-xl border border-black/5 flex flex-col items-center justify-center min-h-[50px] shadow-inner relative overflow-hidden">
+                          <!-- Grid Watermark -->
+                          <div class="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none"></div>
+                          <p class="font-serif text-[15px] text-center font-bold relative z-10 m-0 leading-relaxed text-[#1e293b] select-all tracking-wide break-words w-full">
+                             {displayContent}
+                          </p>
+                       </div>
+                    {/if}
+
+                    <!-- Hand-Drawn Sketch (if any) -->
+                    {#if sketchAttachment}
+                       <div 
+                         class="w-full text-left bg-white/95 p-1.5 rounded-xl border border-black/5 overflow-hidden shadow-inner group/mathsketch relative block"
+                       >
+                          <div class="absolute top-2 left-2 px-1.5 py-0.5 bg-black/5 rounded text-[8px] font-mono text-gray-400">MATH SKETCH</div>
+                          <img src={sketchAttachment.url} alt="Math Sketch" class="w-full h-auto aspect-[16/10] object-contain rounded-lg filter drop-shadow bg-slate-50 border border-slate-100" />
+                       </div>
+                    {/if}
+
+                    <!-- Details & Actions -->
+                    <div class="flex items-center gap-2 justify-end" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+              {:else}
+                 <div 
+                    class={`py-2.5 px-4 rounded-[22px] text-[14px] leading-relaxed shadow-sm w-full max-w-[300px] ${isMe ? 'bg-orange-50 text-orange-950 rounded-br-[4px] border border-orange-100' : 'bg-blue-100 text-blue-950 rounded-bl-[4px] border border-blue-200'}`}
+                 >
+                    {@render replyBox(m)}
+                    <p class="m-0 break-words whitespace-pre-wrap text-[14px] leading-relaxed w-full">{displayContent}</p>
+                    <div class={`flex items-center gap-2 mt-1 justify-end`}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={() => setReplyingTo(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={() => handleShare(m)} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+              {/if}
+
+              <!-- Reactions Blocked in Text Bubbles (User Request) -->
+            </div>
+          </div>
+        </div>
+      {/each}
+
+/app/applet/src/views/ChatWindow.svelte:2357:18
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                 {@render replyBox(m)}
+                 <div 
+                   class="w-full max-w-[300px] aspect-video relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/video bg-black"
+                   onclick={() => zoomedImageId = m.id}
+                 >
+                    {#if videoAttachment.thumbnail}
+                      <img src={videoAttachment.thumbnail} alt="video thumbnail" class="w-full h-full object-cover opacity-80" />
+                    {/if}
+                    <div class="absolute inset-0 flex items-center justify-center">
+                       <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 group-hover/video:scale-110 transition-transform">
+                          <PlayCircle size={32} fill="white" />
+                       </div>
+                    </div>
+                    <div class="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                       <Video size={12} />
+                       VIDEO
+                    </div>
+                    <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                       {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                       {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                    </div>
+                  </div>
+              {:else if msgType === 'image'}
+
+/app/applet/src/views/ChatWindow.svelte:2357:18
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                 {@render replyBox(m)}
+                 <div 
+                   class="w-full max-w-[300px] aspect-video relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/video bg-black"
+                   onclick={() => zoomedImageId = m.id}
+                 >
+                    {#if videoAttachment.thumbnail}
+                      <img src={videoAttachment.thumbnail} alt="video thumbnail" class="w-full h-full object-cover opacity-80" />
+                    {/if}
+                    <div class="absolute inset-0 flex items-center justify-center">
+                       <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 group-hover/video:scale-110 transition-transform">
+                          <PlayCircle size={32} fill="white" />
+                       </div>
+                    </div>
+                    <div class="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                       <Video size={12} />
+                       VIDEO
+                    </div>
+                    <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                       {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                       {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                    </div>
+                  </div>
+              {:else if msgType === 'image'}
+
+/app/applet/src/views/ChatWindow.svelte:2384:21
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+                 {#if imgAttachment}
+                    <div 
+                      class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/img"
+                      onclick={() => zoomedImageId = m.id}
+                    >
+                       <img src={imgAttachment.url} alt="attached" class="w-full h-full object-cover" />
+                       <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                          {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                       </div>
+                    </div>
+                 {/if}
+
+/app/applet/src/views/ChatWindow.svelte:2384:21
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                 {#if imgAttachment}
+                    <div 
+                      class="w-full max-w-[300px] aspect-[16/10] relative rounded-[28px] overflow-hidden shadow-lg border border-gray-100 cursor-pointer group/img"
+                      onclick={() => zoomedImageId = m.id}
+                    >
+                       <img src={imgAttachment.url} alt="attached" class="w-full h-full object-cover" />
+                       <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                        <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                          {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                       </div>
+                    </div>
+                 {/if}
+
+/app/applet/src/views/ChatWindow.svelte:2502:21
+Warn: `<div>` with a click or keydown handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+                    <!-- Details & Actions -->
+                    <div class="flex items-center gap-2 justify-end" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+                       <span class="text-[9px] font-bold text-gray-500">
+                          {new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                       </span>
+                       <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                       <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
+                       {#if isMe}
+                         {@render statusTicks(m)}
+                       {/if}
+                    </div>
+                 </div>
+
+/app/applet/src/views/ChatWindow.svelte:2567:7
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+      
+      <div 
+        class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 select-none"
+        onclick={() => zoomedImageId = null}
+        ontouchstart={(e) => startX = e.touches[0].clientX}
+        ontouchend={(e) => {
+          const diff = e.changedTouches[0].clientX - startX;
+          if (diff > 50) navigateMedia(-1);
+          if (diff < -50) navigateMedia(1);
+        }}
+      >
+         <button class="absolute top-10 right-10 text-white bg-white/10 p-4 rounded-full border-none cursor-pointer hover:bg-white/20 transition-colors z-[110]">
+            <X size={32} />
+         </button>
+
+         {#if currentMediaIndex > 0}
+            <button onclick={(e) => { e.stopPropagation(); navigateMedia(-1); }} class="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 p-4 rounded-full border-none cursor-pointer hover:bg-white/20 z-[110]">
+              <ChevronLeft size={32} />
+            </button>
+         {/if}
+
+         {#if currentMediaIndex < mediaMessages.length - 1}
+            <button onclick={(e) => { e.stopPropagation(); navigateMedia(1); }} class="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 p-4 rounded-full border-none cursor-pointer hover:bg-white/20 z-[110]">
+              <ChevronRight size={32} />
+            </button>
+         {/if}
+
+         <div class="relative w-full h-full flex items-center justify-center pointer-events-none">
+           {#if zoomedImg}
+              <img 
+                src={zoomedImg.url} 
+                alt="Zoomed" 
+                class="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200 pointer-events-auto" 
+              />
+           {:else if zoomedVideo}
+              <video 
+                src={zoomedVideo.url} 
+                controls 
+                autoplay
+                class="max-w-full max-h-full rounded-xl shadow-2xl pointer-events-auto"
+              >
+                <track kind="captions" />
+              </video>
+           {/if}
+
+           <div class="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/60 text-sm font-bold bg-white/10 px-4 py-2 rounded-full backdrop-blur-md">
+              {currentMediaIndex + 1} / {mediaMessages.length}
+           </div>
+         </div>
+      </div>
+    {/if}
+
+/app/applet/src/views/ChatWindow.svelte:2567:7
+Warn: `<div>` with a click, touchstart or touchend handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+      
+      <div 
+        class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 select-none"
+        onclick={() => zoomedImageId = null}
+        ontouchstart={(e) => startX = e.touches[0].clientX}
+        ontouchend={(e) => {
+          const diff = e.changedTouches[0].clientX - startX;
+          if (diff > 50) navigateMedia(-1);
+          if (diff < -50) navigateMedia(1);
+        }}
+      >
+         <button class="absolute top-10 right-10 text-white bg-white/10 p-4 rounded-full border-none cursor-pointer hover:bg-white/20 transition-colors z-[110]">
+            <X size={32} />
+         </button>
+
+         {#if currentMediaIndex > 0}
+            <button onclick={(e) => { e.stopPropagation(); navigateMedia(-1); }} class="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 p-4 rounded-full border-none cursor-pointer hover:bg-white/20 z-[110]">
+              <ChevronLeft size={32} />
+            </button>
+         {/if}
+
+         {#if currentMediaIndex < mediaMessages.length - 1}
+            <button onclick={(e) => { e.stopPropagation(); navigateMedia(1); }} class="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 p-4 rounded-full border-none cursor-pointer hover:bg-white/20 z-[110]">
+              <ChevronRight size={32} />
+            </button>
+         {/if}
+
+         <div class="relative w-full h-full flex items-center justify-center pointer-events-none">
+           {#if zoomedImg}
+              <img 
+                src={zoomedImg.url} 
+                alt="Zoomed" 
+                class="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200 pointer-events-auto" 
+              />
+           {:else if zoomedVideo}
+              <video 
+                src={zoomedVideo.url} 
+                controls 
+                autoplay
+                class="max-w-full max-h-full rounded-xl shadow-2xl pointer-events-auto"
+              >
+                <track kind="captions" />
+              </video>
+           {/if}
+
+           <div class="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/60 text-sm font-bold bg-white/10 px-4 py-2 rounded-full backdrop-blur-md">
+              {currentMediaIndex + 1} / {mediaMessages.length}
+           </div>
+         </div>
+      </div>
+    {/if}
+
+/app/applet/src/views/ExamView.svelte:31:37
+Warn: This reference only captures the initial value of `initialMode`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+  let examState = $state<ExamState>(initialMode ? 'ongoing' : 'setup');
+  let mode = $state<ExamMode>(initialMode || 'classroom');
+
+/app/applet/src/views/ExamView.svelte:32:31
+Warn: This reference only captures the initial value of `initialMode`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let examState = $state<ExamState>(initialMode ? 'ongoing' : 'setup');
+  let mode = $state<ExamMode>(initialMode || 'classroom');
+  let answers = $state<Record<string, number>>({});
+
+/app/applet/src/views/ExamView.svelte:34:26
+Warn: This reference only captures the initial value of `exam`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  let answers = $state<Record<string, number>>({});
+  let timeLeft = $state((exam?.durationMinutes || 60) * 60);
+  let showExplanationPanel = $state(false);
+
+/app/applet/src/views/BountyView.svelte:91:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+             <div>
+                <label class="text-[10px] font-bold text-sage uppercase tracking-widest mb-2 block">Your Answer / Text</label>
+                <textarea rows="4" class="w-full bg-white p-3 rounded-[20px] border border-sage/20 text-sm focus:outline-none focus:border-olive shadow-sm resize-none"></textarea>
+
+/app/applet/src/views/BountyView.svelte:95:17
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+             <div>
+                <label class="text-[10px] font-bold text-sage uppercase tracking-widest mb-2 block">Attachments</label>
+                <div class="flex gap-2">
+
+====================================
+svelte-check found 3 errors and 81 warnings in 12 files

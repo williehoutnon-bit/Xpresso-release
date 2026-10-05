@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@450;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&display=swap');
+@import "./theme.css";
+
+@import "tailwindcss";
+
+@theme {
+  /* Core Brand Colors */
+  --color-olive: #0e2a47; /* Primary: Deep blue / navy */
+  --color-accent: var(--color-theme-accent); /* Accent: Orange */
+  --color-ink: var(--color-theme-text); /* Was #051428, now a clearer Navy Blue */
+  --color-paper: var(--color-theme-paper);
+
+  /* Theme Colors for easy switching */
+  --color-theme-paper: var(--color-theme-paper);
+  --color-theme-card: var(--color-theme-card);
+  --color-theme-text: var(--color-theme-text);
+  --color-theme-accent: var(--color-theme-accent);
+  --color-theme-surface: var(--color-theme-surface);
+  --color-theme-border: var(--color-theme-border);
+
+  /* Harmonized aliases using only the core colors */
+  --color-cream: color-mix(in srgb, var(--color-ink) 3%, var(--color-paper));
+  --color-sage: color-mix(in srgb, var(--color-ink) 50%, var(--color-paper));
+
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-handwriting: "Kalam", "Patrick Hand", cursive;
+  --font-cursive: "Caveat", cursive;
+
+  --shadow-natural: none;
+
+  --animate-slide-up-loop: slide-up-loop 4s infinite linear;
+}
+
+@layer utilities {
+  .font-chat {
+    font-family: "Kalam", "Caveat", "Comic Sans MS", cursive;
+    font-weight: 550;
+  }
+}
+
+@keyframes slide-up-loop {
+  0%, 10% { transform: translateY(100%); opacity: 0; }
+  20%, 80% { transform: translateY(0); opacity: 1; }
+  90%, 100% { transform: translateY(-100%); opacity: 0; }
+}
+
+@layer base {
+  html {
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  :root {
+    --chat-font-size: 1.0625rem;
+    --chat-line-height: 1.75rem;
+  }
+  body {
+    @apply bg-theme-paper text-theme-text font-sans;
+  }
+}

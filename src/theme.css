@@ -1,0 +1,30 @@
+:root {
+  --color-theme-paper: #f9f9f8; /* Slightly off-white, less brownish */
+  --color-theme-card: #ffffff; /* Pure white as before */
+  --color-theme-text: #0a1d33; /* Deep navy/ink */
+  --color-theme-accent: #f97316; /* Orange */
+  
+  /* Additional variables that could be customized by users */
+  --color-theme-surface: #f3f4f6;
+  --color-theme-border: #e2e8f0;
+}
+
+[data-theme="dark"] {
+  --color-theme-paper: #121212;
+  --color-theme-card: #1e1e1e;
+  --color-theme-text: #f1f5f9;
+  --color-theme-accent: #ea580c;
+  
+  --color-theme-surface: #27272a;
+  --color-theme-border: #3f3f46;
+}
+
+[data-theme="sepia"] {
+  --color-theme-paper: #f4ecd8;
+  --color-theme-card: #fdf6e3;
+  --color-theme-text: #43302b;
+  --color-theme-accent: #d35400;
+  
+  --color-theme-surface: #eaddc5;
+  --color-theme-border: #d4c4a8;
+}
