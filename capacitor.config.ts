@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.xpresso.app',
   appName: 'Xpresso',
   webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  },
   android: {
     allowMixedContent: false,
     captureInput: false,

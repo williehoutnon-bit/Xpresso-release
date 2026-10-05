@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
-    "cap:sync": "vite build && cap sync android",
-    "cap:open": "cap open android",
     "preview": "vite preview",
+    "cap:build": "npm run build && npx cap sync",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android",
     "start": "node server.ts",
     "clean": "rm -rf dist",
     "lint": "svelte-check || true"
