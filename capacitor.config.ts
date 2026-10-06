@@ -1,11 +1,14 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const liveUrl = process.env.CAPACITOR_LIVE_URL;
+
 const config: CapacitorConfig = {
   appId: 'com.xpresso.app',
   appName: 'Xpresso',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    ...(liveUrl ? { url: liveUrl, cleartext: false } : {}),
   },
   android: {
     allowMixedContent: false,

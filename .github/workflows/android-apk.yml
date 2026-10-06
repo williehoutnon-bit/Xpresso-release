@@ -53,7 +53,9 @@ jobs:
           VITE_SUPABASE_SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}
         run: npm run build
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor for Live Testing
+        env:
+          CAPACITOR_LIVE_URL: "https://ais-dev-i2dcfzrlpjiqwmf5spyo26-274749028458.europe-west2.run.app"
         run: npx cap sync android
 
       - name: Decode Keystore for Release Signing
