@@ -14,6 +14,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,7 +33,9 @@ jobs:
           java-version: 21
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -49,13 +53,13 @@ jobs:
           VITE_SUPABASE_SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}
         run: npm run build
 
-      - name: Sync Capacitor Android
+      - name: Sync Capacitor for Live Testing
+        env:
+          CAPACITOR_LIVE_URL: "https://ais-dev-i2dcfzrlpjiqwmf5spyo26-274749028458.europe-west2.run.app"
         run: npx cap sync android
 
       - name: Decode Keystore for Release Signing
         if: env.KEYSTORE_BASE64 != ''
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > android/app/release.keystore
           echo "Keystore decoded successfully"
@@ -71,12 +75,30 @@ jobs:
           echo "Building Debug APK..."
           ./gradlew assembleDebug --no-daemon
 
-          if [ -f "app/release.keystore" ]; then
-            echo "Keystore detected. Building Signed Release APK..."
-            KEYSTORE_PATH="release.keystore" ./gradlew assembleRelease --no-daemon
-          else
+          if [ ! -f "app/release.keystore" ]; then
             echo "No keystore detected. Only Debug APK will be packaged."
+            exit 0
           fi
+
+          # Secrets pasted into GitHub often carry trailing newlines/CR that break keystore auth.
+          export KEYSTORE_PASSWORD="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          export KEY_PASSWORD="$(printf '%s' "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" | tr -d '\r\n')"
+          export KEY_ALIAS="$(printf '%s' "$KEY_ALIAS" | tr -d '\r\n')"
+
+          if ! keytool -list -keystore app/release.keystore -storepass "$KEYSTORE_PASSWORD" > /dev/null 2>&1; then
+            echo "::warning::KEYSTORE_PASSWORD does not match the keystore in KEYSTORE_BASE64. Skipping signed release build."
+            exit 0
+          fi
+
+          if ! keytool -list -keystore app/release.keystore -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::warning::KEY_ALIAS '$KEY_ALIAS' not found in keystore. Available aliases:"
+            keytool -list -keystore app/release.keystore -storepass "$KEYSTORE_PASSWORD" | grep -i "PrivateKeyEntry" || true
+            echo "Skipping signed release build."
+            exit 0
+          fi
+
+          echo "Keystore credentials verified. Building Signed Release APK..."
+          KEYSTORE_PATH="release.keystore" ./gradlew assembleRelease --no-daemon
 
       - name: Upload Testing APKs
         uses: actions/upload-artifact@v4
