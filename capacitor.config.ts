@@ -1,14 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const liveUrl = process.env.CAPACITOR_LIVE_URL;
-
 const config: CapacitorConfig = {
   appId: 'com.xpresso.app',
   appName: 'Xpresso',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
-    ...(liveUrl ? { url: liveUrl, cleartext: false } : {}),
   },
   android: {
     allowMixedContent: false,
@@ -16,6 +13,11 @@ const config: CapacitorConfig = {
     webContentsDebuggingEnabled: true,
   },
   plugins: {
+    CapacitorUpdater: {
+      // Self-hosted: updates are discovered from the Supabase app_versions table, not Capgo cloud.
+      autoUpdate: false,
+      statsUrl: '',
+    },
     Keyboard: {
       resize: 'native',
       resizeOnFullScreen: true,

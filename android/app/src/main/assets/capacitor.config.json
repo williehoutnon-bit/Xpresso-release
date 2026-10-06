@@ -11,6 +11,10 @@
 		"webContentsDebuggingEnabled": true
 	},
 	"plugins": {
+		"CapacitorUpdater": {
+			"autoUpdate": false,
+			"statsUrl": ""
+		},
 		"Keyboard": {
 			"resize": "native",
 			"resizeOnFullScreen": true

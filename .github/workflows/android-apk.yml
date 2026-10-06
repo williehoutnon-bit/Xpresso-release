@@ -51,12 +51,25 @@ jobs:
           PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY }}
+          VITE_BUNDLE_VERSION: 1.0.${{ github.run_number }}
         run: npm run build
 
-      - name: Sync Capacitor for Live Testing
-        env:
-          CAPACITOR_LIVE_URL: "https://ais-dev-i2dcfzrlpjiqwmf5spyo26-274749028458.europe-west2.run.app"
+      - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Publish Live Update to Supabase
+        if: github.event_name != 'pull_request'
+        env:
+          SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.VITE_SUPABASE_SERVICE_KEY }}
+          BUNDLE_VERSION: 1.0.${{ github.run_number }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::warning::No Supabase service role key secret set. Skipping live update publish."
+            exit 0
+          fi
+          (cd dist && zip -qr ../bundle.zip .)
+          node scripts/publish-live-update.mjs
 
       - name: Decode Keystore for Release Signing
         if: env.KEYSTORE_BASE64 != ''
