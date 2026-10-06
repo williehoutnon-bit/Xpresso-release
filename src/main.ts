@@ -9,6 +9,7 @@ import { isNative, initNative, hideSplashScreen } from './native';
 if (isNative) {
   navigator.serviceWorker?.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
   initNative();
+  import('./live-update').then((m) => m.initLiveUpdates());
 } else {
   // Register service worker without forcing page reload
   registerSW({
