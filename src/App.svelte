@@ -337,12 +337,26 @@ import LandingView from './views/LandingView.svelte';
 
 <div class="w-full lg:max-w-screen-xl md:max-w-screen-md sm:max-w-full mx-auto h-screen max-h-screen relative flex flex-col overflow-hidden bg-transparent md:shadow-2xl">
   {#if isInitializing}
-    <div class="flex-1 flex flex-col items-center justify-center bg-cream">
-       <div class="w-16 h-16 bg-white rounded-[20px] flex flex-col items-center justify-center shadow-sm border border-black/5 mb-6 animate-pulse">
-         <ArrowUp class="text-black mb-[-4px]" size={18} strokeWidth={3} />
-         <BookOpen class="text-[#FF5B14]" size={28} strokeWidth={2.5} />
-       </div>
-       <p class="text-[10px] font-extrabold text-[#1C2033] uppercase tracking-[0.2em] animate-pulse">Initializing engine...</p>
+    <div class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[#F7FBFE] select-none">
+      <!-- Responsive Layer 1: Background Doodles & Blobs -->
+      <img 
+        src="/xpresso_splash_bg.svg" 
+        alt="" 
+        class="absolute inset-0 w-full h-full object-cover pointer-events-none" 
+      />
+      <!-- Responsive Layer 2: Centered Official Logo & Wordmark -->
+      <div class="relative z-10 flex flex-col items-center justify-center p-6 max-w-[85vw] max-h-[50vh] animate-in fade-in zoom-in-95 duration-300">
+        <img 
+          src="/xpresso_logo_logo.svg" 
+          alt="Xpresso" 
+          class="w-auto h-auto max-w-[340px] max-h-[36vh] object-contain drop-shadow-sm" 
+        />
+        <div class="mt-5 flex items-center gap-1.5 opacity-60 animate-pulse">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#0050D8]"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#0050D8]"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#0050D8]"></span>
+        </div>
+      </div>
     </div>
   {:else}
     <main class="flex-1 flex flex-col {currentView === 'chat' ? 'overflow-hidden' : 'overflow-y-auto'} relative bg-cream">

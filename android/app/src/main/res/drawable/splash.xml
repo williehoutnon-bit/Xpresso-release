@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Full-screen brand orange background -->
+    <!-- Base background color #F7FBFE -->
     <item android:drawable="@color/splashBackground" />
 
-    <!-- Centered Xpresso branded logo -->
+    <!-- Layer 1: Responsive Background Graphic (Corner Blobs and Doodles) -->
     <item
-        android:width="160dp"
-        android:height="160dp"
+        android:gravity="fill"
+        android:drawable="@drawable/xpresso_splash_bg" />
+
+    <!-- Layer 2: Centered Logo and Wordmark -->
+    <item
+        android:width="220dp"
+        android:height="174dp"
         android:gravity="center"
         android:drawable="@drawable/xpresso_splash_logo" />
 </layer-list>
