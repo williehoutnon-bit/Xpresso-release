@@ -347,13 +347,13 @@
          <div class="flex border-b border-white/10 shrink-0">
            <button 
              onclick={() => activeTab = 'chat'}
-             class="flex-1 py-3 text-[10px] border-none cursor-pointer bg-transparent font-bold uppercase tracking-widest transition-colors {activeTab === 'chat' ? 'text-[#FF5B14] bg-theme-card/5 border-b-2 border-[#FF5B14]' : 'text-white/50 hover:bg-theme-card/5'}"
+             class="flex-1 py-3 text-[10px] border-none cursor-pointer bg-transparent font-bold uppercase tracking-widest transition-colors {activeTab === 'chat' ? 'text-[#E58A3A] bg-theme-card/5 border-b-2 border-[#E58A3A]' : 'text-white/50 hover:bg-theme-card/5'}"
            >
              Chat
            </button>
            <button 
              onclick={() => activeTab = 'participants'}
-             class="flex-1 py-3 text-[10px] border-none cursor-pointer bg-transparent font-bold uppercase tracking-widest transition-colors {activeTab === 'participants' ? 'text-[#FF5B14] bg-theme-card/5 border-b-2 border-[#FF5B14]' : 'text-white/50 hover:bg-theme-card/5'}"
+             class="flex-1 py-3 text-[10px] border-none cursor-pointer bg-transparent font-bold uppercase tracking-widest transition-colors {activeTab === 'participants' ? 'text-[#E58A3A] bg-theme-card/5 border-b-2 border-[#E58A3A]' : 'text-white/50 hover:bg-theme-card/5'}"
            >
              People ({participants.length})
            </button>
@@ -392,7 +392,7 @@
                />
                <button 
                  onclick={sendStudentMessage}
-                 class="p-2 border-none cursor-pointer bg-[#FF5B14] rounded-full text-white hover:opacity-90 transition-opacity"
+                 class="p-2 border-none cursor-pointer bg-[#E58A3A] rounded-full text-white hover:opacity-90 transition-opacity"
                >
                  <Send size={14} />
                </button>

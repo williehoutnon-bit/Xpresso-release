@@ -414,7 +414,7 @@
   <div class="flex-shrink-0 px-6 pt-6 pb-2">
     <header class="flex items-center justify-between mb-4">
       <div class="flex items-center">
-        <button onclick={() => onback?.()} class="p-2 -ml-2 text-slate-400 hover:text-[#1C2033] bg-theme-card rounded-full shadow-sm border border-black/5 transition-colors cursor-pointer">
+        <button onclick={() => onback?.()} class="p-2 -ml-2 text-slate-400 hover:text-[#202936] bg-theme-card rounded-full shadow-sm border border-black/5 transition-colors cursor-pointer">
           <ChevronLeft size={20} />
         </button>
       </div>
@@ -422,20 +422,20 @@
       <div class="flex flex-col items-center justify-center">
          <div class="w-10 h-10 bg-theme-card rounded-[20px] flex flex-col items-center justify-center shadow-sm relative border border-black/5">
            <ArrowUp class="text-black mb-[-2px]" size={12} strokeWidth={3} />
-           <BookOpen class="text-[#FF5B14]" size={20} strokeWidth={2.5} />
+           <BookOpen class="text-[#E58A3A]" size={20} strokeWidth={2.5} />
          </div>
       </div>
     </header>
 
     <div class="max-w-sm mx-auto w-full">
       <div class="flex gap-2 mb-4">
-        <div class="h-1.5 flex-1 rounded-full text-transparent {step >= 1 ? 'bg-[#FF5B14]' : 'bg-black/5'}"></div>
-        <div class="h-1.5 flex-1 rounded-full text-transparent {step >= 2 ? 'bg-[#FF5B14]' : 'bg-black/5'}"></div>
+        <div class="h-1.5 flex-1 rounded-full text-transparent {step >= 1 ? 'bg-[#E58A3A]' : 'bg-black/5'}"></div>
+        <div class="h-1.5 flex-1 rounded-full text-transparent {step >= 2 ? 'bg-[#E58A3A]' : 'bg-black/5'}"></div>
         {#if !isFreeTry}
-          <div class="h-1.5 flex-1 rounded-full text-transparent {step >= 3 ? 'bg-[#FF5B14]' : 'bg-black/5'}"></div>
+          <div class="h-1.5 flex-1 rounded-full text-transparent {step >= 3 ? 'bg-[#E58A3A]' : 'bg-black/5'}"></div>
         {/if}
       </div>
-      <h3 class="text-2xl font-extrabold text-[#1C2033] mb-1 tracking-tight">
+      <h3 class="text-2xl font-extrabold text-[#202936] mb-1 tracking-tight">
         {step === 1 ? "Choose your role" : step === 2 ? "The basics" : step === 3 ? "Access & Payment" : "Welcome!"}
       </h3>
       <p class="text-slate-500 text-xs font-medium">
@@ -458,44 +458,44 @@
       <div class="space-y-4">
         <button 
           onclick={() => role = 'student'}
-          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'student' ? 'border-2 border-[#FF5B14] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
+          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'student' ? 'border-2 border-[#E58A3A] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
         >
-          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'student' ? 'bg-[#FF5B14] text-white' : 'bg-slate-100 text-slate-400'}">
+          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'student' ? 'bg-[#E58A3A] text-white' : 'bg-slate-100 text-slate-400'}">
             <GraduationCap size={24} />
           </div>
-          <div class="text-left font-extrabold text-[#1C2033]">I am a Student</div>
+          <div class="text-left font-extrabold text-[#202936]">I am a Student</div>
         </button>
         <button 
           onclick={() => role = 'teacher'}
-          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'teacher' ? 'border-2 border-[#1C2033] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
+          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'teacher' ? 'border-2 border-[#202936] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
         >
-          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'teacher' ? 'bg-[#1C2033] text-white' : 'bg-slate-100 text-slate-400'}">
+          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'teacher' ? 'bg-[#202936] text-white' : 'bg-slate-100 text-slate-400'}">
             <School size={24} />
           </div>
-          <div class="text-left font-extrabold text-[#1C2033]">I am a Teacher</div>
+          <div class="text-left font-extrabold text-[#202936]">I am a Teacher</div>
         </button>
         <button 
           onclick={() => role = 'administrator'}
-          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'administrator' ? 'border-2 border-[#1C2033] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
+          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'administrator' ? 'border-2 border-[#202936] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
         >
-          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'administrator' ? 'bg-[#1C2033] text-white' : 'bg-slate-100 text-slate-400'}">
+          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'administrator' ? 'bg-[#202936] text-white' : 'bg-slate-100 text-slate-400'}">
             <User size={24} />
           </div>
-          <div class="text-left font-extrabold text-[#1C2033]">School Administrator</div>
+          <div class="text-left font-extrabold text-[#202936]">School Administrator</div>
         </button>
         <button 
           onclick={() => role = 'parent'}
-          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'parent' ? 'border-2 border-[#1C2033] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
+          class="w-full p-5 rounded-[20px] transition-all flex items-center gap-4 bg-theme-card cursor-pointer {role === 'parent' ? 'border-2 border-[#202936] shadow-sm' : 'border-2 border-transparent shadow shadow-black/5'}"
         >
-          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'parent' ? 'bg-[#1C2033] text-white' : 'bg-slate-100 text-slate-400'}">
+          <div class="w-12 h-12 rounded-[20px] flex items-center justify-center {role === 'parent' ? 'bg-[#202936] text-white' : 'bg-slate-100 text-slate-400'}">
             <Users size={24} />
           </div>
-          <div class="text-left font-extrabold text-[#1C2033]">I am a Parent</div>
+          <div class="text-left font-extrabold text-[#202936]">I am a Parent</div>
         </button>
 
         <button 
           onclick={() => step = 2}
-          class="w-full mt-10 py-4 bg-[#FF5B14] text-white rounded-[20px] shadow-sm font-extrabold uppercase tracking-[0.1em] text-xs flex items-center justify-between px-6 hover:shadow-md transition-all active:scale-95 cursor-pointer border-none"
+          class="w-full mt-10 py-4 bg-[#E58A3A] text-white rounded-[20px] shadow-sm font-extrabold uppercase tracking-[0.1em] text-xs flex items-center justify-between px-6 hover:shadow-md transition-all active:scale-95 cursor-pointer border-none"
         >
           <span class="flex-1 text-center pl-6">Step Two</span>
           <ArrowRight size={18} />
@@ -533,7 +533,7 @@
 
           <div class="grid grid-cols-1 gap-4">
             <div class="space-y-1.5">
-              <label for="surname" class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Surname</label>
+              <label for="surname" class="text-[9px] font-extrabold text-[#E58A3A] uppercase tracking-widest ml-1">Surname</label>
               <div class="relative">
                 <User class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                 <input 
@@ -541,14 +541,14 @@
                   type="text" 
                   bind:value={surname}
                   placeholder="Family Name" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
-                <label for="middleName" class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Middle Name (Optional)</label>
+                <label for="middleName" class="text-[9px] font-extrabold text-[#E58A3A] uppercase tracking-widest ml-1">Middle Name (Optional)</label>
                 <div class="relative">
                   <User class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                   <input 
@@ -556,12 +556,12 @@
                     type="text" 
                     bind:value={middleName}
                     placeholder="Middle" 
-                    class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                    class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                   />
                 </div>
               </div>
               <div class="space-y-1.5">
-                <label for="lastName" class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Last Name</label>
+                <label for="lastName" class="text-[9px] font-extrabold text-[#E58A3A] uppercase tracking-widest ml-1">Last Name</label>
                 <div class="relative">
                   <User class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
                   <input 
@@ -569,7 +569,7 @@
                     type="text" 
                     bind:value={lastName}
                     placeholder="Given Name" 
-                    class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                    class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                   />
                 </div>
               </div>
@@ -577,7 +577,7 @@
           </div>
           
           <div class="space-y-1.5">
-            <label for="phone" class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Phone Number</label>
+            <label for="phone" class="text-[9px] font-extrabold text-[#E58A3A] uppercase tracking-widest ml-1">Phone Number</label>
             <div class="relative">
               <MessageCircle class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
               <input 
@@ -585,13 +585,13 @@
                 type="tel" 
                 bind:value={whatsappContact}
                 placeholder="e.g. 256700000000" 
-                class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
               />
             </div>
           </div>
 
           <div class="space-y-1.5">
-            <label for="signup-email" class="text-[9px] font-extrabold text-[#FF5B14] uppercase tracking-widest ml-1">Email Address (Optional)</label>
+            <label for="signup-email" class="text-[9px] font-extrabold text-[#E58A3A] uppercase tracking-widest ml-1">Email Address (Optional)</label>
             <div class="relative">
               <Mail class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
               <input 
@@ -599,7 +599,7 @@
                 type="email" 
                 bind:value={email}
                 placeholder="Email Address (Optional)" 
-                class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
               />
             </div>
           </div>
@@ -609,12 +609,12 @@
               type={showPassword ? "text" : "password"} 
               bind:value={password}
               placeholder="Password" 
-              class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-12 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+              class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-12 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
             />
             <button 
               type="button"
               onclick={() => showPassword = !showPassword}
-              class="absolute right-4 top-1/2 -translate-y-1/2 border-none bg-transparent text-slate-400 hover:text-[#FF5B14] cursor-pointer"
+              class="absolute right-4 top-1/2 -translate-y-1/2 border-none bg-transparent text-slate-400 hover:text-[#E58A3A] cursor-pointer"
             >
               {#if showPassword}
                 <EyeOff size={18} />
@@ -630,12 +630,12 @@
               type={showConfirmPassword ? "text" : "password"} 
               bind:value={confirmPassword}
               placeholder="Confirm Password" 
-              class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-12 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+              class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-12 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
             />
             <button 
               type="button"
               onclick={() => showConfirmPassword = !showConfirmPassword}
-              class="absolute right-4 top-1/2 -translate-y-1/2 border-none bg-transparent text-slate-400 hover:text-[#FF5B14] cursor-pointer"
+              class="absolute right-4 top-1/2 -translate-y-1/2 border-none bg-transparent text-slate-400 hover:text-[#E58A3A] cursor-pointer"
             >
               {#if showConfirmPassword}
                 <EyeOff size={18} />
@@ -648,45 +648,45 @@
           {#if role === 'student'}
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
-                <label for="studentNIN" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Student NIN</label>
+                <label for="studentNIN" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Student NIN</label>
                 <input 
                   id="studentNIN"
                   type="text" 
                   bind:value={studentNIN}
                   placeholder="Optional" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-xs focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-xs focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
               <div class="space-y-1.5">
-                <label for="studentLIN" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Student LIN</label>
+                <label for="studentLIN" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Student LIN</label>
                 <input 
                   id="studentLIN"
                   type="text" 
                   bind:value={studentLIN}
                   placeholder="Optional" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-xs focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-xs focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
-                <label for="age" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Age</label>
+                <label for="age" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Age</label>
                 <input 
                   id="age"
                   type="number" 
                   bind:value={age}
                   placeholder="e.g. 16" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
               <div class="space-y-1.5">
-                <label for="country-btn" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Country</label>
+                <label for="country-btn" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Country</label>
                 <button 
                   id="country-btn"
                   type="button"
                   onclick={() => countrySelectorOpen = true}
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-4 pr-10 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033] flex items-center justify-between text-left cursor-pointer"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-4 pr-10 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936] flex items-center justify-between text-left cursor-pointer"
                 >
                   <span class="flex items-center gap-2">
                     <span class="text-lg leading-none">{selectedCountryObj.flag}</span>
@@ -698,12 +698,12 @@
             </div>
 
             <div class="space-y-1.5">
-              <label for="class-btn" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Class/Level</label>
+              <label for="class-btn" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Class/Level</label>
               <button 
                 id="class-btn"
                 type="button"
                 onclick={() => classSelectorOpen = true}
-                class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-4 pr-10 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033] flex items-center justify-between text-left cursor-pointer"
+                class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-4 pr-10 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936] flex items-center justify-between text-left cursor-pointer"
               >
                 <span class={!studentClass ? 'text-slate-400' : ''}>
                   {formattedClass}
@@ -714,42 +714,42 @@
 
             <div class="space-y-4">
               <div class="space-y-1.5">
-                <label for="schoolName" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Current School</label>
+                <label for="schoolName" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Current School</label>
                 <input 
                   id="schoolName"
                   type="text" 
                   bind:value={schoolName}
                   placeholder="e.g. Gayaza High School" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
               
               <div class="space-y-1.5">
-                <label for="district" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">District</label>
+                <label for="district" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">District</label>
                 <input 
                   id="district"
                   type="text" 
                   bind:value={district}
                   placeholder="e.g. Wakiso" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
 
               <div class="space-y-4">
                 <div class="space-y-1.5">
-                  <label for="parentContact" class="text-[9px] font-bold text-[#FF5B14] uppercase tracking-widest ml-1">Parent/Guardian Contact (Optional)</label>
+                  <label for="parentContact" class="text-[9px] font-bold text-[#E58A3A] uppercase tracking-widest ml-1">Parent/Guardian Contact (Optional)</label>
                   <input 
                     id="parentContact"
                     type="tel" 
                     bind:value={parentContact}
                     placeholder="256 7xx xxx xxx" 
-                    class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                    class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 px-4 text-sm focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                   />
                 </div>
               </div>
             </div>
 
-            <div class="p-4 bg-orange-50/50 rounded-[24px] border border-[#FF5B14]/10">
+            <div class="p-4 bg-orange-50/50 rounded-[24px] border border-[#E58A3A]/10">
               <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 text-center">Parent Details (Optional)</p>
               <div class="space-y-1.5">
                 <label for="parentNIN" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Parent NIN (Optional)</label>
@@ -758,7 +758,7 @@
                   type="text" 
                   bind:value={parentNIN}
                   placeholder="NIN Number" 
-                  class="w-full bg-theme-card border border-black/5 rounded-[16px] py-3 px-3 text-xs focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm font-bold text-[#1C2033]"
+                  class="w-full bg-theme-card border border-black/5 rounded-[16px] py-3 px-3 text-xs focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm font-bold text-[#202936]"
                 />
               </div>
             </div>
@@ -768,7 +768,7 @@
         <button 
           onclick={handleSignup}
           disabled={loading}
-          class="w-full mt-6 py-4 bg-[#FF5B14] text-white rounded-[20px] shadow-sm font-extrabold uppercase tracking-[0.1em] text-xs flex items-center justify-between px-6 hover:shadow-md transition-all active:scale-95 cursor-pointer border-none disabled:opacity-50"
+          class="w-full mt-6 py-4 bg-[#E58A3A] text-white rounded-[20px] shadow-sm font-extrabold uppercase tracking-[0.1em] text-xs flex items-center justify-between px-6 hover:shadow-md transition-all active:scale-95 cursor-pointer border-none disabled:opacity-50"
         >
           <span class="flex-1 text-center pl-6">
             {#if loading}
@@ -790,20 +790,20 @@
           {#if role === 'student'}
             <button 
               onclick={() => accessMode = 'individual'}
-              class="w-full py-3 px-2 rounded-[20px] text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer {accessMode === 'individual' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033] border-none'}"
+              class="w-full py-3 px-2 rounded-[20px] text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer {accessMode === 'individual' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#202936] border-none'}"
             >
               Individual Pass
             </button>
             <button 
               onclick={() => accessMode = 'school-code'}
-              class="w-full py-3 px-2 rounded-[20px] text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer {accessMode === 'school-code' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033] border-none'}"
+              class="w-full py-3 px-2 rounded-[20px] text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer {accessMode === 'school-code' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#202936] border-none'}"
             >
               School Code
             </button>
           {:else if role === 'administrator'}
             <button 
               onclick={() => accessMode = 'school-pay'}
-              class="w-full py-3 px-2 rounded-[20px] text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer {accessMode === 'school-pay' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033] border-none'}"
+              class="w-full py-3 px-2 rounded-[20px] text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer {accessMode === 'school-pay' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#202936] border-none'}"
             >
               B2B Billing
             </button>
@@ -819,7 +819,7 @@
                 bind:value={accessCode}
                 oninput={(e) => accessCode = e.currentTarget.value.toUpperCase()}
                 placeholder="E.G. GAYAZA-2024" 
-                class="w-full bg-slate-50 border border-black/5 rounded-[20px] py-4 px-4 text-center font-mono font-bold text-xl text-[#FF5B14] focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all uppercase"
+                class="w-full bg-slate-50 border border-black/5 rounded-[20px] py-4 px-4 text-center font-mono font-bold text-xl text-[#E58A3A] focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all uppercase"
               />
               <p class="text-[10px] text-slate-500 mt-4 text-center leading-relaxed">Enter the code provided by your school administrator.</p>
             </div>
@@ -828,14 +828,14 @@
               {#each retailTiers as tier}
                 <button 
                   onclick={() => selectedTier = tier.id}
-                  class="w-full p-4 rounded-[20px] border-2 flex items-center justify-between transition-all bg-theme-card cursor-pointer {selectedTier === tier.id ? 'border-[#FF5B14] shadow-sm' : 'border-transparent shadow-sm shadow-black/5'}"
+                  class="w-full p-4 rounded-[20px] border-2 flex items-center justify-between transition-all bg-theme-card cursor-pointer {selectedTier === tier.id ? 'border-[#E58A3A] shadow-sm' : 'border-transparent shadow-sm shadow-black/5'}"
                 >
                   <div class="text-left">
-                    <div class="text-xs font-extrabold text-[#1C2033] uppercase tracking-wide">{tier.name}</div>
+                    <div class="text-xs font-extrabold text-[#202936] uppercase tracking-wide">{tier.name}</div>
                     <div class="text-[10px] text-slate-400 font-medium mt-0.5">{tier.value}</div>
                   </div>
                   <div class="text-right">
-                    <div class="text-sm font-extrabold text-[#FF5B14]">UGX {tier.price}</div>
+                    <div class="text-sm font-extrabold text-[#E58A3A]">UGX {tier.price}</div>
                     {#if tier.id === 'termly'}
                       <div class="text-[8px] font-bold text-green-500 uppercase mt-0.5">Best Value</div>
                     {/if}
@@ -849,14 +849,14 @@
               {#each schoolTiers as tier}
                 <button 
                   onclick={() => selectedTier = tier.id}
-                  class="w-full p-4 rounded-[20px] border-2 flex items-center justify-between transition-all bg-theme-card cursor-pointer {selectedTier === tier.id ? 'border-[#FF5B14] shadow-sm' : 'border-transparent shadow-sm shadow-black/5'}"
+                  class="w-full p-4 rounded-[20px] border-2 flex items-center justify-between transition-all bg-theme-card cursor-pointer {selectedTier === tier.id ? 'border-[#E58A3A] shadow-sm' : 'border-transparent shadow-sm shadow-black/5'}"
                 >
                   <div class="text-left">
-                    <div class="text-xs font-extrabold text-[#1C2033] uppercase tracking-wide">{tier.name}</div>
+                    <div class="text-xs font-extrabold text-[#202936] uppercase tracking-wide">{tier.name}</div>
                     <div class="text-[10px] text-slate-400 font-medium mt-0.5">{tier.range}</div>
                   </div>
                   <div class="text-right">
-                    <div class="text-sm font-extrabold text-[#FF5B14]">UGX {tier.price}</div>
+                    <div class="text-sm font-extrabold text-[#E58A3A]">UGX {tier.price}</div>
                     <div class="text-[8px] font-bold text-slate-400 uppercase mt-0.5">Per Term</div>
                   </div>
                 </button>
@@ -872,7 +872,7 @@
             </p>
             {#if !showMobileMoneyOptions}
               <button onclick={() => showMobileMoneyOptions = true} class="w-full flex items-center justify-center p-4 rounded-[16px] border border-black/5 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
-                <span class="text-[11px] font-extrabold text-[#1C2033] uppercase tracking-wider">Mobile Money</span>
+                <span class="text-[11px] font-extrabold text-[#202936] uppercase tracking-wider">Mobile Money</span>
               </button>
             {:else}
               <div class="grid grid-cols-2 gap-3">
@@ -889,7 +889,7 @@
 
         <button 
           onclick={() => step = 4}
-          class="w-full mt-6 py-4 bg-[#1C2033] text-white rounded-[20px] shadow-md shadow-[#1C2033]/20 font-extrabold uppercase tracking-[0.1em] text-xs hover:opacity-90 flex items-center justify-between px-6 transition-all active:scale-95 cursor-pointer border-none"
+          class="w-full mt-6 py-4 bg-[#202936] text-white rounded-[20px] shadow-md shadow-[#202936]/20 font-extrabold uppercase tracking-[0.1em] text-xs hover:opacity-90 flex items-center justify-between px-6 transition-all active:scale-95 cursor-pointer border-none"
         >
           <span class="flex-1 text-center pl-6">{accessMode === 'school-code' ? 'Activate with Code' : 'Complete Registration'}</span>
           <ArrowRight size={18} />
@@ -897,17 +897,17 @@
       </div>
     {:else}
       <div class="space-y-6 text-center mt-12">
-        <div class="w-24 h-24 bg-orange-100 rounded-[28px] flex items-center justify-center mx-auto text-[#FF5B14] mb-6 shadow-sm">
+        <div class="w-24 h-24 bg-orange-100 rounded-[28px] flex items-center justify-center mx-auto text-[#E58A3A] mb-6 shadow-sm">
           <GraduationCap size={48} />
         </div>
-        <h3 class="text-3xl font-extrabold text-[#1C2033]">Welcome {lastName}, to Xpresso</h3>
+        <h3 class="text-3xl font-extrabold text-[#202936]">Welcome {lastName}, to Xpresso</h3>
         <p class="text-sm text-slate-500 max-w-[240px] mx-auto leading-relaxed">Here is your unique Xpresso Code. Share it to connect with others.</p>
-        <div class="p-6 bg-theme-card border-2 border-[#FF5B14]/30 border-dashed rounded-[24px] mx-auto font-mono text-2xl text-[#FF5B14] font-extrabold tracking-widest shadow-sm">
+        <div class="p-6 bg-theme-card border-2 border-[#E58A3A]/30 border-dashed rounded-[24px] mx-auto font-mono text-2xl text-[#E58A3A] font-extrabold tracking-widest shadow-sm">
           {generatedExupCode || 'Generating...'}
         </div>
         <button 
           onclick={() => onsuccess?.(role)}
-          class="w-full mt-10 py-4 bg-[#FF5B14] text-white rounded-[20px] shadow-sm font-extrabold uppercase tracking-[0.1em] text-xs hover:shadow-md transition-all active:scale-95 cursor-pointer border-none"
+          class="w-full mt-10 py-4 bg-[#E58A3A] text-white rounded-[20px] shadow-sm font-extrabold uppercase tracking-[0.1em] text-xs hover:shadow-md transition-all active:scale-95 cursor-pointer border-none"
         >
           Enter Dashboard
         </button>
@@ -922,7 +922,7 @@
       transition:fade={{ duration: 200 }}
     >
       <div 
-        class="absolute inset-0 bg-[#1C2033]/40 backdrop-blur-sm" 
+        class="absolute inset-0 bg-[#202936]/40 backdrop-blur-sm" 
         onclick={() => countrySelectorOpen = false}
         aria-hidden="true"
       ></div>
@@ -931,7 +931,7 @@
         transition:scale={{ duration: 300, start: 0.95, opacity: 0 }}
       >
         <div class="p-5 border-b border-black/5 flex items-center justify-between bg-theme-card sticky top-0 z-10">
-          <h4 class="text-sm font-extrabold text-[#1C2033] uppercase tracking-widest">Select Country</h4>
+          <h4 class="text-sm font-extrabold text-[#202936] uppercase tracking-widest">Select Country</h4>
           <button onclick={() => countrySelectorOpen = false} class="p-2 text-slate-400 hover:text-black transition-colors border-none bg-transparent cursor-pointer">
             <X size={20} />
           </button>
@@ -944,7 +944,7 @@
               type="text" 
               bind:value={countrySearch}
               placeholder="Search country..."
-              class="w-full bg-theme-card border border-black/5 rounded-full py-3 pl-10 pr-4 text-xs font-bold outline-none focus:ring-1 focus:ring-[#FF5B14] transition-all"
+              class="w-full bg-theme-card border border-black/5 rounded-full py-3 pl-10 pr-4 text-xs font-bold outline-none focus:ring-1 focus:ring-[#E58A3A] transition-all"
             />
           </div>
         </div>
@@ -957,14 +957,14 @@
             >
               <div class="flex items-center gap-3">
                 <span class="text-2xl leading-none">{c.flag}</span>
-                <span class="text-sm font-bold text-[#1C2033]">{c.name}</span>
+                <span class="text-sm font-bold text-[#202936]">{c.name}</span>
               </div>
               {#if country === c.name}
-                <div class="w-6 h-6 rounded-full bg-[#FF5B14] flex items-center justify-center text-white" in:scale>
+                <div class="w-6 h-6 rounded-full bg-[#E58A3A] flex items-center justify-center text-white" in:scale>
                   <Check size={14} strokeWidth={3} />
                 </div>
               {:else}
-                <div class="w-6 h-6 rounded-full border-2 border-black/5 group-hover:border-[#FF5B14]/20 transition-colors"></div>
+                <div class="w-6 h-6 rounded-full border-2 border-black/5 group-hover:border-[#E58A3A]/20 transition-colors"></div>
               {/if}
             </button>
           {/each}
@@ -980,7 +980,7 @@
       transition:fade={{ duration: 200 }}
     >
       <div 
-        class="absolute inset-0 bg-[#1C2033]/40 backdrop-blur-sm" 
+        class="absolute inset-0 bg-[#202936]/40 backdrop-blur-sm" 
         onclick={() => classSelectorOpen = false}
         aria-hidden="true"
       ></div>
@@ -990,7 +990,7 @@
       >
         <div class="p-5 border-b border-black/5 flex items-center justify-between bg-theme-card sticky top-0 z-10">
           <div>
-            <h4 class="text-sm font-extrabold text-[#1C2033] uppercase tracking-widest">Select Class</h4>
+            <h4 class="text-sm font-extrabold text-[#202936] uppercase tracking-widest">Select Class</h4>
             <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{country}</p>
           </div>
           <button onclick={() => classSelectorOpen = false} class="p-2 text-slate-400 hover:text-black transition-colors border-none bg-transparent cursor-pointer">
@@ -1003,13 +1003,13 @@
             {#each availableClasses as cls}
               <button 
                 onclick={() => { studentClass = cls.id; classSelectorOpen = false; }}
-                class="p-4 rounded-[24px] flex flex-col items-center justify-center gap-2 transition-all relative border-none cursor-pointer {studentClass === cls.id ? 'bg-[#FF5B14] text-white shadow-lg shadow-[#FF5B14]/20 scale-95' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+                class="p-4 rounded-[24px] flex flex-col items-center justify-center gap-2 transition-all relative border-none cursor-pointer {studentClass === cls.id ? 'bg-[#E58A3A] text-white shadow-lg shadow-[#E58A3A]/20 scale-95' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
               >
                 <GraduationCap size={18} class={studentClass === cls.id ? 'text-white' : 'text-slate-300'} />
                 <span class="text-xs font-extrabold tracking-widest">{cls.label}</span>
                 
                 {#if studentClass === cls.id}
-                  <div class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#1C2033] flex items-center justify-center shadow-md animate-in zoom-in" in:scale>
+                  <div class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#202936] flex items-center justify-center shadow-md animate-in zoom-in" in:scale>
                     <Check size={12} strokeWidth={4} class="text-white" />
                   </div>
                 {/if}

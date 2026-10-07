@@ -141,6 +141,11 @@ export const authService = {
     if (typeof localStorage !== 'undefined') {
        localStorage.removeItem('exup_offline_user');
     }
+    // Remove registered FCM push token and clear launcher badge on logout
+    import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+      nativeNotificationService.removePushToken().catch(() => {});
+      nativeNotificationService.clearBadge().catch(() => {});
+    }).catch(() => {});
     try {
       await supabaseAuthService.logout();
       messagingService.resetSyncState();

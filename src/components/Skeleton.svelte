@@ -109,7 +109,7 @@
     <div class="space-y-3.5 w-full">
       {#each Array(count) as _, i}
         <div 
-          class="bg-white border-l-2 border-dashed border-slate-300 border-r border-black/5 p-4 flex items-center gap-3.5 relative overflow-hidden shadow-sm transition-all"
+          class="bg-white border-l-2 border-dashed border-slate-300 border-r border-black/5 py-3.5 px-4 flex items-center gap-3.5 relative overflow-hidden shadow-sm transition-all w-[90%] mx-auto"
           style="clip-path: {getTornClipPath(`${seed}-${i}`)};"
         >
           <div class="skeleton-shimmer w-12 h-12 rounded-full bg-ink/5 shrink-0"></div>

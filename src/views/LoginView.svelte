@@ -158,11 +158,11 @@
   </button>
   
   <div class="flex flex-col items-center justify-center mb-8 mt-6">
-     <div class="w-16 h-16 bg-theme-card rounded-[20px] flex flex-col items-center justify-center shadow-sm relative border border-black/5 mb-4">
-       <ArrowUp class="text-black mb-[-4px]" size={18} strokeWidth={3} />
-       <BookOpen class="text-[#FF5B14]" size={28} strokeWidth={2.5} />
+     <div class="w-16 h-16 bg-theme-card rounded-[20px] flex flex-col items-center justify-center shadow-sm relative border border-[#DDE5EC] mb-4">
+       <ArrowUp class="text-[#202936] mb-[-4px]" size={18} strokeWidth={3} />
+       <BookOpen class="text-[#E58A3A]" size={28} strokeWidth={2.5} />
      </div>
-     <h2 class="text-sm font-extrabold text-[#1C2033] tracking-[0.1em] uppercase">
+     <h2 class="text-sm font-extrabold text-[#202936] tracking-[0.1em] uppercase">
        {forgotPasswordMode ? 'Recover Password' : 'Login securely'}
      </h2>
   </div>
@@ -171,28 +171,28 @@
     
     {#if !forgotPasswordMode}
       <!-- Role Tabs -->
-      <div class="bg-theme-card p-1.5 rounded-[20px] shadow-sm border border-black/5 flex overflow-x-auto no-scrollbar snap-x">
+      <div class="bg-theme-card p-1.5 rounded-[20px] shadow-sm border border-[#DDE5EC] flex overflow-x-auto no-scrollbar snap-x">
          <button 
            onclick={() => role = 'student'}
-           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'student' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033]'}"
+           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'student' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-[#46698A] hover:text-[#202936]'}"
          >
            Student
          </button>
          <button 
            onclick={() => role = 'teacher'}
-           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'teacher' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033]'}"
+           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'teacher' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-[#46698A] hover:text-[#202936]'}"
          >
            Teacher
          </button>
          <button 
            onclick={() => role = 'parent'}
-           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'parent' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033]'}"
+           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'parent' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-[#46698A] hover:text-[#202936]'}"
          >
            Parent
          </button>
          <button 
            onclick={() => role = 'administrator'}
-           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'administrator' ? 'bg-[#FF5B14] text-white shadow-sm' : 'bg-transparent text-slate-400 hover:text-[#1C2033]'}"
+           class="flex-1 min-w-[70px] py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-[20px] transition-all shrink-0 snap-start {role === 'administrator' ? 'bg-[#E58A3A] text-white shadow-sm' : 'bg-transparent text-[#46698A] hover:text-[#202936]'}"
          >
            Admin
          </button>
@@ -231,25 +231,25 @@
             type="text" 
             bind:value={identifier}
             placeholder="Email or Phone Number" 
-            class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-16 pr-4 text-sm text-[#1C2033] focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm placeholder:text-slate-400 font-bold"
+            class="w-full bg-theme-card border border-[#DDE5EC] rounded-[20px] py-4 pl-16 pr-4 text-sm text-[#202936] focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm placeholder:text-[#46698A]/60 font-bold"
           />
         </div>
 
         {#if !forgotPasswordMode}
           <div class="relative">
             <label for="login-password" class="sr-only">Password</label>
-            <Lock class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
+            <Lock class="absolute left-5 top-1/2 -translate-y-1/2 text-[#46698A] pointer-events-none" size={18} />
             <input 
               id="login-password"
               type={showPassword ? "text" : "password"} 
               bind:value={password}
               placeholder="Password" 
-              class="w-full bg-theme-card border border-black/5 rounded-[20px] py-4 pl-12 pr-12 text-sm text-[#1C2033] focus:ring-1 focus:ring-[#FF5B14] focus:border-[#FF5B14] outline-none transition-all shadow-sm placeholder:text-slate-400 font-bold"
+              class="w-full bg-theme-card border border-[#DDE5EC] rounded-[20px] py-4 pl-12 pr-12 text-sm text-[#202936] focus:ring-1 focus:ring-[#E58A3A] focus:border-[#E58A3A] outline-none transition-all shadow-sm placeholder:text-[#46698A]/60 font-bold"
             />
             <button 
               type="button"
               onclick={() => showPassword = !showPassword}
-              class="absolute right-4 top-1/2 -translate-y-1/2 border-none bg-transparent text-slate-400 hover:text-[#FF5B14] cursor-pointer"
+              class="absolute right-4 top-1/2 -translate-y-1/2 border-none bg-transparent text-[#46698A] hover:text-[#E58A3A] cursor-pointer"
             >
               {#if showPassword}
                 <EyeOff size={18} />
@@ -264,14 +264,14 @@
               <input 
                 type="checkbox" 
                 bind:checked={keepMeSignedIn}
-                class="w-4 h-4 text-[#FF5B14] rounded outline-none border-black/10 focus:ring-[#FF5B14] accent-[#FF5B14]" 
+                class="w-4 h-4 text-[#E58A3A] rounded outline-none border-[#DDE5EC] focus:ring-[#E58A3A] accent-[#E58A3A]" 
               />
-              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Keep me signed in</span>
+              <span class="text-[10px] font-bold text-[#46698A] uppercase tracking-widest">Keep me signed in</span>
             </label>
             <button 
               type="button"
               onclick={() => forgotPasswordMode = true}
-              class="bg-transparent border-none text-[10px] font-bold text-[#FF5B14] uppercase tracking-widest hover:underline cursor-pointer"
+              class="bg-transparent border-none text-[10px] font-bold text-[#E58A3A] uppercase tracking-widest hover:underline cursor-pointer"
             >
               Forgot Password?
             </button>
@@ -280,7 +280,7 @@
           <button 
             onclick={handleLogin}
             disabled={loading}
-            class="w-full mt-8 py-4 bg-[#1C2033] text-white rounded-[20px] font-extrabold uppercase tracking-[0.1em] text-xs shadow-md shadow-[#1C2033]/20 flex items-center justify-between px-6 hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+            class="w-full mt-8 py-4 bg-[#202936] text-white rounded-[20px] font-extrabold uppercase tracking-[0.1em] text-xs shadow-md shadow-[#202936]/20 flex items-center justify-between px-6 hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
           >
             <span class="flex-1 text-center pl-6">{loading ? 'Signing In...' : 'Sign In'}</span>
             {#if loading}
@@ -291,9 +291,9 @@
           </button>
 
           <div class="flex items-center gap-4 py-2">
-            <div class="flex-1 h-px bg-black/5"></div>
-            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">OR</span>
-            <div class="flex-1 h-px bg-black/5"></div>
+            <div class="flex-1 h-px bg-[#DDE5EC]"></div>
+            <span class="text-[9px] font-bold text-[#46698A] uppercase tracking-widest">OR</span>
+            <div class="flex-1 h-px bg-[#DDE5EC]"></div>
           </div>
 
           <button 
@@ -314,7 +314,7 @@
           <button 
             onclick={handleRecoverPassword}
             disabled={loading}
-            class="w-full mt-8 py-4 bg-[#FF5B14] text-white rounded-[20px] font-extrabold uppercase tracking-[0.1em] text-xs shadow-md shadow-[#FF5B14]/20 flex items-center justify-center px-6 hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
+            class="w-full mt-8 py-4 bg-[#E58A3A] text-white rounded-[20px] font-extrabold uppercase tracking-[0.1em] text-xs shadow-md shadow-[#E58A3A]/20 flex items-center justify-center px-6 hover:opacity-90 transition-all cursor-pointer disabled:opacity-50"
           >
             {#if loading}
               <Loader2 size={18} class="animate-spin mr-3" />
@@ -331,23 +331,23 @@
        {#if !forgotPasswordMode}
          <button 
            onclick={() => forgotPasswordMode = true}
-           class="text-[10px] font-bold text-[#FF5B14] uppercase tracking-widest hover:opacity-80 transition-opacity block w-full mb-8 cursor-pointer border-none bg-transparent"
+           class="text-[10px] font-bold text-[#E58A3A] uppercase tracking-widest hover:opacity-80 transition-opacity block w-full mb-8 cursor-pointer border-none bg-transparent"
          >
            Forgot Password?
          </button>
        {:else}
          <button 
            onclick={() => forgotPasswordMode = false}
-           class="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:opacity-80 transition-opacity block w-full mb-8 cursor-pointer border-none bg-transparent"
+           class="text-[10px] font-bold text-[#46698A] uppercase tracking-widest hover:opacity-80 transition-opacity block w-full mb-8 cursor-pointer border-none bg-transparent"
          >
            Back to Login
          </button>
        {/if}
        
-       <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4">Don't have an account?</p>
+       <p class="text-[10px] text-[#46698A] font-bold uppercase tracking-widest mb-4">Don't have an account?</p>
        <button 
         onclick={() => onswitchtosignup?.()}
-        class="text-[11px] font-extrabold text-[#1C2033] uppercase tracking-[0.2em] hover:text-[#FF5B14] transition-colors cursor-pointer border-none bg-transparent"
+        class="text-[11px] font-extrabold text-[#202936] uppercase tracking-[0.2em] hover:text-[#E58A3A] transition-colors cursor-pointer border-none bg-transparent"
        >
          Create a New Account
        </button>

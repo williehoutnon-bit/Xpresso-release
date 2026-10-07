@@ -37,7 +37,7 @@
 </script>
 
 {#if count > 0}
-  <div class="min-w-[18px] h-[18px] px-1 bg-orange-500 rounded-full flex items-center justify-center shadow-[0_2px_8px_rgba(249,115,22,0.4)]">
+  <div class="min-w-[18px] h-[18px] px-1 bg-[#E58A3A] rounded-full flex items-center justify-center shadow-[0_2px_8px_rgba(229,138,58,0.35)] shrink-0">
     <span class="text-[9px] font-black text-white leading-none">{count > 99 ? '99+' : count}</span>
   </div>
 {/if}

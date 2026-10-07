@@ -197,3 +197,7 @@ export const supabaseRealtime = {
       .subscribe();
   }
 };
+
+export const getSupabase = () => supabase;
+export const getSupabaseAdmin = () => supabaseAdmin;
+

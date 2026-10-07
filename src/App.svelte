@@ -197,6 +197,28 @@ import LandingView from './views/LandingView.svelte';
             currentView = 'messages';
           }
 
+          // Initialize Native Notifications and Badge tracking
+          import('./services/nativeNotificationService').then(({ nativeNotificationService }) => {
+            nativeNotificationService.init();
+            nativeNotificationService.requestPermissions().catch(() => {});
+            
+            const cleanupClick = nativeNotificationService.onNotificationClick(({ conversationId }) => {
+              if (conversationId) {
+                selectedConversationId = conversationId;
+                currentView = 'chat';
+              }
+            });
+            appSubscriptions.push({ unsubscribe: cleanupClick });
+          }).catch(() => {});
+
+          // Track unread messages and sync launcher badge
+          import('./stores/unread').then(({ totalUnreadMessages }) => {
+            const sub = totalUnreadMessages(user.$id || user.id).subscribe((count) => {
+              console.log('App: Unread messages updated for badge:', count);
+            });
+            appSubscriptions.push(sub);
+          }).catch(() => {});
+
           // PRELOAD MESSAGES: Background task
           messagingService.preloadAllMessages().catch((err: any) => {
              if (err?.message?.toLowerCase().includes('fetch') || err?.toString?.().toLowerCase().includes('fetch')) {
@@ -437,20 +459,20 @@ import LandingView from './views/LandingView.svelte';
         <div class="p-8 text-center mt-20">
           <h1 class="text-2xl font-bold">In progress...</h1>
           <p class="mt-4">The {authRole} dashboard is currently being migrated to Svelte.</p>
-          <button onclick={handleLogout} class="mt-8 px-6 py-2 bg-[#FF5B14] text-white border-none cursor-pointer rounded-[20px]">Logout</button>
+          <button onclick={handleLogout} class="mt-8 px-6 py-2 bg-[#E58A3A] text-white border-none cursor-pointer rounded-[20px]">Logout</button>
         </div>
       {/if}
     {:else if currentView === 'verify_email_pending'}
       <div class="flex-1 flex flex-col items-center justify-center bg-cream p-8 text-center">
-        <Mail class="text-[#FF5B14] mb-6" size={64} />
-        <h2 class="text-2xl font-extrabold text-[#1C2033] mb-4">Verify your email</h2>
-        <p class="text-slate-500 text-sm mb-8 leading-relaxed">
+        <Mail class="text-[#E58A3A] mb-6" size={64} />
+        <h2 class="text-2xl font-extrabold text-[#202936] mb-4">Verify your email</h2>
+        <p class="text-[#46698A] text-sm mb-8 leading-relaxed">
           We've sent a verification link to your email. Please check your inbox (and spam folder) and click the link to activate your account.
         </p>
         <div class="space-y-4 w-full max-w-xs">
           <button 
             onclick={() => window.location.reload()}
-            class="w-full py-4 bg-[#FF5B14] text-white rounded-[20px] font-bold uppercase tracking-widest text-xs border-none cursor-pointer"
+            class="w-full py-4 bg-[#E58A3A] text-white rounded-[20px] font-bold uppercase tracking-widest text-xs border-none cursor-pointer"
           >
             I've verified my email
           </button>
@@ -541,11 +563,11 @@ import LandingView from './views/LandingView.svelte';
   {#if showExitDialog}
     <div class="fixed inset-0 bg-black/50 flex flex-col justify-end z-[100] animate-in fade-in">
       <div class="w-full bg-white rounded-t-[28px] p-8 space-y-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
-        <p class="text-[#00274d] text-lg font-extrabold text-center">Exit Educore?</p>
+        <p class="text-[#202936] text-lg font-extrabold text-center">Exit Xpresso?</p>
         <div class="flex gap-4">
-          <button class="flex-1 py-4 rounded-[20px] bg-[#e7efff] text-[#00274d] font-bold text-sm tracking-wide active:scale-95 transition-transform"
+          <button class="flex-1 py-4 rounded-[20px] bg-[#DDE5EC] text-[#202936] font-bold text-sm tracking-wide active:scale-95 transition-transform"
             onclick={() => showExitDialog = false}>Stay</button>
-          <button class="flex-1 py-4 rounded-[20px] bg-[#FF5B14] text-white font-bold text-sm tracking-wide active:scale-95 transition-transform"
+          <button class="flex-1 py-4 rounded-[20px] bg-[#E58A3A] text-white font-bold text-sm tracking-wide active:scale-95 transition-transform"
             onclick={handleExitPWA}>Exit</button>
         </div>
       </div>

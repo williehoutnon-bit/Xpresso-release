@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick, onDestroy, untrack } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { ChevronLeft, Search, Flame, ClipboardList, Trophy, BookOpen, MessageSquare, X, Check, CheckCheck, Trash2, Download } from 'lucide-svelte';
+  import { ChevronLeft, Search, Flame, ClipboardList, Trophy, BookOpen, MessageSquare, Bell, Users, Pencil, X, Check, CheckCheck, Trash2, Download } from 'lucide-svelte';
   import { jsPDF } from 'jspdf';
   import UnreadBadge from '../components/UnreadBadge.svelte';
   import Skeleton from '../components/Skeleton.svelte';
@@ -13,6 +13,7 @@
   import { friendshipService } from '../services/friendshipService';
   import { formatMathAsPlainText, mathNodesToPlainText } from '../math/mathSerialization';
   import UserProfileLightbox from '../components/UserProfileLightbox.svelte';
+  import { subscribeToNotifications } from '../services/notificationService';
 
   function triggerNotification(title: string, options: any) {
     console.log(`Notification: ${title}`, options);
@@ -40,35 +41,37 @@
     const hash = getStringHash(seedString);
     const random = seedRandom(hash);
     
-    const bottomPoints: string[] = [];
-    const steps = 140 + Math.round(random() * 30);
-
+    const steps = 60;
     const p1 = random() * Math.PI * 2;
     const p2 = random() * Math.PI * 2;
-    const p3 = random() * Math.PI * 2;
-    const f1 = 35 + random() * 10;
-    const f2 = 70 + random() * 15;
-    const f3 = 120 + random() * 20;
     
-    // Sharp bottom-right corner
-    bottomPoints.push('100% 100%');
+    // Micro-torn paper contour across top (left to right)
+    const topPoints: string[] = ['0% 0px'];
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const x = t * 100;
+      const wave = Math.sin(t * 32 * Math.PI + p1) * 0.7 
+                 + Math.sin(t * 60 * Math.PI + p2) * 0.35 
+                 + (random() - 0.5) * 0.4;
+      const y = Math.max(0.4, Math.min(2.8, 1.3 + wave));
+      topPoints.push(`${x.toFixed(1)}% ${y.toFixed(2)}px`);
+    }
+    topPoints.push('100% 0px');
 
-    // High frequency micro-torn paper contour across bottom
+    // Micro-torn paper contour across bottom (right to left)
+    const bottomPoints: string[] = ['100% 100%'];
     for (let i = steps - 1; i >= 1; i--) {
       const t = i / steps;
       const x = t * 100;
-      const wave = Math.sin(t * f1 * Math.PI + p1) * 0.6 
-                 + Math.sin(t * f2 * Math.PI + p2) * 0.4 
-                 + Math.sin(t * f3 * Math.PI + p3) * 0.25 
-                 + (random() - 0.5) * 0.35;
-      const fluctuateBottom = Math.max(0.4, Math.min(3.2, 1.8 + wave));
+      const wave = Math.sin(t * 34 * Math.PI + p2) * 0.7 
+                 + Math.sin(t * 64 * Math.PI + p1) * 0.35 
+                 + (random() - 0.5) * 0.4;
+      const fluctuateBottom = Math.max(0.4, Math.min(2.8, 1.3 + wave));
       bottomPoints.push(`${x.toFixed(1)}% calc(100% - ${fluctuateBottom.toFixed(2)}px)`);
     }
-    
-    // Sharp bottom-left corner
     bottomPoints.push('0% 100%');
 
-    return `polygon(0% 0px, 100% 0px, ${bottomPoints.join(', ')})`;
+    return `polygon(${topPoints.join(', ')}, ${bottomPoints.join(', ')})`;
   }
 
   let { onback, onopenchat } = $props<{
@@ -92,7 +95,129 @@
 
   let incomingRequests = $state<any[]>([]);
 
+  interface NotificationItem {
+    id: string;
+    title: string;
+    desc: string;
+    time: string;
+    unread: boolean;
+    type: 'streak' | 'assignment' | 'ranking' | 'lesson' | 'forum' | 'general';
+  }
+
+  const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+    { id: 'notify-1', title: '14-day streak!', desc: 'You have studied 14 days in a row. Keep it up!', time: 'Just now', unread: false, type: 'streak' },
+    { id: 'notify-2', title: 'New question from Mr. Kato', desc: 'S.4 Biology — "Describe the role of chlorophyll..." — Due in 28 min', time: '2 hrs ago', unread: false, type: 'assignment' },
+    { id: 'notify-3', title: 'You moved up to 7th on the leaderboard', desc: 'St. Mary\'s College weekly ranking — keep answering!', time: '5 hrs ago', unread: false, type: 'ranking' },
+    { id: 'notify-4', title: 'New Biology video: Mitosis explained', desc: 'A new animated lesson has been added to your subject.', time: 'Yesterday', unread: false, type: 'lesson' },
+    { id: 'notify-5', title: 'Grace answered your forum question', desc: '"The turning point is found by completing the square or using x = -b/2a..."', time: '2 days ago', unread: false, type: 'forum' }
+  ];
+
+  let notifications = $state<NotificationItem[]>([]);
+  const unreadNotificationCount = $derived(notifications.filter(n => n.unread).length);
+
+  function loadSavedNotifications() {
+    try {
+      // Clear out legacy key if present so user's browser isn't stuck with hardcoded 3
+      localStorage.removeItem('xpresso_inbox_notifications');
+      const saved = localStorage.getItem('xpresso_inbox_notifications_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          notifications = parsed;
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load notifications from storage', e);
+    }
+    notifications = INITIAL_NOTIFICATIONS.map(n => ({ ...n, unread: false }));
+    saveNotifications();
+  }
+
+  function saveNotifications() {
+    try {
+      localStorage.setItem('xpresso_inbox_notifications_v3', JSON.stringify(notifications));
+    } catch (e) {
+      console.warn('Failed to save notifications', e);
+    }
+  }
+
+  function handleNotificationTabClick() {
+    activeTab = 'notifications';
+    if (unreadNotificationCount > 0) {
+      markAllNotificationsRead();
+    }
+  }
+
+  function addTestNotification() {
+    const sampleTitles = [
+      'New Study Material Available',
+      'Classmate joined your study room',
+      'Teacher graded your assignment',
+      'Weekly ranking updated'
+    ];
+    const sampleDescs = [
+      'Check out the latest past paper solutions in Mathematics.',
+      'Moses is now online and reviewing Biology questions.',
+      'Great job on your answers! You scored 92%.',
+      'You are now in the top 5% of active students this week!'
+    ];
+    const randomIndex = Math.floor(Math.random() * sampleTitles.length);
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}`,
+      title: sampleTitles[randomIndex],
+      desc: sampleDescs[randomIndex],
+      time: 'Just now',
+      unread: true,
+      type: 'general'
+    };
+    notifications = [newNotif, ...notifications];
+    saveNotifications();
+  }
+
+  function markNotificationRead(id: string) {
+    notifications = notifications.map(n => n.id === id ? { ...n, unread: false } : n);
+    saveNotifications();
+  }
+
+  function toggleNotificationRead(id: string) {
+    notifications = notifications.map(n => n.id === id ? { ...n, unread: !n.unread } : n);
+    saveNotifications();
+  }
+
+  function markAllNotificationsRead() {
+    notifications = notifications.map(n => ({ ...n, unread: false }));
+    saveNotifications();
+  }
+
+  function dismissNotification(id: string, e?: MouseEvent) {
+    if (e) e.stopPropagation();
+    notifications = notifications.filter(n => n.id !== id);
+    saveNotifications();
+  }
+
+  function clearAllNotifications() {
+    notifications = [];
+    saveNotifications();
+  }
+
   onMount(async () => {
+    loadSavedNotifications();
+
+    const unsubNotif = subscribeToNotifications((item) => {
+      const newNotif: NotificationItem = {
+        id: item.id || `notif-${Date.now()}`,
+        title: item.title,
+        desc: item.message || '',
+        time: 'Just now',
+        unread: true,
+        type: 'general'
+      };
+      notifications = [newNotif, ...notifications];
+      saveNotifications();
+    });
+    subscriptions.push({ unsubscribe: unsubNotif });
+
     try {
       const user = await authService.getCurrentUser();
       if (user) {
@@ -750,36 +875,86 @@
   }
 </script>
 
-<div class="h-full bg-[#fafafa] paper-canvas flex flex-col overflow-y-auto pb-24 relative unselectable">
+<div class="h-full bg-[#F7F6F2] flex flex-col overflow-y-auto pb-28 relative unselectable">
   <!-- Top Navigation Tabs matching screenshot -->
-  <div class="sticky top-0 z-30 bg-white border-b border-slate-200/90 shadow-sm flex items-stretch select-none">
-    {#each tabs as tab, idx (tab.id)}
-      {#if idx > 0}
-        <div class="w-px bg-slate-200 my-2 self-stretch"></div>
+  <div class="sticky top-0 z-30 bg-[#F7F6F2] border-b border-[#DDE5EC]/90 flex items-stretch select-none px-2 pt-1 shadow-[0_1px_3px_rgba(32,41,54,0.02)]">
+    <!-- Messages Tab -->
+    <button 
+      onclick={() => activeTab = 'messages'}
+      class="flex-1 py-3 px-2 flex flex-col items-center justify-center relative border-none bg-transparent cursor-pointer transition-colors"
+      title="Messages"
+    >
+      <MessageSquare 
+        size={24} 
+        strokeWidth={activeTab === 'messages' ? 2.2 : 1.9}
+        class="text-[#46698A]" 
+      />
+      {#if activeTab === 'messages'}
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-[#E58A3A] rounded-full"></div>
       {/if}
-      <button 
-        onclick={() => activeTab = tab.id}
-        class="flex-1 py-3.5 px-2 text-center relative border-none bg-transparent cursor-pointer transition-colors"
-      >
-        <span class="text-[13px] font-bold tracking-wider uppercase {activeTab === tab.id ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}">
-          {tab.label}
-        </span>
-        {#if activeTab === tab.id}
-          <div class="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600"></div>
+    </button>
+
+    <!-- Vertical Divider -->
+    <div class="w-px h-6 bg-[#DDE5EC] my-auto self-center"></div>
+
+    <!-- Notifications Tab -->
+    <button 
+      onclick={handleNotificationTabClick}
+      class="flex-1 py-3 px-2 flex flex-col items-center justify-center relative border-none bg-transparent cursor-pointer transition-colors"
+      title="Notifications"
+    >
+      <div class="relative">
+        <Bell 
+          size={24} 
+          strokeWidth={activeTab === 'notifications' ? 2.2 : 1.9}
+          class="text-[#46698A]" 
+        />
+        <!-- Amber notification badge with dynamic unread count -->
+        {#if unreadNotificationCount > 0}
+          <div class="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 bg-[#E58A3A] text-white rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm animate-in zoom-in-75 duration-150">
+            {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+          </div>
         {/if}
-      </button>
-    {/each}
+      </div>
+      {#if activeTab === 'notifications'}
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-[#E58A3A] rounded-full"></div>
+      {/if}
+    </button>
+
+    <!-- Vertical Divider -->
+    <div class="w-px h-6 bg-[#DDE5EC] my-auto self-center"></div>
+
+    <!-- Connect / People Tab -->
+    <button 
+      onclick={() => activeTab = 'connect'}
+      class="flex-1 py-3 px-2 flex flex-col items-center justify-center relative border-none bg-transparent cursor-pointer transition-colors"
+      title="Connect"
+    >
+      <div class="relative">
+        <Users 
+          size={24} 
+          strokeWidth={activeTab === 'connect' ? 2.2 : 1.9}
+          class="text-[#46698A]" 
+        />
+        {#if incomingRequests.length > 0}
+          <div class="absolute -top-1 -right-2 w-2.5 h-2.5 bg-[#E58A3A] rounded-full border-2 border-[#F7F6F2]"></div>
+        {/if}
+      </div>
+      {#if activeTab === 'connect'}
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-[#E58A3A] rounded-full"></div>
+      {/if}
+    </button>
   </div>
 
-  <div class="p-4 relative">
-    <!-- FAB for New Message matching the solid orange floating circle button of reference -->
+  <div class="p-2 sm:p-4 relative">
+    <!-- Floating Compose Action Button matching screenshot -->
     {#if activeTab === 'messages'}
       <button 
         onclick={() => showNewMessageModal = true}
-        class="fixed bottom-[88px] right-6 w-14 h-14 bg-[#ff5b14] hover:bg-[#ea580c] text-white border-none cursor-pointer rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(255,91,20,0.35)] hover:scale-105 active:scale-95 transition-all z-30"
+        class="fixed bottom-20 right-5 w-14 h-14 bg-[#E58A3A] hover:bg-[#d67b2e] text-white border-none cursor-pointer rounded-full flex items-center justify-center shadow-[0_6px_20px_rgba(229,138,58,0.4)] hover:scale-105 active:scale-95 transition-all z-30"
         title="Compose Message"
       >
-        <MessageSquare size={24} strokeWidth={2.2} />
+        <Pencil size={24} strokeWidth={2.3} class="text-white" />
       </button>
     {/if}
 
@@ -830,7 +1005,7 @@
           {#if isLoading}
             <Skeleton variant="deckle" count={4} />
           {:else if filteredConversations.length === 0}
-            <div class="p-12 text-center text-sage font-sans font-bold text-base">
+            <div class="p-12 text-center text-[#46698A] font-sans font-bold text-base">
               {#if searchQuery}
                 No conversations found for "{searchQuery}".
               {:else}
@@ -840,7 +1015,7 @@
           {:else}
             {#each filteredConversations as convo (convo.id)}
               <div 
-                class="relative transition-all duration-300 overflow-hidden rounded-none"
+                class="relative transition-all duration-300 overflow-hidden rounded-none w-[90%] mx-auto"
               >
                 <!-- Delete indicator behind the item -->
                 {#if swipingConvoId === convo.id && swipeDistance > 10}
@@ -855,41 +1030,41 @@
                   ontouchstart={(e) => handleTouchStart(e, convo.id)}
                   ontouchmove={handleTouchMove}
                   ontouchend={handleTouchEnd}
-                  class="deckle-card flex items-center gap-4 p-4 pl-5 cursor-pointer relative"
+                  class="deckle-card flex items-center gap-3.5 py-3.5 px-4 pl-4.5 cursor-pointer relative w-full"
                   style="clip-path: {getTornClipPath(convo.id)}; {swipingConvoId === convo.id ? `transform: translateX(-${swipeDistance}px);` : ''}"
                 >
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div onclick={(e) => openProfileLightbox(e, convo)} class="w-12 h-12 rounded-full overflow-hidden bg-white text-slate-800 flex items-center justify-center shrink-0 font-bold text-lg relative border border-slate-200/80 shadow-sm">
+                  <div onclick={(e) => openProfileLightbox(e, convo)} class="w-12 h-12 rounded-full overflow-hidden bg-white text-[#202936] flex items-center justify-center shrink-0 font-bold text-lg relative border border-[#DDE5EC] shadow-sm">
                      <img src={convo.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${convo.name}`} alt={convo.name} class="w-full h-full object-cover" />
-                     <div class={`absolute bottom-0 right-0 w-3.5 h-3.5 ${authService.computeIsOnline(convo, currentTime) ? 'bg-orange-500' : 'bg-gray-400'} rounded-full border-2 border-white`}></div>
+                     <div class={`absolute bottom-0 right-0 w-3.5 h-3.5 ${authService.computeIsOnline(convo, currentTime) ? 'bg-[#E58A3A]' : 'bg-[#DDE5EC]'} rounded-full border-2 border-white`}></div>
                   </div>
                   <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-center mb-1">
-                      <span class="font-sans font-bold text-slate-800 text-[15px] hover:underline" onclick={(e) => openProfileLightbox(e, convo)}>{convo.name || 'Anonymous'}</span>
-                      <span class="text-[13px] text-slate-400 font-medium tracking-tight">{convo.lastMessage ? new Date(convo.lastMessage.createdAt ?? convo.lastMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      <span class="font-sans font-bold text-[#202936] text-[15px] hover:underline" onclick={(e) => openProfileLightbox(e, convo)}>{convo.name || 'Anonymous'}</span>
+                      <span class="text-[13px] text-[#46698A] font-medium tracking-tight">{convo.lastMessage ? new Date(convo.lastMessage.createdAt ?? convo.lastMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                     </div>
                     <div class="flex items-center gap-1.5 overflow-hidden">
                        {#if convo.lastMessage}
                           {#if (convo.lastMessage.senderId ?? convo.lastMessage.sender_id) === currentUserId || (!currentUserId && (convo.lastMessage.senderId ?? convo.lastMessage.sender_id) === '6a037aac0000618c52aa')}
-                             <div class="flex shrink-0 items-center text-slate-400">
+                             <div class="flex shrink-0 items-center text-[#46698A]">
                                {#if convo.lastMessage.status === 'pending'}
-                                  <div class="w-2.5 h-2.5 rounded-full border border-slate-400 border-t-transparent animate-spin"></div>
+                                  <div class="w-2.5 h-2.5 rounded-full border border-[#46698A] border-t-transparent animate-spin"></div>
                                {:else if convo.lastMessage.status === 'read'}
-                                  <CheckCheck size={14} class="text-orange-500" />
+                                  <CheckCheck size={14} class="text-[#E58A3A]" />
                                {:else if convo.lastMessage.status === 'delivered'}
-                                  <CheckCheck size={14} class="text-slate-400" />
+                                  <CheckCheck size={14} class="text-[#46698A]" />
                                {:else}
-                                  <Check size={14} class="text-slate-400" />
+                                  <Check size={14} class="text-[#46698A]" />
                                {/if}
                              </div>
-                             <span class="text-[13px] text-slate-500 font-sans shrink-0">You:</span>
+                             <span class="text-[13px] text-[#46698A] font-sans shrink-0">You:</span>
                           {/if}
-                          <p class="text-[13px] text-slate-500 truncate font-sans flex-1 leading-tight select-none">
+                          <p class="text-[13px] text-[#46698A] truncate font-sans flex-1 leading-tight select-none">
                              {getLastMessageContent(convo)}
                           </p>
                        {:else}
-                          <p class="text-[13px] text-slate-400 truncate font-sans flex-1 leading-tight select-none">
+                          <p class="text-[13px] text-[#46698A]/70 truncate font-sans flex-1 leading-tight select-none">
                              No messages yet
                           </p>
                        {/if}
@@ -905,75 +1080,123 @@
         </div>
         
       {:else if activeTab === 'notifications'}
-        <div in:fade|local={{ duration: 200 }} out:fade|local={{ duration: 200 }} class="space-y-4 text-sm relative w-full left-0 top-0 filter drop-shadow-[0_8px_16px_rgba(15,23,42,0.06)]">
-          <div class="deckle-card flex items-start gap-4 p-4 cursor-pointer" style="clip-path: {getTornClipPath('notify-1')};">
-              <div class="pt-1"><Flame size={20} class="text-accent" /></div>
-              <div class="flex-1">
-                <h4 class="font-sans font-bold text-ink text-base">14-day streak!</h4>
-                <p class="text-xs text-sage mt-1 font-sans leading-tight">You have studied 14 days in a row. Keep it up!</p>
-                <p class="text-[10px] text-sage font-sans font-bold uppercase tracking-wider mt-2">Just now</p>
-              </div>
+        <div in:fade|local={{ duration: 200 }} out:fade|local={{ duration: 200 }} class="space-y-3 text-sm relative w-full left-0 top-0 filter drop-shadow-[0_8px_16px_rgba(15,23,42,0.06)]">
+          <div class="flex items-center justify-between px-2 pt-1 pb-1">
+             <div class="flex items-center gap-2">
+               <span class="font-sans font-bold text-[#202936] text-xs uppercase tracking-wider">Activity Alerts</span>
+               {#if unreadNotificationCount > 0}
+                 <span class="px-2 py-0.5 bg-[#E58A3A]/15 text-[#E58A3A] rounded-full text-[10px] font-bold">
+                   {unreadNotificationCount} unread
+                 </span>
+               {/if}
+             </div>
+             <div class="flex items-center gap-3">
+               <button 
+                 onclick={addTestNotification} 
+                 class="bg-transparent border-none text-[11px] font-medium text-[#46698A] hover:text-[#202936] hover:underline cursor-pointer"
+                 title="Simulate receiving an alert"
+               >
+                 + Simulate alert
+               </button>
+               {#if unreadNotificationCount > 0}
+                 <button 
+                   onclick={markAllNotificationsRead} 
+                   class="bg-transparent border-none text-[11px] font-bold text-[#E58A3A] hover:underline cursor-pointer"
+                 >
+                   Mark all read
+                 </button>
+               {/if}
+               {#if notifications.length > 0}
+                 <button 
+                   onclick={clearAllNotifications} 
+                   class="bg-transparent border-none text-[11px] font-medium text-[#46698A] hover:text-[#202936] cursor-pointer"
+                 >
+                   Clear all
+                 </button>
+               {/if}
+             </div>
           </div>
-          <div class="deckle-card flex items-start gap-4 p-4 cursor-pointer" style="clip-path: {getTornClipPath('notify-2')};">
-              <div class="pt-1"><ClipboardList size={20} class="text-olive" /></div>
-              <div class="flex-1">
-                <h4 class="font-sans font-bold text-ink text-base">New question from Mr. Kato</h4>
-                <p class="text-xs text-sage mt-1 font-sans leading-tight">S.4 Biology — "Describe the role of chlorophyll..." — Due in 28 min</p>
-                <p class="text-[10px] text-sage font-sans font-bold uppercase tracking-wider mt-2">2 hrs ago</p>
+
+          {#if notifications.length === 0}
+            <div class="deckle-card p-8 text-center w-[90%] mx-auto" style="clip-path: {getTornClipPath('notif-empty')};">
+               <div class="w-12 h-12 rounded-full bg-[#F7F6F2] flex items-center justify-center mx-auto mb-3 text-[#46698A]">
+                 <Bell size={22} />
+               </div>
+               <p class="text-xs text-[#46698A] font-sans font-bold">You're all caught up!</p>
+               <p class="text-[11px] text-[#46698A]/70 mt-1">No alerts at this time.</p>
+            </div>
+          {:else}
+            {#each notifications as notif (notif.id)}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div 
+                onclick={() => toggleNotificationRead(notif.id)}
+                class="deckle-card flex items-start gap-3.5 py-3.5 px-4 cursor-pointer relative group transition-all w-[90%] mx-auto {notif.unread ? 'bg-white' : 'bg-white/80'}" 
+                style="clip-path: {getTornClipPath(notif.id)};"
+              >
+                <div class="pt-1 shrink-0">
+                  {#if notif.type === 'streak'}
+                    <Flame size={20} class="text-[#E58A3A]" />
+                  {:else if notif.type === 'assignment'}
+                    <ClipboardList size={20} class="text-[#46698A]" />
+                  {:else if notif.type === 'ranking'}
+                    <Trophy size={20} class="text-[#46698A]" />
+                  {:else if notif.type === 'lesson'}
+                    <BookOpen size={20} class="text-[#46698A]" />
+                  {:else if notif.type === 'forum'}
+                    <MessageSquare size={20} class="text-[#46698A]" />
+                  {:else}
+                    <Bell size={20} class="text-[#46698A]" />
+                  {/if}
+                </div>
+                <div class="flex-1 min-w-0 pr-6">
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-sans font-bold text-[#202936] text-base leading-snug">{notif.title}</h4>
+                    {#if notif.unread}
+                      <span class="w-2 h-2 rounded-full bg-[#E58A3A] shrink-0" title="Unread"></span>
+                    {/if}
+                  </div>
+                  <p class="text-xs text-[#46698A] mt-1 font-sans leading-tight">{notif.desc}</p>
+                  <p class="text-[10px] text-[#46698A] font-sans font-bold uppercase tracking-wider mt-2">{notif.time}</p>
+                </div>
+                <button 
+                  onclick={(e) => dismissNotification(notif.id, e)} 
+                  class="absolute top-3 right-3 p-1.5 text-[#46698A]/50 hover:text-[#202936] bg-transparent border-none cursor-pointer rounded-full opacity-60 group-hover:opacity-100 transition-opacity"
+                  title="Dismiss alert"
+                >
+                  <X size={14} />
+                </button>
               </div>
-          </div>
-          <div class="deckle-card flex items-start gap-4 p-4 cursor-pointer" style="clip-path: {getTornClipPath('notify-3')};">
-              <div class="pt-1"><Trophy size={20} class="text-olive" /></div>
-              <div class="flex-1">
-                <h4 class="font-sans font-bold text-ink text-base">You moved up to 7th on the leaderboard</h4>
-                <p class="text-xs text-sage mt-1 font-sans leading-tight">St. Mary's College weekly ranking — keep answering!</p>
-                <p class="text-[10px] text-sage font-sans font-bold uppercase tracking-wider mt-2">5 hrs ago</p>
-              </div>
-          </div>
-          <div class="deckle-card flex items-start gap-4 p-4 cursor-pointer" style="clip-path: {getTornClipPath('notify-4')};">
-              <div class="pt-1"><BookOpen size={20} class="text-olive" /></div>
-              <div class="flex-1">
-                <h4 class="font-sans font-bold text-ink text-base">New Biology video: Mitosis explained</h4>
-                <p class="text-xs text-sage mt-1 font-sans leading-tight">A new animated lesson has been added to your subject.</p>
-                <p class="text-[10px] text-sage font-sans font-bold uppercase tracking-wider mt-2">Yesterday</p>
-              </div>
-          </div>
-          <div class="deckle-card flex items-start gap-4 p-4 cursor-pointer" style="clip-path: {getTornClipPath('notify-5')};">
-              <div class="pt-1"><MessageSquare size={20} class="text-olive" /></div>
-              <div class="flex-1">
-                <h4 class="font-sans font-bold text-ink text-base">Grace answered your forum question</h4>
-                <p class="text-xs text-sage mt-1 font-sans leading-tight">"The turning point is found by completing the square or using x = -b/2a..."</p>
-                <p class="text-[10px] text-sage font-sans font-bold uppercase tracking-wider mt-2">2 days ago</p>
-              </div>
-          </div>
+            {/each}
+          {/if}
         </div>
 
       {:else if activeTab === 'connect'}
         <div in:fade|local={{ duration: 200 }} out:fade|local={{ duration: 200 }} class="space-y-6 relative w-full left-0 top-0 filter drop-shadow-[0_8px_16px_rgba(15,23,42,0.06)]">
            {#if incomingRequests.length > 0}
              <div>
-               <h3 class="font-sans font-bold text-slate-500 text-xs uppercase tracking-widest mb-3 px-1">Connection Requests ({incomingRequests.length})</h3>
+               <h3 class="font-sans font-bold text-[#46698A] text-xs uppercase tracking-widest mb-3 px-1">Connection Requests ({incomingRequests.length})</h3>
                <div class="space-y-4">
                  {#each incomingRequests as req, i}
-                   <div class="deckle-card flex items-center justify-between p-4" style="clip-path: {getTornClipPath('invite-' + (req.id || i))};">
+                   <div class="deckle-card flex items-center justify-between py-3.5 px-4" style="clip-path: {getTornClipPath('invite-' + (req.id || i))};">
                       <!-- svelte-ignore a11y_click_events_have_key_events -->
                       <!-- svelte-ignore a11y_no_static_element_interactions -->
                       <div class="flex items-center gap-3 cursor-pointer" onclick={(e) => openProfileLightbox(e, req)}>
                          {#if req.avatarUrl}
-                             <img src={req.avatarUrl} alt="Avatar" class="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200" />
+                             <img src={req.avatarUrl} alt="Avatar" class="w-12 h-12 rounded-full object-cover shrink-0 border border-[#DDE5EC]" />
                          {:else}
-                             <div class="w-12 h-12 rounded-full bg-white text-slate-800 flex items-center justify-center shrink-0 font-bold text-lg border border-slate-200">
+                             <div class="w-12 h-12 rounded-full bg-white text-[#202936] flex items-center justify-center shrink-0 font-bold text-lg border border-[#DDE5EC]">
                                {req.name.charAt(0).toUpperCase()}
                              </div>
                          {/if}
                          <div>
-                           <h4 class="font-sans font-bold text-slate-800 text-base">{req.name}</h4>
-                           <p class="text-[10px] text-slate-400 font-sans font-bold uppercase tracking-wider mt-1">{req.school} {#if req.studentClass}· {req.studentClass}{/if}</p>
+                           <h4 class="font-sans font-bold text-[#202936] text-base">{req.name}</h4>
+                           <p class="text-[10px] text-[#46698A] font-sans font-bold uppercase tracking-wider mt-1">{req.school} {#if req.studentClass}· {req.studentClass}{/if}</p>
                          </div>
                       </div>
                       <div class="flex flex-col gap-2 shrink-0">
-                         <button onclick={() => handleAcceptRequest(req)} class="bg-[#ff5b14] select-none cursor-pointer border-none font-sans font-bold text-[10px] uppercase tracking-widest px-4 py-2 rounded-full hover:bg-[#ea580c] shadow-md shadow-orange-500/25 text-white transition-all">Accept</button>
-                         <button onclick={() => handleDeclineRequest(req)} class="bg-transparent border border-slate-300 select-none cursor-pointer text-slate-700 font-sans font-bold text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full hover:bg-slate-100 transition-all">Decline</button>
+                         <button onclick={() => handleAcceptRequest(req)} class="bg-[#E58A3A] select-none cursor-pointer border-none font-sans font-bold text-[10px] uppercase tracking-widest px-4 py-2 rounded-full hover:bg-[#d67b2e] shadow-md shadow-[#E58A3A]/25 text-white transition-all">Accept</button>
+                         <button onclick={() => handleDeclineRequest(req)} class="bg-transparent border border-[#DDE5EC] select-none cursor-pointer text-[#46698A] font-sans font-bold text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full hover:bg-[#F7F6F2] transition-all">Decline</button>
                       </div>
                    </div>
                  {/each}
@@ -982,37 +1205,37 @@
            {/if}
 
            <div>
-              <h3 class="font-sans font-bold text-slate-500 text-xs uppercase tracking-widest mb-3 px-1">Connected Students ({myComrades.length})</h3>
+              <h3 class="font-sans font-bold text-[#46698A] text-xs uppercase tracking-widest mb-3 px-1">Connected Students ({myComrades.length})</h3>
               {#if myComrades.length === 0}
-                <div class="deckle-card p-10 text-center" style="clip-path: {getTornClipPath('network-empty')};">
-                   <p class="text-xs text-slate-400 font-sans font-bold">You don't have any connections yet.</p>
+                <div class="deckle-card p-8 text-center" style="clip-path: {getTornClipPath('network-empty')};">
+                   <p class="text-xs text-[#46698A] font-sans font-bold">You don't have any connections yet.</p>
                 </div>
               {:else}
                 <div class="space-y-4 font-medium">
                     {#each myComrades as comrade}
                       <!-- svelte-ignore a11y_click_events_have_key_events -->
                       <!-- svelte-ignore a11y_no_static_element_interactions -->
-                      <div onclick={() => onopenchat?.('user_' + comrade.userId, comrade.name)} class="deckle-card flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors" style="clip-path: {getTornClipPath('comrade-' + comrade.userId)};">
+                      <div onclick={() => onopenchat?.('user_' + comrade.userId, comrade.name)} class="deckle-card flex items-center justify-between py-3.5 px-4 cursor-pointer hover:bg-slate-50 transition-colors" style="clip-path: {getTornClipPath('comrade-' + comrade.userId)};">
                          <div class="flex items-center gap-3">
                             {#if comrade.avatarUrl}
-                               <img src={comrade.avatarUrl} alt={comrade.name} class="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" />
+                               <img src={comrade.avatarUrl} alt={comrade.name} class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#DDE5EC]" />
                             {:else}
-                               <div class="w-10 h-10 rounded-full bg-white text-slate-800 flex items-center justify-center shrink-0 font-bold text-base border border-slate-200">
+                               <div class="w-10 h-10 rounded-full bg-white text-[#202936] flex items-center justify-center shrink-0 font-bold text-base border border-[#DDE5EC]">
                                  {comrade.name[0]}
                                </div>
                             {/if}
                             <div>
-                              <h4 class="font-sans font-bold text-slate-800 text-base">{comrade.name}</h4>
-                              <p class="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-bold mt-1">{comrade.school || 'Exup Peer'}</p>
+                              <h4 class="font-sans font-bold text-[#202936] text-base">{comrade.name}</h4>
+                              <p class="text-[10px] text-[#46698A] uppercase tracking-wider font-sans font-bold mt-1">{comrade.school || 'Exup Peer'}</p>
                             </div>
                          </div>
-                         <ChevronLeft size={16} class="text-slate-400 rotate-180" />
+                         <ChevronLeft size={16} class="text-[#46698A] rotate-180" />
                       </div>
                     {/each}
                 </div>
               {/if}
               
-              <button onclick={() => triggerAction('Find Students', 'Opening Social Directory...', 'info')} class="w-full py-4 bg-white border border-slate-200 rounded-full text-slate-800 font-sans font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 hover:translate-y-[-1px] cursor-pointer transition-all flex items-center justify-center gap-2 mt-4 mb-6">
+              <button onclick={() => triggerAction('Find Students', 'Opening Social Directory...', 'info')} class="w-full py-4 bg-white border border-[#DDE5EC] rounded-full text-[#202936] hover:text-[#46698A] font-sans font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#F7F6F2] hover:translate-y-[-1px] cursor-pointer transition-all flex items-center justify-center gap-2 mt-4 mb-6">
                  Find more students <span>→</span>
               </button>
            </div>
@@ -1070,6 +1293,9 @@
     border-right: 1px solid rgba(0, 0, 0, 0.03);
     border-radius: 0 !important;
     position: relative;
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
     /* Sharp corners with high-frequency torn bottom edge */
     clip-path: polygon(
       0% 0px, 100% 0px,
@@ -1077,6 +1303,12 @@
     );
     filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.03)) drop-shadow(0 8px 16px rgba(15, 23, 42, 0.06));
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .deckle-card.w-full {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
   
   .deckle-card:hover {

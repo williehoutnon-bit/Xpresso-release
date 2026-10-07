@@ -1,5 +1,6 @@
 import { readable, type Readable } from 'svelte/store';
 import { dbService } from '../services/dbService';
+import { nativeNotificationService } from '../services/nativeNotificationService';
 
 export function unreadCount(conversationId: string, userId: string, lastReadAt: string | null): Readable<number> {
   return readable(0, (set) => {
@@ -29,7 +30,6 @@ export function unreadCount(conversationId: string, userId: string, lastReadAt: 
 export function totalUnreadConversations(userId: string): Readable<number> {
   return readable(0, (set) => {
     let partSub: any;
-    let countsSubs: any[] = [];
     
     dbService.getRawDB().then((db: any) => {
       partSub = db.participants
@@ -52,6 +52,45 @@ export function totalUnreadConversations(userId: string): Readable<number> {
             }
           }
           set(count);
+        });
+    });
+
+    return () => {
+      if (partSub) partSub.unsubscribe();
+    };
+  });
+}
+
+/**
+ * Observable of the total unread messages count across all conversations.
+ * Automatically synchronizes with the device's home screen icon badge.
+ */
+export function totalUnreadMessages(userId: string): Readable<number> {
+  return readable(0, (set) => {
+    let partSub: any;
+
+    dbService.getRawDB().then((db: any) => {
+      partSub = db.participants
+        .find({ selector: { userId: userId } })
+        .$
+        .subscribe(async (members: any[]) => {
+          let totalCount = 0;
+          for (const m of members) {
+            try {
+              const msgs = await db.messages.find({
+                selector: {
+                  conversationId: { $eq: m.conversationId },
+                  createdAt: { $gt: m.lastReadAt ?? '1970-01-01T00:00:00.000Z' }
+                }
+              }).exec();
+              totalCount += msgs.filter((msg: any) => msg.senderId !== userId).length;
+            } catch (err) {
+              console.error('Error calculating total unread messages:', err);
+            }
+          }
+          set(totalCount);
+          // Sync with native home screen badge
+          nativeNotificationService.setBadge(totalCount).catch(() => {});
         });
     });
 

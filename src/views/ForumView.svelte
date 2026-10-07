@@ -128,8 +128,8 @@
         <div>
           <h2 class="text-sm uppercase tracking-widest font-bold text-ink leading-tight">Forum & Insights</h2>
           {#if formattedTime}
-            <div class="text-[10px] font-bold text-[#FF5B14] uppercase tracking-widest flex items-center gap-1 mt-0.5">
-               <span class="w-1.5 h-1.5 rounded-full bg-[#FF5B14] animate-pulse"></span>
+            <div class="text-[10px] font-bold text-[#E58A3A] uppercase tracking-widest flex items-center gap-1 mt-0.5">
+               <span class="w-1.5 h-1.5 rounded-full bg-[#E58A3A] animate-pulse"></span>
                Time Left: {formattedTime}
             </div>
           {/if}

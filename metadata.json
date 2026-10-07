@@ -1,6 +1,6 @@
 {
   "name": "Xpresso-release",
-  "description": "exup is an educational study assistant and exam preparation platform focused on teacher tracking, independent textbook publishing, and real-time classroom insights.",
+  "description": "Xpresso is an educational study assistant and exam preparation platform focused on teacher tracking, independent textbook publishing, and real-time classroom insights.",
   "requestFramePermissions": [
     "camera",
     "microphone"

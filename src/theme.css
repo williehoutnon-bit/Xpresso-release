@@ -1,30 +1,93 @@
+/* XPRESSO — INBOX COLOR GUIDELINES */
+
 :root {
-  --color-theme-paper: #f9f9f8; /* Slightly off-white, less brownish */
-  --color-theme-card: #ffffff; /* Pure white as before */
-  --color-theme-text: #0a1d33; /* Deep navy/ink */
-  --color-theme-accent: #f97316; /* Orange */
-  
-  /* Additional variables that could be customized by users */
-  --color-theme-surface: #f3f4f6;
-  --color-theme-border: #e2e8f0;
+  /* Core */
+  --charcoal: #202936;
+  --ink-blue: #46698A;
+  --warm-amber: #E58A3A;
+  --warm-paper: #F7F6F2;
+  --white: #FFFFFF;
+
+  /* Optional supporting tones */
+  --blue-light: #DDE5EC;
+  --paper-shadow: rgba(32, 41, 54, 0.08);
+
+  /* =========================
+     COLOR HIERARCHY
+     ========================= */
+  --background: var(--warm-paper);
+  --surface: var(--white);
+
+  --primary-text: var(--charcoal);
+  --secondary-text: var(--ink-blue);
+
+  --navigation: var(--ink-blue);
+  --action: var(--warm-amber);
+
+  /* =========================
+     TOP NAVIGATION
+     ========================= */
+  --top-nav-icon: var(--ink-blue);
+  --active-tab-icon: var(--ink-blue);
+  --active-tab-underline: var(--warm-amber);
+  --notification-badge: var(--warm-amber);
+  --notification-number: var(--white);
+
+  /* =========================
+     INBOX ITEMS
+     ========================= */
+  --conversation-name: var(--charcoal);
+  --message-preview: var(--ink-blue);
+  --timestamp: var(--ink-blue);
+  --message-tick: var(--warm-amber);
+
+  /* =========================
+     COMPOSE ACTION
+     ========================= */
+  --compose-background: var(--warm-amber);
+  --compose-icon: var(--white);
+
+  /* =========================
+     BOTTOM NAVIGATION
+     ========================= */
+  --bottom-nav-icon: var(--ink-blue);
+  --bottom-nav-label: var(--charcoal);
+
+  /* =========================
+     SURFACES & DIVIDERS
+     ========================= */
+  --page-background: var(--warm-paper);
+  --card-background: var(--white);
+  --divider: var(--blue-light);
+  --card-shadow: var(--paper-shadow);
+
+  /* Global Theme Aliases */
+  --color-theme-paper: #F7F6F2;
+  --color-theme-card: #FFFFFF;
+  --color-theme-text: #202936;
+  --color-theme-accent: #E58A3A;
+  --color-theme-surface: #F7F6F2;
+  --color-theme-border: #DDE5EC;
 }
 
 [data-theme="dark"] {
-  --color-theme-paper: #121212;
-  --color-theme-card: #1e1e1e;
-  --color-theme-text: #f1f5f9;
-  --color-theme-accent: #ea580c;
-  
-  --color-theme-surface: #27272a;
-  --color-theme-border: #3f3f46;
+  --color-theme-paper: #161B22;
+  --color-theme-card: #202936;
+  --color-theme-text: #F7F6F2;
+  --color-theme-accent: #E58A3A;
+  --color-theme-surface: #1C232F;
+  --color-theme-border: #2D3A4B;
+  --background: #161B22;
+  --surface: #202936;
+  --primary-text: #F7F6F2;
+  --secondary-text: #96B1C9;
 }
 
 [data-theme="sepia"] {
-  --color-theme-paper: #f4ecd8;
-  --color-theme-card: #fdf6e3;
-  --color-theme-text: #43302b;
-  --color-theme-accent: #d35400;
-  
-  --color-theme-surface: #eaddc5;
-  --color-theme-border: #d4c4a8;
+  --color-theme-paper: #F7F6F2;
+  --color-theme-card: #FFFFFF;
+  --color-theme-text: #202936;
+  --color-theme-accent: #E58A3A;
+  --color-theme-surface: #F7F6F2;
+  --color-theme-border: #DDE5EC;
 }

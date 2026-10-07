@@ -652,14 +652,14 @@
                         <button 
                           type="button"
                           onclick={() => examTarget = 'class'}
-                          class="w-full flex items-center justify-between p-4 rounded-[20px] transition-all {examTarget === 'class' ? 'bg-[#FF5B14] text-white shadow-lg shadow-[#FF5B14]/20' : 'bg-theme-card border border-black/5 text-ink hover:bg-slate-50'} border-none cursor-pointer"
+                          class="w-full flex items-center justify-between p-4 rounded-[20px] transition-all {examTarget === 'class' ? 'bg-[#E58A3A] text-white shadow-lg shadow-[#E58A3A]/20' : 'bg-theme-card border border-black/5 text-ink hover:bg-slate-50'} border-none cursor-pointer"
                         >
                           <div class="flex items-center gap-3">
                             <Users size={18} class={examTarget === 'class' ? 'text-white' : 'text-sage'} />
                             <span class="text-sm font-bold uppercase tracking-wide">Assign to Class Group</span>
                           </div>
                           {#if examTarget === 'class'}
-                            <div class="w-6 h-6 rounded-full bg-theme-card flex items-center justify-center text-[#FF5B14]" in:scale>
+                            <div class="w-6 h-6 rounded-full bg-theme-card flex items-center justify-center text-[#E58A3A]" in:scale>
                               <Check size={14} strokeWidth={3} />
                             </div>
                           {/if}
@@ -680,14 +680,14 @@
                         <button 
                           type="button"
                           onclick={() => examTarget = 'broadcast'}
-                          class="w-full flex items-center justify-between p-4 rounded-[20px] transition-all {examTarget === 'broadcast' ? 'bg-[#FF5B14] text-white shadow-lg shadow-[#FF5B14]/20' : 'bg-theme-card border border-black/5 text-ink hover:bg-slate-50'} border-none cursor-pointer"
+                          class="w-full flex items-center justify-between p-4 rounded-[20px] transition-all {examTarget === 'broadcast' ? 'bg-[#E58A3A] text-white shadow-lg shadow-[#E58A3A]/20' : 'bg-theme-card border border-black/5 text-ink hover:bg-slate-50'} border-none cursor-pointer"
                         >
                           <div class="flex items-center gap-3">
                             <Globe size={18} class={examTarget === 'broadcast' ? 'text-white' : 'text-sage'} />
                             <span class="text-sm font-bold uppercase tracking-wide">Broadcast Globally</span>
                           </div>
                           {#if examTarget === 'broadcast'}
-                            <div class="w-6 h-6 rounded-full bg-theme-card flex items-center justify-center text-[#FF5B14]" in:scale>
+                            <div class="w-6 h-6 rounded-full bg-theme-card flex items-center justify-center text-[#E58A3A]" in:scale>
                               <Check size={14} strokeWidth={3} />
                             </div>
                           {/if}

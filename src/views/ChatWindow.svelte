@@ -3178,10 +3178,10 @@
              type="button"
              onclick={(e) => { e.stopPropagation(); scrollToMessage(replyInfo.replyToId); }}
              class="mb-2 p-1.5 px-2.5 text-left cursor-pointer transition-all hover:brightness-95 hover:scale-[1.01] active:scale-[0.98] w-full rounded-r-lg rounded-l-[4px] border-none flex flex-col gap-0.5 bg-black/[0.04] dark:bg-theme-card/[0.06] border-l-[4px] relative overflow-hidden self-stretch"
-             style="border-left-color: {replyInfo.replyToSenderId === currentUserId ? '#FF5B14' : '#00274d'}; text-align: left; display: flex; flex-direction: column;"
+             style="border-left-color: {replyInfo.replyToSenderId === currentUserId ? '#E58A3A' : '#00274d'}; text-align: left; display: flex; flex-direction: column;"
              title="Jump to original message"
           >
-             <span class="font-bold text-[11px] leading-tight" style="color: {replyInfo.replyToSenderId === currentUserId ? '#FF5B14' : '#00274d'};">
+             <span class="font-bold text-[11px] leading-tight" style="color: {replyInfo.replyToSenderId === currentUserId ? '#E58A3A' : '#00274d'};">
                 {replyInfo.replyToSenderId === currentUserId ? 'You' : contactName}
              </span>
              <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-normal w-full m-0 break-words whitespace-normal line-clamp-4">

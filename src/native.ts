@@ -36,8 +36,8 @@ export async function initNative() {
 
   document.documentElement.classList.add('native-app');
 
-  StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-  StatusBar.setBackgroundColor({ color: '#FF5B14' }).catch(() => {});
+  StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+  StatusBar.setBackgroundColor({ color: '#F7F6F2' }).catch(() => {});
 
   // Components that own an overlay (e.g. the math keyboard) cancel this event to consume the back press.
   App.addListener('backButton', ({ canGoBack }) => {

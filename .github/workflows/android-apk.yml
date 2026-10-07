@@ -71,6 +71,19 @@ jobs:
           (cd dist && zip -qr ../bundle.zip .)
           node scripts/publish-live-update.mjs
 
+      - name: Setup Google Services for FCM
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | tr -d '\r\n ' | base64 -d > android/app/google-services.json
+            echo "google-services.json decoded from base64"
+          elif [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "google-services.json populated from secret"
+          fi
+
       - name: Decode Keystore for Release Signing
         if: env.KEYSTORE_BASE64 != ''
         run: |

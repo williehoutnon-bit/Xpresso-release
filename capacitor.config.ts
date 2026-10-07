@@ -25,7 +25,14 @@ const config: CapacitorConfig = {
     StatusBar: {
       overlaysWebView: false,
       style: 'LIGHT',
-      backgroundColor: '#FF5B14',
+      backgroundColor: '#0050D8',
+    },
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    LocalNotifications: {
+      smallIcon: 'ic_launcher_foreground',
+      iconColor: '#0050D8',
     },
     SplashScreen: {
       launchShowDuration: 2000,

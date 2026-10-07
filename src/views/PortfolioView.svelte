@@ -226,14 +226,14 @@
                                  {#each ['Basic', 'Competent', 'Proficient', 'Outstanding'] as comp}
                                    <button 
                                      onclick={() => { newLogCompetence = comp; competenceOpen = false; }}
-                                     class="w-full p-3 rounded-[18px] flex items-center justify-between transition-all group {newLogCompetence === comp ? 'bg-[#FF5B14] text-white shadow-sm' : 'hover:bg-slate-50 text-indigo-900'} border-none cursor-pointer"
+                                     class="w-full p-3 rounded-[18px] flex items-center justify-between transition-all group {newLogCompetence === comp ? 'bg-[#E58A3A] text-white shadow-sm' : 'hover:bg-slate-50 text-indigo-900'} border-none cursor-pointer"
                                    >
                                      <div class="flex items-center gap-2">
                                        <span class="text-base">{getCompetenceEmoji(comp)}</span>
                                        <span class="text-xs font-bold">{comp}</span>
                                      </div>
                                      {#if newLogCompetence === comp}
-                                       <div class="w-5 h-5 rounded-full bg-theme-card flex items-center justify-center text-[#FF5B14]" in:scale>
+                                       <div class="w-5 h-5 rounded-full bg-theme-card flex items-center justify-center text-[#E58A3A]" in:scale>
                                          <Check size={12} strokeWidth={3} />
                                        </div>
                                      {/if}

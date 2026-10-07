@@ -92,8 +92,8 @@
 
     <!-- Tagline -->
     <div class="mb-8 animate-fade-in-up flex flex-col items-center" style="animation-delay: 0.2s">
-      <p class="text-[#1C2033] text-xs font-bold uppercase tracking-[0.2em] mb-4">Exam Excellence Network</p>
-      <div class="h-[2px] w-8 bg-[#FF5B14] mb-6 rounded-full"></div>
+      <p class="text-[#202936] text-xs font-bold uppercase tracking-[0.2em] mb-4">Exam Excellence Network</p>
+      <div class="h-[2px] w-8 bg-[#E58A3A] mb-6 rounded-full"></div>
       <p class="text-slate-500 text-[15px] max-w-[260px] leading-relaxed">
         Empowering students across {detectedCountry} to learn, practice and excel.
       </p>
@@ -103,7 +103,7 @@
     <div class="w-full space-y-4 animate-fade-in-up" style="animation-delay: 0.3s">
       <button
         onclick={() => onlogin?.()}
-        class="w-full flex items-center justify-between px-6 py-4 bg-theme-card text-[#1C2033] rounded-[20px] shadow-sm hover:shadow transition-all font-extrabold text-[13px] tracking-[0.1em] uppercase border border-black/5 cursor-pointer"
+        class="w-full flex items-center justify-between px-6 py-4 bg-theme-card text-[#202936] rounded-[20px] shadow-sm hover:shadow transition-all font-extrabold text-[13px] tracking-[0.1em] uppercase border border-black/5 cursor-pointer"
       >
         <span class="flex-1 text-center pl-6">Login</span>
         <ArrowRight size={18} class="text-slate-400" />
@@ -111,7 +111,7 @@
 
       <button
         onclick={() => onsignup?.()}
-        class="w-full flex items-center justify-between px-6 py-4 bg-[#FF5B14] text-white rounded-[20px] shadow-md shadow-orange-500/20 hover:shadow-lg transition-all font-extrabold text-[13px] tracking-[0.1em] uppercase cursor-pointer"
+        class="w-full flex items-center justify-between px-6 py-4 bg-[#E58A3A] text-white rounded-[20px] shadow-md shadow-orange-500/20 hover:shadow-lg transition-all font-extrabold text-[13px] tracking-[0.1em] uppercase cursor-pointer"
       >
         <span class="flex-1 text-center pl-6">Register</span>
         <ArrowRight size={18} class="text-white" />
@@ -125,29 +125,29 @@
      
      <div class="flex items-center justify-center gap-6 mb-4 mt-8">
         <div class="flex gap-1">
-           <div class="w-1.5 h-1.5 rounded-full bg-[#FF5B14]"></div>
-           <div class="w-1.5 h-1.5 rounded-full bg-[#FF5B14]"></div>
-           <div class="w-1.5 h-1.5 rounded-full bg-[#FF5B14]"></div>
+           <div class="w-1.5 h-1.5 rounded-full bg-[#E58A3A]"></div>
+           <div class="w-1.5 h-1.5 rounded-full bg-[#E58A3A]"></div>
+           <div class="w-1.5 h-1.5 rounded-full bg-[#E58A3A]"></div>
         </div>
         
-        <div class="w-16 h-16 rounded-full bg-theme-card shadow-sm border border-black/5 flex items-center justify-center text-[#1C2033] relative">
-           <Star class="absolute top-[14px] text-[#FF5B14]" size={14} strokeWidth={2.5} />
+        <div class="w-16 h-16 rounded-full bg-theme-card shadow-sm border border-black/5 flex items-center justify-center text-[#202936] relative">
+           <Star class="absolute top-[14px] text-[#E58A3A]" size={14} strokeWidth={2.5} />
            <Users size={24} class="mt-2" />
         </div>
 
         <div class="flex gap-1">
-           <div class="w-1.5 h-1.5 rounded-full bg-[#FF5B14]"></div>
-           <div class="w-1.5 h-1.5 rounded-full bg-[#FF5B14]"></div>
-           <div class="w-1.5 h-1.5 rounded-full bg-[#FF5B14]"></div>
+           <div class="w-1.5 h-1.5 rounded-full bg-[#E58A3A]"></div>
+           <div class="w-1.5 h-1.5 rounded-full bg-[#E58A3A]"></div>
+           <div class="w-1.5 h-1.5 rounded-full bg-[#E58A3A]"></div>
         </div>
      </div>
 
-     <p class="text-[#1C2033] font-bold text-sm tracking-wide mb-3">Connected by Goals</p>
-     <div class="h-[2px] w-6 bg-[#FF5B14] mb-4 rounded-full"></div>
+     <p class="text-[#202936] font-bold text-sm tracking-wide mb-3">Connected by Goals</p>
+     <div class="h-[2px] w-6 bg-[#E58A3A] mb-4 rounded-full"></div>
 
      <button 
        onclick={() => onabout?.()}
-       class="text-[#FF5B14] font-bold text-sm flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer border-none bg-transparent"
+       class="text-[#E58A3A] font-bold text-sm flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer border-none bg-transparent"
      >
        About pepachat <ArrowUp size={16} />
      </button>

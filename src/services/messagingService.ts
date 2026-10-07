@@ -541,6 +541,23 @@ export const messagingService = {
                      .catch((err: any) => console.warn('[MessagingService] Failed to send delivery receipt:', err?.message || err));
                }
 
+               // 2b. Trigger native notification for incoming message
+               if (user && senderId && senderId !== user.$id && payload.eventType === 'INSERT') {
+                  const preview = doc.content || (attachments?.length ? '[Attachment]' : 'New message');
+                  dbService.getProfile(senderId, false).then((senderProfile: any) => {
+                     const senderName = senderProfile?.fullName || senderProfile?.name || 'New message';
+                     import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+                        nativeNotificationService.showLocalNotification({
+                           title: senderName,
+                           body: preview,
+                           conversationId,
+                           senderId,
+                           senderName,
+                        });
+                     }).catch(() => {});
+                  }).catch(() => {});
+               }
+
                // 3. Update participant lastMessageAt so conversation sorting updates immediately
                if (user && conversationId) {
                   try {
@@ -1575,6 +1592,16 @@ export const messagingService = {
             dbService.getRawDB().then(db => {
               db.messages.incrementalUpsert({ ...localDoc, status: 'sent' }).catch(() => {});
             });
+
+            // Dispatch background push notification to wake offline recipients
+            import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+              nativeNotificationService.dispatchPushNotification({
+                conversationId,
+                senderId: user.$id,
+                senderName: user.name || user.prefs?.lastName || 'Xpresso User',
+                content: finalContent,
+              });
+            }).catch(() => {});
           }
         }).catch(() => {});
       }).catch(() => {});
