@@ -894,9 +894,6 @@
       {/if}
     </button>
 
-    <!-- Vertical Divider -->
-    <div class="w-px h-6 bg-[#DDE5EC] my-auto self-center"></div>
-
     <!-- Notifications Tab -->
     <button 
       onclick={handleNotificationTabClick}
@@ -920,9 +917,6 @@
         <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-[3px] bg-[#E58A3A] rounded-full"></div>
       {/if}
     </button>
-
-    <!-- Vertical Divider -->
-    <div class="w-px h-6 bg-[#DDE5EC] my-auto self-center"></div>
 
     <!-- Connect / People Tab -->
     <button 
