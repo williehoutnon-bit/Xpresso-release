@@ -85,7 +85,6 @@ class NativeNotificationService {
         description: 'Instant notifications for new direct messages and study group chats',
         importance: 5, // High: Heads-up banner, sound, vibration
         visibility: 1, // Public (shows on lock screen)
-        sound: 'notification.wav',
         vibration: true,
         lights: true,
         lightColor: '#0050D8',
@@ -112,15 +111,33 @@ class NativeNotificationService {
     }
 
     try {
-      // Request push notification permissions
-      const pushStatus = await PushNotifications.requestPermissions();
-      const localStatus = await LocalNotifications.requestPermissions();
-
-      const granted = pushStatus.receive === 'granted' || localStatus.display === 'granted';
-      if (granted) {
-        await PushNotifications.register().catch(() => {});
+      // 1. Request push notification permission first
+      let pushGranted = false;
+      try {
+        const pushStatus = await PushNotifications.requestPermissions();
+        pushGranted = pushStatus.receive === 'granted';
+      } catch (e) {
+        console.warn('[NotificationService] Push permission request error:', e);
       }
-      return granted;
+
+      // 2. Request local notifications permission separately
+      try {
+        await LocalNotifications.requestPermissions();
+      } catch (e) {
+        console.warn('[NotificationService] Local notification permission request error:', e);
+      }
+
+      // 3. Register for FCM tokens with a delay so Android lifecycle is stable
+      if (pushGranted) {
+        setTimeout(async () => {
+          try {
+            await PushNotifications.register();
+          } catch (regErr) {
+            console.warn('[NotificationService] FCM registration failed (check google-services.json):', regErr);
+          }
+        }, 1000);
+      }
+      return pushGranted;
     } catch (err) {
       console.warn('[NotificationService] Permission request error:', err);
       return false;

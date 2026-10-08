@@ -46,17 +46,17 @@
     const p2 = random() * Math.PI * 2;
     
     // Micro-torn paper contour across top (left to right)
-    const topPoints: string[] = ['0% 0px'];
+    const topPoints: string[] = ['0% 0%'];
     for (let i = 1; i < steps; i++) {
       const t = i / steps;
       const x = t * 100;
       const wave = Math.sin(t * 32 * Math.PI + p1) * 0.7 
                  + Math.sin(t * 60 * Math.PI + p2) * 0.35 
                  + (random() - 0.5) * 0.4;
-      const y = Math.max(0.4, Math.min(2.8, 1.3 + wave));
-      topPoints.push(`${x.toFixed(1)}% ${y.toFixed(2)}px`);
+      const y = Math.max(0.3, Math.min(2.5, 1.2 + wave));
+      topPoints.push(`${x.toFixed(1)}% ${y.toFixed(2)}%`);
     }
-    topPoints.push('100% 0px');
+    topPoints.push('100% 0%');
 
     // Micro-torn paper contour across bottom (right to left)
     const bottomPoints: string[] = ['100% 100%'];
@@ -66,8 +66,8 @@
       const wave = Math.sin(t * 34 * Math.PI + p2) * 0.7 
                  + Math.sin(t * 64 * Math.PI + p1) * 0.35 
                  + (random() - 0.5) * 0.4;
-      const fluctuateBottom = Math.max(0.4, Math.min(2.8, 1.3 + wave));
-      bottomPoints.push(`${x.toFixed(1)}% calc(100% - ${fluctuateBottom.toFixed(2)}px)`);
+      const fluctuateBottom = Math.max(97.5, Math.min(99.7, 98.8 - (wave * 0.6)));
+      bottomPoints.push(`${x.toFixed(1)}% ${fluctuateBottom.toFixed(2)}%`);
     }
     bottomPoints.push('0% 100%');
 

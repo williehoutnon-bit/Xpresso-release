@@ -43,11 +43,11 @@
       const t = i / steps;
       const x = t * 100;
       const wave = Math.sin(t * f1 * Math.PI + p1) * 0.5 + Math.sin(t * f2 * Math.PI + p2) * 0.3;
-      const fluctuate = Math.max(0.4, Math.min(2.8, 1.6 + wave));
-      bottomPoints.push(`${x.toFixed(1)}% calc(100% - ${fluctuate.toFixed(2)}px)`);
+      const fluctuate = Math.max(97.5, Math.min(99.7, 98.8 - (wave * 0.6)));
+      bottomPoints.push(`${x.toFixed(1)}% ${fluctuate.toFixed(2)}%`);
     }
     bottomPoints.push('0% 100%');
-    return `polygon(0% 0px, 100% 0px, ${bottomPoints.join(', ')})`;
+    return `polygon(0% 0%, 100% 0%, ${bottomPoints.join(', ')})`;
   }
 
   // Realistic randomized widths for multi-line text
