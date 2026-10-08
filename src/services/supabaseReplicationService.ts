@@ -6,6 +6,7 @@
 import { replicateRxCollection } from 'rxdb/plugins/replication';
 import { Subject } from 'rxjs';
 import { supabase, supabaseAdmin } from './supabaseService';
+import { pushMessageToSupabase } from './messageSyncService';
 
 /**
  * Utility helper to identify transient network transport errors, offline state,
@@ -206,6 +207,11 @@ export function startMessagesReplication(collection: any, userId: string) {
                         continue;
                     }
 
+                    // Temporary conversation ids are local-only; ChatWindow sends these after resolving the real id.
+                    if (String(newDocumentState.conversationId || '').startsWith('local_convo_') || String(newDocumentState.conversationId || '').startsWith('mock_')) {
+                        continue;
+                    }
+
                     // 2. If message has pending media uploads (blob: URLs), don't push until media is uploaded
                     const hasPendingUpload = newDocumentState.attachments?.some((a: any) =>
                         a && (a.url?.startsWith('blob:') || a.fileId?.startsWith('pending_'))
@@ -246,64 +252,7 @@ export function startMessagesReplication(collection: any, userId: string) {
                     }
                     
                     try {
-                        // Convert to snake_case for Supabase
-                        const snakeDoc = toSnakeCase({
-                            id: newDocumentState.id,
-                            conversationId: newDocumentState.conversationId,
-                            senderId: newDocumentState.senderId,
-                            content: newDocumentState.content,
-                            type: newDocumentState.type,
-                            createdAt: newDocumentState.createdAt,
-                            updatedAt: newDocumentState.updatedAt,
-                            status: newDocumentState.status,
-                            ip: newDocumentState.ip,
-                            isPinned: newDocumentState.isPinned,
-                            attachments: newDocumentState.attachments,
-                            strokes: newDocumentState.strokes,
-                            mathMeta: newDocumentState.mathMeta
-                        });
-
-                        let pushStatus = newDocumentState.status;
-                        if (pushStatus === 'pending') pushStatus = 'sent';
-
-                        // Handle mathMeta - Supabase expects JSON string or object
-                        let mathMetaToPush = snakeDoc.math_meta;
-                        if (!mathMetaToPush && snakeDoc.strokes && snakeDoc.strokes.length > 0) {
-                            mathMetaToPush = {
-                                annotation_strokes: snakeDoc.strokes,
-                                strokes: snakeDoc.strokes
-                            };
-                        } else if (mathMetaToPush && snakeDoc.strokes && snakeDoc.strokes.length > 0) {
-                            if (typeof mathMetaToPush === 'object') {
-                                mathMetaToPush = {
-                                    ...mathMetaToPush,
-                                    annotation_strokes: snakeDoc.strokes,
-                                    strokes: snakeDoc.strokes
-                                };
-                            }
-                        }
-
-                        const appwriteDoc = {
-                            ...snakeDoc,
-                            status: pushStatus,
-                            math_meta: mathMetaToPush
-                        };
-
-                        // Atomic upsert to Supabase in a single network round-trip
-                        const { error: upsertError } = await supabaseAdmin
-                            .from('messages')
-                            .upsert(appwriteDoc, { onConflict: 'id' });
-
-                        if (upsertError) throw upsertError;
-
-                        // Update local RxDB status if it changed from pending
-                        if (pushStatus === 'sent' && newDocumentState.status !== 'sent') {
-                            const db = await (await import('./dbService')).getDB();
-                            await db.messages.incrementalUpsert({
-                                ...newDocumentState,
-                                status: 'sent'
-                            });
-                        }
+                        await pushMessageToSupabase(newDocumentState);
                     } catch (e: any) {
                         const errStatus = e.code || e.status;
                         if (errStatus != 429 && errStatus != 'PGRST116') {

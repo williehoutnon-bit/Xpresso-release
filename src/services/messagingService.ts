@@ -4,6 +4,7 @@ import { dbService } from './dbService';
 import { authService } from './authService';
 import { getAverageColor } from '../utils/dominantColor';
 import { writable } from 'svelte/store';
+import { logMessageTiming, pushMessageToSupabase, setLocalMessageStatus } from './messageSyncService';
 
 export const typingStore = writable<Record<string, string>>({}); // userId -> conversationId
 const typingTimeouts = new Map<string, any>();
@@ -456,6 +457,10 @@ export const messagingService = {
       import('./supabaseService').then(async ({ supabaseRealtime, supabaseAdmin }) => {
          const msgSub = supabaseRealtime.subscribeToMessages('*', async (payload: any) => {
             console.log('Supabase Realtime event received:', payload.eventType, payload.new?.id || payload.old?.id);
+          logMessageTiming(String(payload.new?.id || payload.old?.id || 'unknown'), 'realtime_event_received', undefined, {
+             eventType: payload.eventType,
+             senderId: payload.new?.sender_id || payload.new?.senderId || null
+          });
             
             if (payload.eventType === 'DELETE') {
                const oldId = payload.old?.id;
@@ -958,7 +963,7 @@ export const messagingService = {
    * Sync conversations from Appwrite to RxDB
    */
   async syncConversations() {
-    // All guards BEFORE assigning the lock — prevents permanent lock on early exit
+    // All guards BEFORE assigning the lock â prevents permanent lock on early exit
     if (!isAppwriteConfigured ||
         !APPWRITE_CONFIG.collections.conversations ||
         !APPWRITE_CONFIG.collections.participants) return;
@@ -1370,7 +1375,7 @@ export const messagingService = {
       id: msgId,
       conversationId: conversationId,
       senderId: user.$id,
-      content: JSON.stringify({ c: '🎤 Sent a voice message', a: [initialAttachment] }),
+      content: JSON.stringify({ c: 'ð¤ Sent a voice message', a: [initialAttachment] }),
       type: 'f:audio',
       attachments: [initialAttachment]
     });
@@ -1401,7 +1406,7 @@ export const messagingService = {
           conversationId: conversationId,
           senderId: user.$id,
           status: 'sent', 
-          content: JSON.stringify({ c: '🎤 Sent a voice message', a: [finalAttachment] }),
+          content: JSON.stringify({ c: 'ð¤ Sent a voice message', a: [finalAttachment] }),
           type: 'f:audio',
           attachments: [finalAttachment],
           ip: '0.0.0.0',
@@ -1415,7 +1420,7 @@ export const messagingService = {
           conversation_id: conversationId,
           sender_id: user.$id,
           status: 'sent',
-          content: JSON.stringify({ c: '🎤 Sent a voice message', a: [finalAttachment] }),
+          content: JSON.stringify({ c: 'ð¤ Sent a voice message', a: [finalAttachment] }),
           type: 'f:audio',
           attachments: [finalAttachment],
           ip: '0.0.0.0',
@@ -1525,7 +1530,8 @@ export const messagingService = {
   /**
    * Send a message
    */
-  async sendMessage(conversationId: string, content: string, type: string = 'text', attachments: any[] = [], mathMeta?: any, id?: string) {
+  async sendMessage(conversationId: string, content: string, type: string = 'text', attachments: any[] = [], mathMeta?: any, id?: string, startedAt?: number) {
+    const sendStartedAt = startedAt ?? (typeof performance !== 'undefined' ? performance.now() : Date.now());
     const user = await authService.getCurrentUser();
     if (!user) throw new Error("Must be logged in to send messages");
 
@@ -1551,65 +1557,83 @@ export const messagingService = {
       mathMeta: finalMathMeta
     });
 
-    // 2. Update lastMessageAt on participant
-    try {
-      const db = await dbService.getRawDB();
-      const pDoc = await db.participants.findOne({
-          selector: { conversationId: conversationId, userId: user.$id }
-      }).exec();
-      if (pDoc) {
-          const participantId = pDoc.id || pDoc.$id;
-          await dbService.safePatchParticipant(participantId, {
-              lastMessageAt: localDoc.createdAt
-          });
-      }
-    } catch(e) {}
+    logMessageTiming(msgId, 'local_message_saved', sendStartedAt);
 
-    // Ensure conversation and its participants exist on Supabase
-    this.ensureConversationOnSupabase(conversationId).catch(console.error);
-
-    // 3. Instant direct push to Supabase for sub-100ms remote delivery
+    // Start the network write immediately after the local insert. Participant metadata and
+    // conversation repair are best-effort background work, not prerequisites for delivery.
     if (!conversationId.startsWith('local_convo_') && !conversationId.startsWith('mock_')) {
-      import('./supabaseService').then(({ supabaseAdmin }) => {
-        let mathMetaToPush = finalMathMeta;
-        const strokesToSend = (finalMathMeta?.strokes && Array.isArray(finalMathMeta.strokes)) ? finalMathMeta.strokes : [];
-        if (!mathMetaToPush && strokesToSend.length > 0) {
-          mathMetaToPush = { annotation_strokes: strokesToSend, strokes: strokesToSend };
-        }
-        supabaseAdmin.from('messages').upsert({
-          id: msgId,
-          conversation_id: conversationId,
-          sender_id: user.$id,
-          content: finalContent,
-          type,
-          status: 'sent',
-          attachments,
-          strokes: strokesToSend,
-          math_meta: mathMetaToPush,
-          created_at: localDoc.createdAt || new Date().toISOString()
-        }, { onConflict: 'id' }).then(({ error }) => {
-          if (!error) {
-            dbService.getRawDB().then(db => {
-              db.messages.incrementalUpsert({ ...localDoc, status: 'sent' }).catch(() => {});
-            });
-
-            // Dispatch background push notification to wake offline recipients
-            import('./nativeNotificationService').then(({ nativeNotificationService }) => {
-              nativeNotificationService.dispatchPushNotification({
-                conversationId,
-                senderId: user.$id,
-                senderName: user.name || user.prefs?.lastName || 'Xpresso User',
-                content: finalContent,
-              });
-            }).catch(() => {});
-          }
+      pushMessageToSupabase(localDoc, sendStartedAt).then(() => {
+        // Dispatch the native notification only after Supabase has accepted the message.
+        import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+          nativeNotificationService.dispatchPushNotification({
+            conversationId,
+            senderId: user.$id,
+            senderName: user.name || user.prefs?.lastName || 'Xpresso User',
+            content: finalContent,
+          });
         }).catch(() => {});
-      }).catch(() => {});
+      }).catch(async (error: any) => {
+        console.warn('[Messaging] Direct Supabase send failed; leaving message in the retry queue:', error?.message || error);
+        await setLocalMessageStatus(msgId, 'error');
+      });
     }
+
+    void (async () => {
+      try {
+        const db = await dbService.getRawDB();
+        const pDoc = await db.participants.findOne({
+          selector: { conversationId: conversationId, userId: user.$id }
+        }).exec();
+        if (pDoc) {
+          const participantId = pDoc.id || pDoc.$id;
+          await dbService.safePatchParticipant(participantId, { lastMessageAt: localDoc.createdAt });
+        }
+      } catch (e) {}
+    })();
+
+    this.ensureConversationOnSupabase(conversationId).catch(console.error);
 
     // Return the local doc with the msgId to ensure UI can track it properly
     // This ensures the message id is available immediately for rendering
     return { ...localDoc, id: msgId };
+  },
+
+  async pushPendingMessageToSupabase(messageId: string, conversationId?: string) {
+    const db = await dbService.getRawDB();
+    let localDoc = await db.messages.findOne(messageId).exec();
+    if (!localDoc) throw new Error('Local message not found: ' + messageId);
+
+    if (conversationId && localDoc.conversationId !== conversationId) {
+      await localDoc.incrementalPatch({ conversationId });
+      localDoc = await db.messages.findOne(messageId).exec();
+      if (!localDoc) throw new Error('Local message disappeared while resolving its conversation');
+    }
+
+    const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    try {
+      await pushMessageToSupabase(localDoc.toJSON(), startedAt);
+    } catch (error) {
+      await setLocalMessageStatus(messageId, 'error');
+      throw error;
+    }
+  },
+
+  async retryMessage(messageId: string) {
+    const db = await dbService.getRawDB();
+    const localDoc = await db.messages.findOne(messageId).exec();
+    if (!localDoc) throw new Error('Local message not found: ' + messageId);
+    if (['sent', 'delivered', 'read'].includes(localDoc.status)) return;
+
+    let conversationId = localDoc.conversationId;
+    if (conversationId?.startsWith('local_convo_')) {
+      const partnerId = conversationId.replace('local_convo_', '');
+      const conversation = await this.getOrCreateConversation(partnerId);
+      if (!conversation) throw new Error('Could not resolve the chat before retrying');
+      conversationId = conversation.id;
+    }
+
+    await localDoc.incrementalPatch({ status: 'pending' });
+    return this.pushPendingMessageToSupabase(messageId, conversationId);
   },
 
   /**
