@@ -714,25 +714,31 @@
   let isInitialLoadDone = $state(false);
   let elevatingToId: string | null = null;
   let isElevating = false;
+  let conversationResolutionPromise: Promise<string | null> | null = null;
   let activeConversationId = $state(conversationId);
-  async function ensureRealConversationId() {
-    if (activeConversationId && activeConversationId.startsWith('local_convo_')) {
-       isElevating = true;
-       try {
-           const partnerId = activeConversationId.replace('local_convo_', '');
-           const convo = await messagingService.getOrCreateConversation(partnerId);
-           if (convo) {
-              elevatingToId = convo.id;
-              activeConversationId = convo.id;
-              return convo.id;
-           }
-       } catch (e) {
-           console.error("Failed to elevate conversation", e);
-       } finally {
-           isElevating = false;
-       }
+  async function ensureRealConversationId(): Promise<string | null> {
+    if (!activeConversationId || !activeConversationId.startsWith('local_convo_')) return activeConversationId;
+    if (conversationResolutionPromise) return conversationResolutionPromise;
+
+    const partnerId = activeConversationId.replace('local_convo_', '');
+    isElevating = true;
+    conversationResolutionPromise = (async () => {
+      const convo = await messagingService.getOrCreateConversation(partnerId);
+      if (!convo) return null;
+      elevatingToId = convo.id;
+      activeConversationId = convo.id;
+      return convo.id;
+    })();
+
+    try {
+      return await conversationResolutionPromise;
+    } catch (e) {
+      console.error("Failed to elevate conversation", e);
+      return null;
+    } finally {
+      isElevating = false;
+      conversationResolutionPromise = null;
     }
-    return activeConversationId;
   }
 
   let syncTimeout: any;
@@ -1467,23 +1473,23 @@
 
   const mathSymbols = [
     { label: '+', value: ' + ' },
-    { label: '−', value: ' − ' },
-    { label: '×', value: ' × ' },
-    { label: '÷', value: ' ÷ ' },
+    { label: 'â', value: ' â ' },
+    { label: 'Ã', value: ' Ã ' },
+    { label: 'Ã·', value: ' Ã· ' },
     { label: '=', value: ' = ' },
-    { label: '≠', value: ' ≠ ' },
-    { label: '±', value: ' ± ' },
-    { label: 'x²', value: '²' },
+    { label: 'â ', value: ' â  ' },
+    { label: 'Â±', value: ' Â± ' },
+    { label: 'xÂ²', value: 'Â²' },
     { label: 'x^y', value: '^' },
-    { label: '√x', value: '√' },
-    { label: 'π', value: 'π' },
-    { label: 'θ', value: 'θ' },
-    { label: 'α', value: 'α' },
-    { label: 'β', value: 'β' },
-    { label: 'λ', value: 'λ' },
-    { label: '∫', value: '∫' },
-    { label: '∑', value: '∑' },
-    { label: '∞', value: '∞' },
+    { label: 'âx', value: 'â' },
+    { label: 'Ï', value: 'Ï' },
+    { label: 'Î¸', value: 'Î¸' },
+    { label: 'Î±', value: 'Î±' },
+    { label: 'Î²', value: 'Î²' },
+    { label: 'Î»', value: 'Î»' },
+    { label: 'â«', value: 'â«' },
+    { label: 'â', value: 'â' },
+    { label: 'â', value: 'â' },
     { label: '(', value: '(' },
     { label: ')', value: ')' }
   ];
@@ -2169,6 +2175,14 @@
     }
   };
 
+  const retryMessageSend = async (messageId: string) => {
+    try {
+      await messagingService.retryMessage(messageId);
+    } catch (error: any) {
+      console.error('Retry message send failed:', error?.message || error);
+    }
+  };
+
   const handleSend = async () => {
     let sketchUrl = '';
     if (mathCanvasEl && isSketchMode) {
@@ -2186,6 +2200,8 @@
     // Generate stable UUID for the message - this will be the canonical ID
     // both for optimistic rendering and the final RxDB doc
     const msgId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const conversationIdForSend = activeConversationId;
+    const sendStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
     
     // Store current state for optimistic UI
     const treeToClear = currentTree;
@@ -2309,23 +2325,43 @@
         }
       });
       
-      // Send to DB in background - don't await, let it complete asynchronously
-      messagingService.sendMessage(activeConversationId, textToSend, msgType, safeAttachments, safeMathMeta, msgId)
-        .then((result) => {
-          messages = messages.map(m => m.id === msgId ? { ...m, ...result, _isOptimistic: false } : m);
+      // Persist locally immediately; resolve first-chat ids in parallel, then send that message directly.
+      messagingService.sendMessage(conversationIdForSend, textToSend, msgType, safeAttachments, safeMathMeta, msgId, sendStartedAt)
+        .then(async (result) => {
+          let resolvedConversationId = conversationIdForSend;
+          if (conversationIdForSend.startsWith('local_convo_')) {
+            const realConversationId = await ensureRealConversationId();
+            if (realConversationId && !realConversationId.startsWith('local_convo_')) {
+              resolvedConversationId = realConversationId;
+              try {
+                await messagingService.pushPendingMessageToSupabase(msgId, realConversationId);
+              } catch (error: any) {
+                console.warn('First-chat message remains queued for retry:', error?.message || error);
+              }
+            } else {
+              try {
+                await messagingService.pushPendingMessageToSupabase(msgId);
+              } catch (error: any) {
+                console.warn('First-chat message remains queued until its conversation can be resolved:', error?.message || error);
+              }
+            }
+          }
+          messages = messages.map(m => m.id === msgId
+            ? { ...m, ...result, status: m.status, conversationId: resolvedConversationId, _isOptimistic: false }
+            : m);
         })
         .catch((err: any) => {
-          console.error('Send failed:', err);
+          console.error('Local message save failed:', err);
           messages = messages.filter(m => m.id !== msgId);
           currentTree = treeToClear;
           currentCursorPath = pathToClear;
           currentStrokes = strokesToClear;
           showMathKeyboard = true;
-          triggerNotification("Send Failed", { body: err.message || "Message could not be sent", type: 'error' });
+          triggerNotification("Send Failed", { body: err.message || "Message could not be saved", type: 'error' });
         });
       
-      // Elevate local conversation to real conversation in the background
-      ensureRealConversationId();
+      // Start first-chat resolution as soon as possible. The send callback awaits the same promise.
+      if (conversationIdForSend.startsWith('local_convo_')) void ensureRealConversationId();
       
       // Reset rich styles after successful send
       isBold = true;
@@ -3185,7 +3221,7 @@
                 {replyInfo.replyToSenderId === currentUserId ? 'You' : contactName}
              </span>
              <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-normal w-full m-0 break-words whitespace-normal line-clamp-4">
-                {replyInfo.replyToType === 'audio' ? '🎤 Voice note' : replyInfo.replyToType === 'image' ? '📷 Image' : replyInfo.replyToType === 'video' ? '🎥 Video' : formatMathAsPlainText(replyInfo.replyToContent)}
+                {replyInfo.replyToType === 'audio' ? 'ð¤ Voice note' : replyInfo.replyToType === 'image' ? 'ð· Image' : replyInfo.replyToType === 'video' ? 'ð¥ Video' : formatMathAsPlainText(replyInfo.replyToContent)}
              </p>
           </button>
         {/if}
@@ -3201,7 +3237,9 @@
           {:else if msgObj.status === 'read'}
             <CheckCheck size={12} class={readColorClass} />
           {:else if msgObj.status === 'error'}
-            <X size={12} class="text-red-500 font-bold" />
+            <button type="button" title="Retry sending" aria-label="Retry sending message" class="flex items-center" onclick={(event) => { event.stopPropagation(); void retryMessageSend(msgObj.id); }}>
+              <X size={12} class="text-red-500 font-bold" />
+            </button>
           {:else}
             <Check size={12} class={textClass} />
           {/if}
@@ -3258,9 +3296,9 @@
           >
             <div class="flex-1 h-[1.5px] bg-blue-600/50"></div>
             <div class="flex items-center gap-2 px-3 text-[#1d4ed8] font-bold text-[11px] uppercase tracking-widest font-sans">
-              <span class="text-[8px]">•</span>
+              <span class="text-[8px]">â¢</span>
               <span>Unread Messages</span>
-              <span class="text-[8px] font-bold">•</span>
+              <span class="text-[8px] font-bold">â¢</span>
             </div>
             <div class="flex-1 h-[1.5px] bg-blue-600/50"></div>
           </div>
@@ -3437,7 +3475,7 @@
                         
                         <!-- pi badge positioned absolute top-right of the image -->
                         <div class="absolute top-3 right-3 bg-indigo-600 text-white w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center font-serif font-bold text-sm shadow-md select-none z-10 leading-none">
-                           π
+                           Ï
                         </div>
 
                         <!-- Subject tag at bottom-left if any -->
@@ -3450,7 +3488,7 @@
                         <!-- If another user is currently editing: show chalk indicator -->
                         {#if m.mathMeta.chalkHolder && m.mathMeta.chalkHolder !== currentUserId}
                            <div class="absolute inset-x-3 top-3 left-3 max-w-[170px] bg-amber-500/95 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm font-sans z-10 animate-pulse">
-                              ✏️ {m.mathMeta.chalkHolderName || 'Someone'} is editing
+                              âï¸ {m.mathMeta.chalkHolderName || 'Someone'} is editing
                            </div>
                         {/if}
                         
@@ -3705,7 +3743,7 @@
                       Replying to {replyingToMessage.isMe ? 'yourself' : contactName}
                    </span>
                    <p class="text-xs text-gray-600 italic break-words whitespace-normal line-clamp-3 leading-snug m-0 mt-0.5">
-                      {replyingToMessage.type === 'audio' ? '🎤 Voice note' : replyingToMessage.type === 'image' ? '📷 Image' : replyingToMessage.type === 'video' ? '🎥 Video' : formatMathAsPlainText(replyingToMessage.content)}
+                      {replyingToMessage.type === 'audio' ? 'ð¤ Voice note' : replyingToMessage.type === 'image' ? 'ð· Image' : replyingToMessage.type === 'video' ? 'ð¥ Video' : formatMathAsPlainText(replyingToMessage.content)}
                    </p>
                 </div>
              </div>
