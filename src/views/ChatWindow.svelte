@@ -1473,23 +1473,23 @@
 
   const mathSymbols = [
     { label: '+', value: ' + ' },
-    { label: 'â', value: ' â ' },
-    { label: 'Ã', value: ' Ã ' },
-    { label: 'Ã·', value: ' Ã· ' },
+    { label: '−', value: ' − ' },
+    { label: '×', value: ' × ' },
+    { label: '÷', value: ' ÷ ' },
     { label: '=', value: ' = ' },
-    { label: 'â ', value: ' â  ' },
-    { label: 'Â±', value: ' Â± ' },
-    { label: 'xÂ²', value: 'Â²' },
+    { label: '≠', value: ' ≠ ' },
+    { label: '±', value: ' ± ' },
+    { label: 'x²', value: '²' },
     { label: 'x^y', value: '^' },
-    { label: 'âx', value: 'â' },
-    { label: 'Ï', value: 'Ï' },
-    { label: 'Î¸', value: 'Î¸' },
-    { label: 'Î±', value: 'Î±' },
-    { label: 'Î²', value: 'Î²' },
-    { label: 'Î»', value: 'Î»' },
-    { label: 'â«', value: 'â«' },
-    { label: 'â', value: 'â' },
-    { label: 'â', value: 'â' },
+    { label: '√x', value: '√' },
+    { label: 'π', value: 'π' },
+    { label: 'θ', value: 'θ' },
+    { label: 'α', value: 'α' },
+    { label: 'β', value: 'β' },
+    { label: 'λ', value: 'λ' },
+    { label: '∫', value: '∫' },
+    { label: '∑', value: '∑' },
+    { label: '∞', value: '∞' },
     { label: '(', value: '(' },
     { label: ')', value: ')' }
   ];
@@ -3221,7 +3221,7 @@
                 {replyInfo.replyToSenderId === currentUserId ? 'You' : contactName}
              </span>
              <p class="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-normal w-full m-0 break-words whitespace-normal line-clamp-4">
-                {replyInfo.replyToType === 'audio' ? 'ð¤ Voice note' : replyInfo.replyToType === 'image' ? 'ð· Image' : replyInfo.replyToType === 'video' ? 'ð¥ Video' : formatMathAsPlainText(replyInfo.replyToContent)}
+                {replyInfo.replyToType === 'audio' ? '🎤 Voice note' : replyInfo.replyToType === 'image' ? '📷 Image' : replyInfo.replyToType === 'video' ? '🎥 Video' : formatMathAsPlainText(replyInfo.replyToContent)}
              </p>
           </button>
         {/if}
@@ -3296,9 +3296,9 @@
           >
             <div class="flex-1 h-[1.5px] bg-blue-600/50"></div>
             <div class="flex items-center gap-2 px-3 text-[#1d4ed8] font-bold text-[11px] uppercase tracking-widest font-sans">
-              <span class="text-[8px]">â¢</span>
+              <span class="text-[8px]">•</span>
               <span>Unread Messages</span>
-              <span class="text-[8px] font-bold">â¢</span>
+              <span class="text-[8px] font-bold">•</span>
             </div>
             <div class="flex-1 h-[1.5px] bg-blue-600/50"></div>
           </div>
@@ -3475,7 +3475,7 @@
                         
                         <!-- pi badge positioned absolute top-right of the image -->
                         <div class="absolute top-3 right-3 bg-indigo-600 text-white w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center font-serif font-bold text-sm shadow-md select-none z-10 leading-none">
-                           Ï
+                           π
                         </div>
 
                         <!-- Subject tag at bottom-left if any -->
@@ -3488,7 +3488,7 @@
                         <!-- If another user is currently editing: show chalk indicator -->
                         {#if m.mathMeta.chalkHolder && m.mathMeta.chalkHolder !== currentUserId}
                            <div class="absolute inset-x-3 top-3 left-3 max-w-[170px] bg-amber-500/95 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-[9px] font-bold flex items-center gap-1 shadow-sm font-sans z-10 animate-pulse">
-                              âï¸ {m.mathMeta.chalkHolderName || 'Someone'} is editing
+                              ✏️ {m.mathMeta.chalkHolderName || 'Someone'} is editing
                            </div>
                         {/if}
                         
@@ -3743,7 +3743,7 @@
                       Replying to {replyingToMessage.isMe ? 'yourself' : contactName}
                    </span>
                    <p class="text-xs text-gray-600 italic break-words whitespace-normal line-clamp-3 leading-snug m-0 mt-0.5">
-                      {replyingToMessage.type === 'audio' ? 'ð¤ Voice note' : replyingToMessage.type === 'image' ? 'ð· Image' : replyingToMessage.type === 'video' ? 'ð¥ Video' : formatMathAsPlainText(replyingToMessage.content)}
+                      {replyingToMessage.type === 'audio' ? '🎤 Voice note' : replyingToMessage.type === 'image' ? '📷 Image' : replyingToMessage.type === 'video' ? '🎥 Video' : formatMathAsPlainText(replyingToMessage.content)}
                    </p>
                 </div>
              </div>

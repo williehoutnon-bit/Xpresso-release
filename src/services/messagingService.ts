@@ -457,10 +457,10 @@ export const messagingService = {
       import('./supabaseService').then(async ({ supabaseRealtime, supabaseAdmin }) => {
          const msgSub = supabaseRealtime.subscribeToMessages('*', async (payload: any) => {
             console.log('Supabase Realtime event received:', payload.eventType, payload.new?.id || payload.old?.id);
-          logMessageTiming(String(payload.new?.id || payload.old?.id || 'unknown'), 'realtime_event_received', undefined, {
-             eventType: payload.eventType,
-             senderId: payload.new?.sender_id || payload.new?.senderId || null
-          });
+            logMessageTiming(String(payload.new?.id || payload.old?.id || 'unknown'), 'realtime_event_received', undefined, {
+               eventType: payload.eventType,
+               senderId: payload.new?.sender_id || payload.new?.senderId || null
+            });
             
             if (payload.eventType === 'DELETE') {
                const oldId = payload.old?.id;
@@ -963,7 +963,7 @@ export const messagingService = {
    * Sync conversations from Appwrite to RxDB
    */
   async syncConversations() {
-    // All guards BEFORE assigning the lock â prevents permanent lock on early exit
+    // All guards BEFORE assigning the lock — prevents permanent lock on early exit
     if (!isAppwriteConfigured ||
         !APPWRITE_CONFIG.collections.conversations ||
         !APPWRITE_CONFIG.collections.participants) return;
@@ -1375,7 +1375,7 @@ export const messagingService = {
       id: msgId,
       conversationId: conversationId,
       senderId: user.$id,
-      content: JSON.stringify({ c: 'ð¤ Sent a voice message', a: [initialAttachment] }),
+      content: JSON.stringify({ c: '🎤 Sent a voice message', a: [initialAttachment] }),
       type: 'f:audio',
       attachments: [initialAttachment]
     });
@@ -1406,7 +1406,7 @@ export const messagingService = {
           conversationId: conversationId,
           senderId: user.$id,
           status: 'sent', 
-          content: JSON.stringify({ c: 'ð¤ Sent a voice message', a: [finalAttachment] }),
+          content: JSON.stringify({ c: '🎤 Sent a voice message', a: [finalAttachment] }),
           type: 'f:audio',
           attachments: [finalAttachment],
           ip: '0.0.0.0',
@@ -1420,7 +1420,7 @@ export const messagingService = {
           conversation_id: conversationId,
           sender_id: user.$id,
           status: 'sent',
-          content: JSON.stringify({ c: 'ð¤ Sent a voice message', a: [finalAttachment] }),
+          content: JSON.stringify({ c: '🎤 Sent a voice message', a: [finalAttachment] }),
           type: 'f:audio',
           attachments: [finalAttachment],
           ip: '0.0.0.0',
