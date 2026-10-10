@@ -55,18 +55,30 @@ class NativeNotificationService {
 
     try {
       // 1. Create Android Notification Channel (Required for Android 8.0+)
-      await this.setupChannels();
-
-      // 2. Setup Local Notification action listener
-      await LocalNotifications.addListener('localNotificationActionPerformed', (notification: LocalActionPerformed) => {
-        const extra = notification.notification?.extra || {};
-        const conversationId = extra.conversationId || extra.conversation_id;
-        console.info('[NotificationService] Local notification clicked:', { conversationId, extra });
-        this.dispatchNotificationClick({ conversationId, data: extra });
+      await this.setupChannels().catch((err) => {
+        console.warn('[NotificationService] Channel setup non-fatal error:', err);
       });
 
-      // 3. Setup Push Notification listeners
-      await this.setupPushListeners();
+      // 2. Setup Local Notification action listener if plugin available
+      if (Capacitor.isPluginAvailable('LocalNotifications')) {
+        try {
+          await LocalNotifications.addListener('localNotificationActionPerformed', (notification: LocalActionPerformed) => {
+            const extra = notification.notification?.extra || {};
+            const conversationId = extra.conversationId || extra.conversation_id;
+            console.info('[NotificationService] Local notification clicked:', { conversationId, extra });
+            this.dispatchNotificationClick({ conversationId, data: extra });
+          });
+        } catch (lErr) {
+          console.warn('[NotificationService] Local notification listener error:', lErr);
+        }
+      }
+
+      // 3. Setup Push Notification listeners if plugin available
+      if (Capacitor.isPluginAvailable('PushNotifications')) {
+        await this.setupPushListeners().catch((pErr) => {
+          console.warn('[NotificationService] Push listeners non-fatal error:', pErr);
+        });
+      }
     } catch (err) {
       console.warn('[NotificationService] Error initializing native notification service:', err);
     }
@@ -90,8 +102,12 @@ class NativeNotificationService {
         lightColor: '#0050D8',
       };
 
-      await LocalNotifications.createChannel(channel).catch(() => {});
-      await PushNotifications.createChannel(channel).catch(() => {});
+      if (Capacitor.isPluginAvailable('LocalNotifications')) {
+        await LocalNotifications.createChannel(channel).catch(() => {});
+      }
+      if (Capacitor.isPluginAvailable('PushNotifications')) {
+        await PushNotifications.createChannel(channel).catch(() => {});
+      }
       console.info('[NotificationService] Notification channels configured with badge support');
     } catch (err) {
       console.warn('[NotificationService] Failed to create notification channel:', err);
@@ -104,40 +120,51 @@ class NativeNotificationService {
   async requestPermissions(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
       if ('Notification' in window) {
-        const perm = await Notification.requestPermission();
-        return perm === 'granted';
+        try {
+          const perm = await Notification.requestPermission();
+          return perm === 'granted';
+        } catch {
+          return false;
+        }
       }
       return false;
     }
 
     try {
-      // 1. Request push notification permission first
+      // 1. Request push notification permission first if available
       let pushGranted = false;
-      try {
-        const pushStatus = await PushNotifications.requestPermissions();
-        pushGranted = pushStatus.receive === 'granted';
-      } catch (e) {
-        console.warn('[NotificationService] Push permission request error:', e);
+      if (Capacitor.isPluginAvailable('PushNotifications')) {
+        try {
+          const pushStatus = await PushNotifications.requestPermissions();
+          pushGranted = pushStatus.receive === 'granted';
+        } catch (e) {
+          console.warn('[NotificationService] Push permission request error:', e);
+        }
       }
 
-      // 2. Request local notifications permission separately
-      try {
-        await LocalNotifications.requestPermissions();
-      } catch (e) {
-        console.warn('[NotificationService] Local notification permission request error:', e);
+      // 2. Request local notifications permission separately if available
+      let localGranted = false;
+      if (Capacitor.isPluginAvailable('LocalNotifications')) {
+        try {
+          const localStatus = await LocalNotifications.requestPermissions();
+          localGranted = localStatus.display === 'granted';
+        } catch (e) {
+          console.warn('[NotificationService] Local notification permission request error:', e);
+        }
       }
 
-      // 3. Register for FCM tokens with a delay so Android lifecycle is stable
-      if (pushGranted) {
+      // 3. Register for FCM tokens safely if granted and push plugin available
+      if (pushGranted && Capacitor.isPluginAvailable('PushNotifications')) {
         setTimeout(async () => {
           try {
             await PushNotifications.register();
           } catch (regErr) {
-            console.warn('[NotificationService] FCM registration failed (check google-services.json):', regErr);
+            console.warn('[NotificationService] FCM registration safely handled (non-fatal):', regErr);
           }
-        }, 1000);
+        }, 1200);
       }
-      return pushGranted;
+
+      return pushGranted || localGranted;
     } catch (err) {
       console.warn('[NotificationService] Permission request error:', err);
       return false;
@@ -145,35 +172,41 @@ class NativeNotificationService {
   }
 
   private async setupPushListeners() {
-    // Successfully registered with FCM
-    await PushNotifications.addListener('registration', (token) => {
-      console.info('[NotificationService] FCM Registration Token:', token.value);
-      currentPushToken = token.value;
-      this.syncPushTokenToBackend(token.value).catch(() => {});
-    });
+    if (!Capacitor.isPluginAvailable('PushNotifications')) return;
 
-    // Registration failed
-    await PushNotifications.addListener('registrationError', (error) => {
-      console.warn('[NotificationService] Push registration failed:', error.error);
-    });
+    try {
+      // Successfully registered with FCM
+      await PushNotifications.addListener('registration', (token) => {
+        console.info('[NotificationService] FCM Registration Token:', token.value);
+        currentPushToken = token.value;
+        this.syncPushTokenToBackend(token.value).catch(() => {});
+      });
 
-    // Notification arrived while app is open
-    await PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
-      console.info('[NotificationService] Push notification received in foreground:', notification);
-      // Increment or refresh badge
-      const badgeVal = notification.badge;
-      if (typeof badgeVal === 'number') {
-        this.setBadge(badgeVal);
-      }
-    });
+      // Registration failed
+      await PushNotifications.addListener('registrationError', (error) => {
+        console.warn('[NotificationService] Push registration failed safely:', error.error);
+      });
 
-    // Notification tapped by user
-    await PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
-      const data = notification.notification?.data || {};
-      const conversationId = data.conversationId || data.conversation_id;
-      console.info('[NotificationService] Push notification action performed:', { conversationId, data });
-      this.dispatchNotificationClick({ conversationId, data });
-    });
+      // Notification arrived while app is open
+      await PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
+        console.info('[NotificationService] Push notification received in foreground:', notification);
+        // Increment or refresh badge
+        const badgeVal = notification.badge;
+        if (typeof badgeVal === 'number') {
+          this.setBadge(badgeVal);
+        }
+      });
+
+      // Notification tapped by user
+      await PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
+        const data = notification.notification?.data || {};
+        const conversationId = data.conversationId || data.conversation_id;
+        console.info('[NotificationService] Push notification action performed:', { conversationId, data });
+        this.dispatchNotificationClick({ conversationId, data });
+      });
+    } catch (pushListenerErr) {
+      console.warn('[NotificationService] Failed to bind push notification listeners:', pushListenerErr);
+    }
   }
 
   /**
@@ -268,6 +301,7 @@ class NativeNotificationService {
     }
 
     try {
+      if (!Capacitor.isPluginAvailable('Badge')) return;
       if (validCount === 0) {
         await Badge.clear().catch(() => {});
       } else {
@@ -301,6 +335,8 @@ class NativeNotificationService {
     }
 
     try {
+      if (!Capacitor.isPluginAvailable('LocalNotifications')) return;
+
       const id = payload.id || Math.floor(Math.random() * 100000);
       const notification: LocalNotificationSchema = {
         id,

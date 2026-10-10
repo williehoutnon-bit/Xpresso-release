@@ -239,23 +239,27 @@
 
         // 1. Observe changes that should trigger a UI refresh
         // We combine these into one debounced refresh to avoid multiple calls
-        const convo$ = await dbService.getMyConversations$(currentUserId);
-        const messages$ = await dbService.getMessagesStream$();
-        const participants$ = await dbService.getParticipantsStream$();
-        const db = await dbService.getRawDB();
-        const profiles$ = db.profiles.find().$;
+        try {
+          const convo$ = await dbService.getMyConversations$(currentUserId);
+          const messages$ = await dbService.getMessagesStream$();
+          const participants$ = await dbService.getParticipantsStream$();
+          const db = await dbService.getRawDB();
 
-        const onDataChange = () => {
-           // Use a longer debounce for database changes to aggregate multiple events (e.g. bulk sync)
-           refreshConversations(false);
-        };
+          const onDataChange = () => {
+             // Use a longer debounce for database changes to aggregate multiple events (e.g. bulk sync)
+             refreshConversations(false);
+          };
 
-        const sub1 = convo$.subscribe(onDataChange);
-        const sub2 = messages$.subscribe(onDataChange);
-        const sub3 = participants$.subscribe(onDataChange);
-        const sub4 = profiles$.subscribe(onDataChange);
-
-        subscriptions.push(sub1, sub2, sub3, sub4);
+          if (convo$) subscriptions.push(convo$.subscribe(onDataChange));
+          if (messages$) subscriptions.push(messages$.subscribe(onDataChange));
+          if (participants$) subscriptions.push(participants$.subscribe(onDataChange));
+          if (db?.profiles) {
+            const profiles$ = db.profiles.find().$;
+            if (profiles$) subscriptions.push(profiles$.subscribe(onDataChange));
+          }
+        } catch (obsErr) {
+          console.warn('InboxView: Could not attach RxDB change observers:', obsErr);
+        }
 
         // Subscribe to friendships changes for real-time status updates (Accept/Reject/Decline)
         try {

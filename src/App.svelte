@@ -198,9 +198,13 @@ import LandingView from './views/LandingView.svelte';
           }
 
           // Initialize Native Notifications and Badge tracking
-          import('./services/nativeNotificationService').then(({ nativeNotificationService }) => {
-            nativeNotificationService.init();
-            nativeNotificationService.requestPermissions().catch(() => {});
+          import('./services/nativeNotificationService').then(async ({ nativeNotificationService }) => {
+            try {
+              await nativeNotificationService.init();
+              await nativeNotificationService.requestPermissions();
+            } catch (err) {
+              console.warn('App: Native notification setup non-fatal error:', err);
+            }
             
             const cleanupClick = nativeNotificationService.onNotificationClick(({ conversationId }) => {
               if (conversationId) {
@@ -209,7 +213,9 @@ import LandingView from './views/LandingView.svelte';
               }
             });
             appSubscriptions.push({ unsubscribe: cleanupClick });
-          }).catch(() => {});
+          }).catch((err) => {
+            console.warn('App: Failed to load nativeNotificationService:', err);
+          });
 
           // Track unread messages and sync launcher badge
           import('./stores/unread').then(({ totalUnreadMessages }) => {
