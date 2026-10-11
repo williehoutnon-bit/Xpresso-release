@@ -216,6 +216,7 @@ import LandingView from './views/LandingView.svelte';
             try {
               await nativeNotificationService.init();
               await nativeNotificationService.requestPermissions();
+              await nativeNotificationService.syncSavedPushToken();
             } catch (err) {
               console.warn('App: Native notification setup non-fatal error:', err);
             }

@@ -128,6 +128,10 @@ export const authService = {
      };
      await dbService.upsertProfile(localProfile);
       
+      import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+        nativeNotificationService.syncSavedPushToken().catch(() => {});
+      }).catch(() => {});
+
       return enrichedUser;
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -254,6 +258,9 @@ export const authService = {
       };
       
       localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
+      import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+        nativeNotificationService.syncSavedPushToken().catch(() => {});
+      }).catch(() => {});
       return cachedCurrentUser;
     } catch (err) {
       const offlineUser = localStorage.getItem('exup_offline_user');

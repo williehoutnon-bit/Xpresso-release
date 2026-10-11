@@ -17,7 +17,7 @@ type NotificationClickCallback = (payload: { conversationId?: string; data?: any
 const clickListeners: NotificationClickCallback[] = [];
 
 let isInitialized = false;
-let currentPushToken: string | null = null;
+let currentPushToken: string | null = (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
 
 class NativeNotificationService {
   /**
@@ -187,9 +187,14 @@ class NativeNotificationService {
     try {
       // Successfully registered with FCM
       await PushNotifications.addListener('registration', (token) => {
-        console.info('[NotificationService] FCM Registration Token:', token.value);
+        console.info('[NotificationService] FCM Registration Token received:', token.value ? token.value.substring(0, 15) + '...' : '(empty)');
         currentPushToken = token.value;
-        this.syncPushTokenToBackend(token.value).catch(() => {});
+        if (typeof localStorage !== 'undefined' && token.value) {
+          localStorage.setItem('xpresso_fcm_token', token.value);
+        }
+        this.syncPushTokenToBackend(token.value).catch((err) => {
+          console.warn('[NotificationService] Token sync error:', err);
+        });
       });
 
       // Registration failed
@@ -222,49 +227,76 @@ class NativeNotificationService {
   /**
    * Post device push token to backend for FCM delivery
    */
-  async syncPushTokenToBackend(token: string) {
+  async syncPushTokenToBackend(token?: string) {
+    const tokenToSync = token || currentPushToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
+    if (!tokenToSync) return;
+
     try {
       const { authService } = await import('./authService');
       const user = await authService.getCurrentUser();
-      if (!user) return;
+      if (!user) {
+        console.info('[NotificationService] Token held in local storage; awaiting user authentication to sync with profile.');
+        return;
+      }
 
-      const { getSupabase } = await import('./supabaseService');
-      const supabase = getSupabase();
-      if (!supabase) return;
+      const { getSupabase, getSupabaseAdmin } = await import('./supabaseService');
+      const adminClient = getSupabaseAdmin();
+      const regularClient = getSupabase();
+      const client = adminClient || regularClient;
+      if (!client) return;
 
-      // Upsert into user_push_tokens if table exists
-      await supabase
+      const userId = user.$id || user.id;
+      const { error } = await client
         .from('user_push_tokens')
         .upsert(
           {
-            user_id: user.$id || user.id,
-            token,
+            user_id: userId,
+            token: tokenToSync,
             platform: Capacitor.getPlatform(),
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'token' }
-        )
-        .catch(() => {});
+        );
+
+      if (error) {
+        console.warn('[NotificationService] Failed to upsert token into user_push_tokens:', error.message);
+      } else {
+        console.info('[NotificationService] Successfully registered push token in Supabase for user:', userId);
+      }
     } catch (err) {
-      // Non-fatal if table not yet provisioned
+      console.warn('[NotificationService] syncPushTokenToBackend caught error:', err);
     }
+  }
+
+  /**
+   * Re-syncs any locally saved push token upon user login/signup
+   */
+  async syncSavedPushToken() {
+    await this.syncPushTokenToBackend();
   }
 
   /**
    * Delete push token on logout
    */
   async removePushToken() {
-    if (!currentPushToken) return;
-    try {
-      const { getSupabase } = await import('./supabaseService');
-      const supabase = getSupabase();
-      if (!supabase) return;
+    const tokenToRemove = currentPushToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
+    if (!tokenToRemove) return;
 
-      await supabase
+    try {
+      const { getSupabase, getSupabaseAdmin } = await import('./supabaseService');
+      const client = getSupabaseAdmin() || getSupabase();
+      if (!client) return;
+
+      await client
         .from('user_push_tokens')
         .delete()
-        .eq('token', currentPushToken)
+        .eq('token', tokenToRemove)
         .catch(() => {});
+
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('xpresso_fcm_token');
+      }
+      currentPushToken = null;
     } catch (err) {}
   }
 
@@ -276,19 +308,28 @@ class NativeNotificationService {
     senderId: string;
     senderName?: string;
     content: string;
+    type?: string;
+    recipientId?: string;
+    recipientIds?: string[];
   }) {
     try {
       const { getSupabase } = await import('./supabaseService');
       const supabase = getSupabase();
       if (!supabase) return;
 
-      await supabase.functions
+      console.info('[NotificationService] Invoking send-push-notification for conversation:', payload.conversationId);
+      const { data, error } = await supabase.functions
         .invoke('send-push-notification', {
           body: payload,
-        })
-        .catch(() => {});
+        });
+
+      if (error) {
+        console.warn('[NotificationService] send-push-notification returned error:', error);
+      } else {
+        console.info('[NotificationService] Push notification dispatch response:', data);
+      }
     } catch (err) {
-      // Non-blocking
+      console.warn('[NotificationService] Exception calling send-push-notification:', err);
     }
   }
 

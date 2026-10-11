@@ -8,6 +8,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const FIREBASE_SERVICE_ACCOUNT = Deno.env.get("FIREBASE_SERVICE_ACCOUNT") || "";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 interface PushRequest {
   record?: any; // For database webhooks
   conversationId?: string;
@@ -15,6 +21,8 @@ interface PushRequest {
   senderName?: string;
   content?: string;
   type?: string;
+  recipientId?: string;
+  recipientIds?: string[];
 }
 
 // Generate Google OAuth2 Access Token for FCM HTTP v1 using Service Account JSON
@@ -37,15 +45,16 @@ async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
 
   const unsignedToken = `${encodeBase64Url(header)}.${encodeBase64Url(claimSet)}`;
 
-  // Import Private Key (PKCS8 formatted PEM)
-  const pem = serviceAccount.private_key;
+  // Robust PEM cleaning: strips delimiters, literal \n, raw newlines, carriage returns, and spaces
+  const pem = serviceAccount.private_key || "";
+  const cleanPem = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\\n/g, "")
+    .replace(/[\r\n\s]/g, "");
+
   const binaryDer = Uint8Array.from(
-    atob(
-      pem
-        .replace(/-----BEGIN PRIVATE KEY-----/, "")
-        .replace(/-----END PRIVATE KEY-----/, "")
-        .replace(/\s+/g, "")
-    ),
+    atob(cleanPem),
     (c) => c.charCodeAt(0)
   );
 
@@ -82,7 +91,7 @@ async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(`Google Auth token exchange failed: ${data.error_description || data.error}`);
+    throw new Error(`Google Auth token exchange failed: ${data.error_description || data.error || JSON.stringify(data)}`);
   }
 
   return data.access_token;
@@ -90,13 +99,7 @@ async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-      },
-    });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -106,12 +109,13 @@ serve(async (req) => {
     const record = payload.record || {};
     const conversationId = payload.conversationId || record.conversation_id || record.conversationId;
     const senderId = payload.senderId || record.sender_id || record.senderId;
-    const content = payload.content || record.content || "New message";
+    const content = payload.content ?? record.content ?? "";
+    const msgType = payload.type || record.type || "text";
 
-    if (!conversationId || !senderId) {
-      return new Response(JSON.stringify({ error: "Missing conversationId or senderId" }), {
+    if (!conversationId && !payload.recipientId && (!payload.recipientIds || payload.recipientIds.length === 0)) {
+      return new Response(JSON.stringify({ error: "Missing conversationId or recipient target" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -119,31 +123,52 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    // 1. Find participants in this conversation (excluding sender)
-    const { data: participants, error: partError } = await supabase
-      .from("participants")
-      .select("user_id")
-      .eq("conversation_id", conversationId)
-      .neq("user_id", senderId);
+    // 1. Determine target recipient user IDs
+    let recipientUserIds: string[] = [];
+    const directRecipients = payload.recipientIds || (payload.recipientId ? [payload.recipientId] : []);
 
-    if (partError || !participants || participants.length === 0) {
-      return new Response(JSON.stringify({ message: "No recipients to notify" }), {
+    if (directRecipients.length > 0) {
+      recipientUserIds = directRecipients.filter((id) => id && id !== senderId);
+    } else if (conversationId) {
+      // Find participants in this conversation (excluding sender)
+      const { data: participants, error: partError } = await supabase
+        .from("participants")
+        .select("user_id")
+        .eq("conversation_id", conversationId)
+        .neq("user_id", senderId || "");
+
+      if (participants && participants.length > 0) {
+        recipientUserIds = participants.map((p) => p.user_id).filter(Boolean);
+      } else if (partError) {
+        console.warn("Error fetching participants:", partError);
+      }
+    }
+
+    if (recipientUserIds.length === 0) {
+      return new Response(JSON.stringify({ message: "No recipients to notify", conversationId }), {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const recipientUserIds = participants.map((p) => p.user_id);
-
     // 2. Fetch sender profile for display name
-    const { data: senderProfile } = await supabase
-      .from("profiles")
-      .select("full_name, name")
-      .eq("user_id", senderId)
-      .single();
+    let senderDisplayName = payload.senderName || "Xpresso Contact";
+    if (senderId) {
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("full_name, name, surname, last_name")
+        .eq("user_id", senderId)
+        .maybeSingle();
 
-    const senderDisplayName =
-      payload.senderName || senderProfile?.full_name || senderProfile?.name || "Xpresso Contact";
+      if (senderProfile) {
+        senderDisplayName =
+          payload.senderName ||
+          senderProfile.full_name ||
+          senderProfile.name ||
+          `${senderProfile.surname || ""} ${senderProfile.last_name || ""}`.trim() ||
+          "Xpresso Contact";
+      }
+    }
 
     // 3. Fetch active push tokens for all recipients
     const { data: tokenRows, error: tokenError } = await supabase
@@ -152,30 +177,64 @@ serve(async (req) => {
       .in("user_id", recipientUserIds);
 
     if (tokenError || !tokenRows || tokenRows.length === 0) {
-      return new Response(JSON.stringify({ message: "No registered device tokens found" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          message: "No registered device push tokens found for recipients",
+          recipients: recipientUserIds,
+          tokenError: tokenError?.message || null,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // 4. Authenticate with FCM v1 if service account secret is present
     if (!FIREBASE_SERVICE_ACCOUNT) {
-      console.warn("FIREBASE_SERVICE_ACCOUNT secret not configured. Skipping remote push.");
+      console.warn("FIREBASE_SERVICE_ACCOUNT secret not configured in Supabase. Skipping remote push.");
       return new Response(
         JSON.stringify({
           message: "Tokens found, but FIREBASE_SERVICE_ACCOUNT secret not configured in Supabase.",
-          recipientCount: tokenRows.length,
+          recipientTokensCount: tokenRows.length,
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
+    // Safely parse service account JSON (supports raw JSON or base64)
+    let serviceAccount: any;
+    try {
+      const trimmed = FIREBASE_SERVICE_ACCOUNT.trim();
+      if (trimmed.startsWith("{")) {
+        serviceAccount = JSON.parse(trimmed);
+      } else {
+        serviceAccount = JSON.parse(atob(trimmed));
+      }
+    } catch (parseErr: any) {
+      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT secret:", parseErr);
+      return new Response(
+        JSON.stringify({ error: `Invalid FIREBASE_SERVICE_ACCOUNT format: ${parseErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const accessToken = await getGoogleAccessToken(serviceAccount);
     const projectId = serviceAccount.project_id;
     const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
-    // 5. Send FCM message to each token
+    // 5. Construct notification body based on message type
+    let preview = content.trim();
+    if (!preview) {
+      if (msgType === "image") preview = "📷 Photo";
+      else if (msgType === "audio") preview = "🎤 Voice message";
+      else if (msgType === "file") preview = "📎 Attachment";
+      else preview = "New message";
+    } else if (preview.length > 120) {
+      preview = preview.slice(0, 117) + "...";
+    }
+
+    // 6. Send high-priority FCM message to each token
     const results = await Promise.all(
       tokenRows.map(async (row) => {
         const fcmPayload = {
@@ -183,12 +242,13 @@ serve(async (req) => {
             token: row.token,
             notification: {
               title: senderDisplayName,
-              body: content.length > 120 ? content.slice(0, 117) + "..." : content,
+              body: preview,
             },
             data: {
-              conversationId,
-              senderId,
-              senderName: senderDisplayName,
+              conversationId: String(conversationId || ""),
+              senderId: String(senderId || ""),
+              senderName: String(senderDisplayName || ""),
+              type: String(msgType || "text"),
             },
             android: {
               priority: "high",
@@ -198,7 +258,7 @@ serve(async (req) => {
                 color: "#0050D8",
                 sound: "default",
                 default_vibrate_timings: true,
-                notification_count: 1, // Increments native app badge
+                notification_count: 1, // Updates launcher badge counter
               },
             },
           },
@@ -215,8 +275,12 @@ serve(async (req) => {
 
         if (!fcmRes.ok) {
           const errData = await fcmRes.json().catch(() => ({}));
+          console.warn(`FCM delivery failed for token ${row.token.substring(0, 15)}...:`, errData);
           // Auto-prune uninstalled or expired tokens
-          if (errData?.error?.details?.some((d: any) => d.errorCode === "UNREGISTERED")) {
+          if (
+            errData?.error?.details?.some((d: any) => d.errorCode === "UNREGISTERED") ||
+            errData?.error?.message?.includes("not a valid FCM registration token")
+          ) {
             await supabase.from("user_push_tokens").delete().eq("id", row.id);
             console.info(`Pruned expired token: ${row.token}`);
           }
@@ -227,15 +291,19 @@ serve(async (req) => {
       })
     );
 
-    return new Response(JSON.stringify({ delivered: results.filter((r) => r.success).length, results }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    const deliveredCount = results.filter((r) => r.success).length;
+    return new Response(
+      JSON.stringify({ delivered: deliveredCount, total: results.length, results }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (err: any) {
     console.error("Push dispatcher error:", err);
     return new Response(JSON.stringify({ error: err.message || "Internal error" }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

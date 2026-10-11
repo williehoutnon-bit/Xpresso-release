@@ -1582,12 +1582,25 @@ export const messagingService = {
     if (!conversationId.startsWith('local_convo_') && !conversationId.startsWith('mock_')) {
       pushMessageToSupabase(localDoc, sendStartedAt).then(() => {
         // Dispatch the native notification only after Supabase has accepted the message.
-        import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+        import('./nativeNotificationService').then(async ({ nativeNotificationService }) => {
+          let recipientIds: string[] = [];
+          try {
+            const db = await dbService.getRawDB();
+            const partDocs = await db.participants.find({
+              selector: { conversationId }
+            }).exec();
+            recipientIds = partDocs
+              .map((p: any) => p.userId || p.user_id)
+              .filter((uid: string) => uid && uid !== user.$id);
+          } catch (pErr) {}
+
           nativeNotificationService.dispatchPushNotification({
             conversationId,
             senderId: user.$id,
             senderName: user.name || user.prefs?.lastName || 'Xpresso User',
             content: finalContent,
+            type,
+            recipientIds,
           });
         }).catch(() => {});
       }).catch(async (error: any) => {
