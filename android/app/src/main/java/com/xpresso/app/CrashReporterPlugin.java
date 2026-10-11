@@ -77,6 +77,10 @@ public class CrashReporterPlugin extends Plugin {
         boolean hasCrash = !crashContent.isEmpty() || (exitContent.contains("CRASH") || exitContent.contains("ANR"));
         ret.put("hasCrash", hasCrash);
 
+        if (hasCrash) {
+            XpressoApplication.copyCrashLogToClipboardAndDownloads(ctx);
+        }
+
         call.resolve(ret);
     }
 
@@ -88,6 +92,14 @@ public class CrashReporterPlugin extends Plugin {
 
         File f2 = new File(ctx.getFilesDir(), "latest_exit_reason.txt");
         if (f2.exists()) f2.delete();
+
+        File extDir = ctx.getExternalFilesDir(null);
+        if (extDir != null) {
+            File ext1 = new File(extDir, XpressoApplication.CRASH_FILE_NAME);
+            if (ext1.exists()) ext1.delete();
+            File ext2 = new File(extDir, "latest_exit_reason.txt");
+            if (ext2.exists()) ext2.delete();
+        }
 
         JSObject ret = new JSObject();
         ret.put("cleared", true);

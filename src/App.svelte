@@ -149,6 +149,10 @@ import LandingView from './views/LandingView.svelte';
     checkAndRetrieveCrashLog().then((logs) => {
       if (logs && (logs.hasCrash || logs.uncaughtCrash || (logs.historicalExitReasons && logs.historicalExitReasons.includes('CRASH')))) {
         detectedCrash = logs;
+        const text = (logs.uncaughtCrash ? logs.uncaughtCrash + '\n\n' : '') + (logs.historicalExitReasons || '');
+        if (text.trim() && typeof navigator !== 'undefined' && navigator.clipboard) {
+          navigator.clipboard.writeText(text.trim()).catch(() => {});
+        }
       }
     }).catch(() => {});
 

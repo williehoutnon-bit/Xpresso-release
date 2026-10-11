@@ -12,6 +12,17 @@
 
   let copied = $state(false);
 
+  // Auto-copy to clipboard immediately upon appearance so user has it even if app closes
+  $effect(() => {
+    if (fullReport && fullReport !== 'No detailed stack trace captured.') {
+      try {
+        navigator.clipboard.writeText(fullReport).then(() => {
+          copied = true;
+        }).catch(() => {});
+      } catch {}
+    }
+  });
+
   const fullReport = $derived.by(() => {
     let out = '';
     if (crashData.uncaughtCrash && crashData.uncaughtCrash.trim().length > 0) {
@@ -58,7 +69,12 @@
         </div>
         <div>
           <h3 class="text-sm font-bold text-red-950">Application Crash Detected</h3>
-          <p class="text-[11px] text-red-700">Captured on previous session exit</p>
+          <p class="text-[11px] text-red-700">
+            {#if copied}
+              <span class="font-semibold text-emerald-700">✓ Auto-copied to clipboard!</span> •
+            {/if}
+            Saved on device
+          </p>
         </div>
       </div>
       <button 
@@ -67,6 +83,19 @@
       >
         <X size={18} />
       </button>
+    </div>
+
+    <!-- Location notice banner -->
+    <div class="px-4 py-2.5 bg-amber-50 border-b border-amber-200/60 text-[11px] text-amber-900 flex flex-col gap-1">
+      <div class="flex items-center justify-between">
+        <span class="font-semibold text-emerald-800 flex items-center gap-1">
+          ✓ Copied to clipboard automatically
+        </span>
+        <span class="text-[10px] text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded font-mono">No action needed</span>
+      </div>
+      <p class="text-[10.5px] text-slate-600">
+        Also saved to your <strong>Téléchargements / Downloads</strong> folder: <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-800 font-mono text-[10px]">xpresso_crash_log.txt</code>
+      </p>
     </div>
 
     <!-- Body -->

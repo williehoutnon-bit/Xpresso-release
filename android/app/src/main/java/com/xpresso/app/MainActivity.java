@@ -13,6 +13,9 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(CrashReporterPlugin.class);
         super.onCreate(savedInstanceState);
 
+        // Immediately auto-copy any previous crash log and save to public Downloads
+        XpressoApplication.copyCrashLogToClipboardAndDownloads(this);
+
         // Defensively initialize FirebaseApp if not already initialized
         try {
             if (FirebaseApp.getApps(this).isEmpty()) {
@@ -22,6 +25,13 @@ public class MainActivity extends BridgeActivity {
         } catch (Throwable t) {
             Log.w(TAG, "FirebaseApp initialization handled non-fatally: " + t.getMessage());
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Also auto-copy on resume in case a crash was recorded while minimized
+        XpressoApplication.copyCrashLogToClipboardAndDownloads(this);
     }
 }
 
