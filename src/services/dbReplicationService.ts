@@ -152,13 +152,24 @@ export function startMessagesReplication(collection: any, userId: string) {
                     const docs = res.documents.map(doc => {
                         const content = doc.content;
                         const type = doc.type;
-                        let attachments = doc.attachments ? doc.attachments.map((a: any) => { try { return typeof a === 'string' ? JSON.parse(a) : a; } catch { return a; } }) : [];
+                        let rawAttachments = doc.attachments || [];
+                        let attachments: any[] = [];
+                        if (Array.isArray(rawAttachments)) {
+                            attachments = rawAttachments.map((a: any) => { try { return typeof a === 'string' ? JSON.parse(a) : a; } catch { return a; } });
+                        } else if (typeof rawAttachments === 'string') {
+                            try {
+                                const parsed = JSON.parse(rawAttachments);
+                                attachments = Array.isArray(parsed) ? parsed : [parsed];
+                            } catch { attachments = []; }
+                        }
 
                         // Fallback extraction of attachments from content JSON but DO NOT alter type and content!
                         if (type?.startsWith('f:') && content?.startsWith('{')) {
                             try {
                                 const parsed = JSON.parse(content);
-                                attachments = parsed.a || attachments;
+                                if (parsed.a) {
+                                    attachments = Array.isArray(parsed.a) ? parsed.a : [parsed.a];
+                                }
                             } catch (e) {}
                         }
 
@@ -257,9 +268,9 @@ export function startMessagesReplication(collection: any, userId: string) {
                         continue;
                     }
 
-                    const attachments = newDocumentState.attachments || [];
+                    const attachments = Array.isArray(newDocumentState.attachments) ? newDocumentState.attachments : [];
                     // Check if there are any attachments waiting for their media uploader to finish
-                    const isPendingBlob = attachments.some((a: any) => a.url && (a.url.startsWith('blob:') || a.fileId?.startsWith('pending_')));
+                    const isPendingBlob = attachments.some((a: any) => a?.url && (a.url.startsWith('blob:') || a.fileId?.startsWith('pending_')));
                     if (isPendingBlob) {
                         console.log(`[Replication] Skipping push for message ${newDocumentState.id} due to pending media upload.`);
                         continue;

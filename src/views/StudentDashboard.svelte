@@ -193,6 +193,24 @@
     }, 200);
   }
 
+  function getConvoLastMessageText(convo: any): string {
+    const lm = convo?.lastMessage;
+    if (!lm) return 'No messages yet';
+    const attachments = Array.isArray(lm.attachments) ? lm.attachments : [];
+    if (lm.type === 'audio' || lm.type === 'f:audio' || attachments.some((a: any) => a?.type === 'audio')) {
+      return '🎤 Voice note';
+    }
+    if (lm.type === 'video' || lm.type === 'f:video' || attachments.some((a: any) => a?.type === 'video')) {
+      return '🎥 Video';
+    }
+    if (lm.type === 'image' || lm.type === 'f:image' || attachments.some((a: any) => a?.type === 'image')) {
+      return '📷 Image';
+    }
+    if (lm.type === 'math_canvas' || lm.type === 'f:math_canvas') {
+      return '📐 Math Canvas';
+    }
+    return formatMathAsPlainText(lm.mathMeta?.nodes || lm.math_meta || lm.content) || 'No messages yet';
+  }
 </script>
 
 <div class="flex flex-col pb-24 relative">
@@ -609,17 +627,7 @@
                          </div>
                       {/if}
                       <p class="text-[10px] text-sage font-medium truncate flex-1">
-                        {#if convo.lastMessage?.type === 'audio' || convo.lastMessage?.type === 'f:audio' || convo.lastMessage?.attachments?.some(a => a.type === 'audio')}
-                          🎤 Voice note
-                        {:else if convo.lastMessage?.type === 'video' || convo.lastMessage?.type === 'f:video' || convo.lastMessage?.attachments?.some(a => a.type === 'video')}
-                          🎥 Video
-                        {:else if convo.lastMessage?.type === 'image' || convo.lastMessage?.type === 'f:image' || convo.lastMessage?.attachments?.some(a => a.type === 'image')}
-                          📷 Image
-                        {:else if convo.lastMessage?.type === 'math_canvas' || convo.lastMessage?.type === 'f:math_canvas'}
-                          📐 Math Canvas
-                        {:else}
-                          {formatMathAsPlainText(convo.lastMessage?.mathMeta?.nodes || convo.lastMessage?.math_meta || convo.lastMessage?.content) || 'No messages yet'}
-                        {/if}
+                        {getConvoLastMessageText(convo)}
                       </p>
                     </div>
                   </div>

@@ -39,6 +39,41 @@ type DatabaseCollections = {
 };
 
 /**
+ * Normalizes attachments into an array of plain objects, preventing malformed strings/objects
+ * from breaking frontend consumers or RxDB storage.
+ */
+export function normalizeAttachments(attachments: any): any[] {
+  if (!attachments) return [];
+  if (Array.isArray(attachments)) {
+    return attachments.map((a: any) => {
+      if (typeof a === 'string') {
+        try {
+          const parsed = JSON.parse(a);
+          return typeof parsed === 'object' && parsed !== null ? parsed : { url: a };
+        } catch {
+          return { url: a };
+        }
+      }
+      return a;
+    });
+  }
+  if (typeof attachments === 'string') {
+    try {
+      const parsed = JSON.parse(attachments);
+      if (Array.isArray(parsed)) return normalizeAttachments(parsed);
+      if (parsed && typeof parsed === 'object') return [parsed];
+      return [{ url: attachments }];
+    } catch {
+      return [{ url: attachments }];
+    }
+  }
+  if (typeof attachments === 'object') {
+    return [attachments];
+  }
+  return [];
+}
+
+/**
  * Ensures any document or data passed into RxDB is a plain JSON-serializable object
  * and stripped of Svelte 5 reactive Proxies, getters, and non-cloneable references.
  */
@@ -813,6 +848,7 @@ export const dbService = {
       if (clearedAt && new Date(docJson.createdAt).getTime() <= new Date(clearedAt).getTime()) {
          return null;
       }
+      docJson.attachments = normalizeAttachments(docJson.attachments);
       return docJson;
     } catch (err) {
       console.error('Error fetching last message:', err);
@@ -845,7 +881,9 @@ export const dbService = {
         if (messages.length === 0) return null;
 
         messages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        return messages[0];
+        const top = messages[0];
+        top.attachments = normalizeAttachments(top.attachments);
+        return top;
       } catch (innerErr) {
         return null;
       }
@@ -992,7 +1030,7 @@ export const dbService = {
       createdAt: new Date().toISOString(),
       status: 'pending',
       ip: '0.0.0.0', // Set by server/appwrite, dummy local
-      attachments: message.attachments || [],
+      attachments: normalizeAttachments(message.attachments),
       strokes: (message as any).strokes || (message as any).mathMeta?.strokes || [],
       mathMeta: (message as any).mathMeta || null
     };
@@ -1208,7 +1246,7 @@ export const dbService = {
           status: msg.status ?? 'sent',
           ip: msg.ip ?? '0.0.0.0',
           isPinned: msg.isPinned || false,
-          attachments: msg.attachments ?? [],
+          attachments: normalizeAttachments(msg.attachments),
           strokes: msg.strokes ?? [],
           mathMeta: msg.mathMeta || null
         };
@@ -1274,7 +1312,7 @@ export const dbService = {
         status: message.status ?? 'sent',
         ip: message.ip ?? '0.0.0.0',
         isPinned: message.isPinned || false,
-        attachments: message.attachments ?? [],
+        attachments: normalizeAttachments(message.attachments),
         strokes: message.strokes ?? [],
         mathMeta: message.mathMeta || null
       };

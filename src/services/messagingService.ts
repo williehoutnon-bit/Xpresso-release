@@ -478,9 +478,16 @@ export const messagingService = {
                const senderId = doc.sender_id || doc.senderId || doc.user_id || doc.userId;
 
                // Parse attachments safely
-               let attachments = doc.attachments || [];
-               if (typeof attachments === 'string') {
-                  try { attachments = JSON.parse(attachments); } catch { attachments = []; }
+               let attachments: any[] = [];
+               if (Array.isArray(doc.attachments)) {
+                  attachments = doc.attachments;
+               } else if (typeof doc.attachments === 'string') {
+                  try {
+                     const parsed = JSON.parse(doc.attachments);
+                     attachments = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+                  } catch { attachments = []; }
+               } else if (doc.attachments && typeof doc.attachments === 'object') {
+                  attachments = [doc.attachments];
                }
 
                // Parse mathMeta safely
@@ -1188,15 +1195,26 @@ export const messagingService = {
             .map(doc => {
             const content = (doc as any).content;
             const type = (doc as any).type;
-            let attachments = ((doc as any).attachments || []).map((a: string) => {
-              try { return JSON.parse(a); } catch { return a; }
-            });
+            let rawAttachments = (doc as any).attachments || [];
+            let attachments: any[] = [];
+            if (Array.isArray(rawAttachments)) {
+              attachments = rawAttachments.map((a: any) => {
+                try { return typeof a === 'string' ? JSON.parse(a) : a; } catch { return a; }
+              });
+            } else if (typeof rawAttachments === 'string') {
+              try {
+                const parsed = JSON.parse(rawAttachments);
+                attachments = Array.isArray(parsed) ? parsed : [parsed];
+              } catch { attachments = []; }
+            }
 
             // Fallback extraction of attachments from content JSON but DO NOT alter type and content!
             if (type?.startsWith('f:') && content?.startsWith('{')) {
               try {
                 const parsed = JSON.parse(content);
-                attachments = parsed.a || attachments;
+                if (parsed.a) {
+                  attachments = Array.isArray(parsed.a) ? parsed.a : [parsed.a];
+                }
               } catch (e) {}
             }
 

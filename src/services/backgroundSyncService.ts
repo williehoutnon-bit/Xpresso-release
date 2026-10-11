@@ -129,11 +129,11 @@ export async function triggerBackgroundSync(): Promise<void> {
         console.log(`[BackgroundSync] Processing message ${msg.id} (type: ${msg.type})`);
 
         try {
-          let attachments = msg.attachments || [];
+          let attachments = Array.isArray(msg.attachments) ? msg.attachments : [];
           let content = msg.content;
 
           // Check if there are any attachments that require a media upload
-          const isPendingBlob = attachments.some((a: any) => a.url && (a.url.startsWith('blob:') || a.fileId?.startsWith('pending_')));
+          const isPendingBlob = attachments.some((a: any) => a?.url && (a.url.startsWith('blob:') || a.fileId?.startsWith('pending_')));
 
           if (isPendingBlob) {
             console.log(`[BackgroundSync] Message ${msg.id} has pending media. Retrieving from cache...`);

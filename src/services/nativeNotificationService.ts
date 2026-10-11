@@ -131,12 +131,17 @@ class NativeNotificationService {
     }
 
     try {
-      // 1. Request push notification permission first if available
+      // 1. Check or Request push notification permission if available
       let pushGranted = false;
       if (Capacitor.isPluginAvailable('PushNotifications')) {
         try {
-          const pushStatus = await PushNotifications.requestPermissions();
-          pushGranted = pushStatus.receive === 'granted';
+          const checkStatus = await PushNotifications.checkPermissions().catch(() => null);
+          if (checkStatus?.receive === 'granted') {
+            pushGranted = true;
+          } else {
+            const pushStatus = await PushNotifications.requestPermissions();
+            pushGranted = pushStatus.receive === 'granted';
+          }
         } catch (e) {
           console.warn('[NotificationService] Push permission request error:', e);
         }
@@ -146,8 +151,13 @@ class NativeNotificationService {
       let localGranted = false;
       if (Capacitor.isPluginAvailable('LocalNotifications')) {
         try {
-          const localStatus = await LocalNotifications.requestPermissions();
-          localGranted = localStatus.display === 'granted';
+          const checkLocal = await LocalNotifications.checkPermissions().catch(() => null);
+          if (checkLocal?.display === 'granted') {
+            localGranted = true;
+          } else {
+            const localStatus = await LocalNotifications.requestPermissions();
+            localGranted = localStatus.display === 'granted';
+          }
         } catch (e) {
           console.warn('[NotificationService] Local notification permission request error:', e);
         }
@@ -161,7 +171,7 @@ class NativeNotificationService {
           } catch (regErr) {
             console.warn('[NotificationService] FCM registration safely handled (non-fatal):', regErr);
           }
-        }, 1200);
+        }, 500);
       }
 
       return pushGranted || localGranted;

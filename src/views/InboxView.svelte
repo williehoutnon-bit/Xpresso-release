@@ -616,6 +616,14 @@
        swipeDistance = 0;
     }
   };
+  function formatTimestamp(msg: any): string {
+    if (!msg) return '';
+    const ts = msg.createdAt ?? msg.created_at;
+    if (!ts) return '';
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
   function getLastMessageContent(convo: any) {
     const m = convo.lastMessage;
     if (!m) return 'No messages yet';
@@ -633,15 +641,28 @@
       if (plain && plain.trim().length > 0) return plain.trim();
     }
 
-    if (m.type === 'audio' || m.type === 'f:audio' || m.attachments?.some((a: any) => a.type === 'audio')) {
+    let attachmentsList: any[] = [];
+    if (Array.isArray(m.attachments)) {
+      attachmentsList = m.attachments;
+    } else if (typeof m.attachments === 'string') {
+      try {
+        const parsed = JSON.parse(m.attachments);
+        if (Array.isArray(parsed)) attachmentsList = parsed;
+        else if (parsed && typeof parsed === 'object') attachmentsList = [parsed];
+      } catch {}
+    } else if (m.attachments && typeof m.attachments === 'object') {
+      attachmentsList = [m.attachments];
+    }
+
+    if (m.type === 'audio' || m.type === 'f:audio' || attachmentsList.some((a: any) => a?.type === 'audio')) {
       return '🎤 Voice note';
     }
 
-    if (m.type === 'video' || m.type === 'f:video' || m.attachments?.some((a: any) => a.type === 'video')) {
+    if (m.type === 'video' || m.type === 'f:video' || attachmentsList.some((a: any) => a?.type === 'video')) {
       return '🎥 Video';
     }
 
-    if (m.type === 'image' || m.type === 'f:image' || m.attachments?.some((a: any) => a.type === 'image')) {
+    if (m.type === 'image' || m.type === 'f:image' || attachmentsList.some((a: any) => a?.type === 'image')) {
       const caption = formatMathAsPlainText(m.content);
       return caption && caption !== 'Image' && caption !== '[Image message]' ? `📷 ${caption}` : '📷 Image';
     }
@@ -1040,7 +1061,7 @@
                   <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-center mb-1">
                       <span class="font-sans font-bold text-[#202936] text-[15px] hover:underline" onclick={(e) => openProfileLightbox(e, convo)}>{convo.name || 'Anonymous'}</span>
-                      <span class="text-[13px] text-[#46698A] font-medium tracking-tight">{convo.lastMessage ? new Date(convo.lastMessage.createdAt ?? convo.lastMessage.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      <span class="text-[13px] text-[#46698A] font-medium tracking-tight">{formatTimestamp(convo.lastMessage)}</span>
                     </div>
                     <div class="flex items-center gap-1.5 overflow-hidden">
                        {#if convo.lastMessage}
