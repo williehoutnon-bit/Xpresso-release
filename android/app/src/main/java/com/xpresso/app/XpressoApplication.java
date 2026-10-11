@@ -15,6 +15,9 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,6 +60,9 @@ public class XpressoApplication extends Application {
 
         // 3. Immediately copy any detected crash log / exit reason to clipboard and public Downloads folder
         copyCrashLogToClipboardAndDownloads(this);
+
+        // 4. Defensively initialize FirebaseApp with programmatic options fallback before any plugin runs
+        initializeFirebaseSafely(this);
     }
 
     private void saveCrashReport(Thread thread, Throwable throwable) {
@@ -268,6 +274,36 @@ public class XpressoApplication extends Application {
             }
         } catch (Throwable t) {
             Log.w(TAG, "Failed copyCrashLogToClipboardAndDownloads", t);
+        }
+    }
+
+    public static void initializeFirebaseSafely(Context context) {
+        if (context == null) return;
+        try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                try {
+                    FirebaseApp.initializeApp(context);
+                    Log.i(TAG, "FirebaseApp initialized via standard resources");
+                } catch (Throwable t) {
+                    Log.w(TAG, "Standard Firebase resource initialization failed: " + t.getMessage());
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseOptions options = new FirebaseOptions.Builder()
+                        .setApplicationId("1:402509981366:android:39037421a743359d166817")
+                        .setApiKey("AIzaSyCh1nimoHBX-h8gpLctrHU8Bz4tKLDJxUE")
+                        .setProjectId("xpresso-5e681")
+                        .setStorageBucket("xpresso-5e681.firebasestorage.app")
+                        .setGcmSenderId("402509981366")
+                        .build();
+                FirebaseApp.initializeApp(context, options);
+                Log.i(TAG, "FirebaseApp successfully initialized with explicit programmatic options");
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed initializing FirebaseApp with explicit options", t);
         }
     }
 }

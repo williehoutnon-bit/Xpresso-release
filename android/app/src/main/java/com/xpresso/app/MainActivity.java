@@ -16,15 +16,8 @@ public class MainActivity extends BridgeActivity {
         // Immediately auto-copy any previous crash log and save to public Downloads
         XpressoApplication.copyCrashLogToClipboardAndDownloads(this);
 
-        // Defensively initialize FirebaseApp if not already initialized
-        try {
-            if (FirebaseApp.getApps(this).isEmpty()) {
-                FirebaseApp.initializeApp(this);
-                Log.i(TAG, "FirebaseApp initialized successfully");
-            }
-        } catch (Throwable t) {
-            Log.w(TAG, "FirebaseApp initialization handled non-fatally: " + t.getMessage());
-        }
+        // Defensively initialize FirebaseApp with fallback before plugins execute
+        XpressoApplication.initializeFirebaseSafely(this);
     }
 
     @Override
