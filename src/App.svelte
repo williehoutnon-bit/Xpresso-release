@@ -42,6 +42,8 @@ import LandingView from './views/LandingView.svelte';
   import { authService } from './services/authService';
   import { messagingService } from './services/messagingService';
   import { dbService } from './services/dbService';
+  import CrashLogModal from './components/CrashLogModal.svelte';
+  import { checkAndRetrieveCrashLog, type CrashLogsResult } from './services/crashReporterService';
   
   let currentView = $state('landing');
   let authRole = $state('');
@@ -52,6 +54,7 @@ import LandingView from './views/LandingView.svelte';
   let selectedConversationId = $state('');
   let selectedExam = $state<any>(null);
   let isInitializing = $state(true);
+  let detectedCrash = $state<CrashLogsResult | null>(null);
   
   // PWA Back Button Support
   let showExitDialog = $state(false);
@@ -142,6 +145,13 @@ import LandingView from './views/LandingView.svelte';
 
   // Check session on mount
   $effect(() => {
+    // Check for previous crash logs or exit reasons on startup
+    checkAndRetrieveCrashLog().then((logs) => {
+      if (logs && (logs.hasCrash || logs.uncaughtCrash || (logs.historicalExitReasons && logs.historicalExitReasons.includes('CRASH')))) {
+        detectedCrash = logs;
+      }
+    }).catch(() => {});
+
     import('./services/backgroundSyncService').then(({ startBackgroundSyncService }) => {
       startBackgroundSyncService();
     }).catch(err => console.error('App: Failed to start background sync service:', err));
@@ -578,6 +588,10 @@ import LandingView from './views/LandingView.svelte';
         </div>
       </div>
     </div>
+  {/if}
+
+  {#if detectedCrash}
+    <CrashLogModal crashData={detectedCrash} onclose={() => detectedCrash = null} />
   {/if}
 {/if}
 </div>

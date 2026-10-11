@@ -1,0 +1,141 @@
+package com.xpresso.app;
+
+import android.app.ActivityManager;
+import android.app.Application;
+import android.content.Context;
+import android.os.Build;
+import android.util.Log;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
+public class XpressoApplication extends Application {
+    private static final String TAG = "XpressoApplication";
+    public static final String CRASH_FILE_NAME = "latest_crash.txt";
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        // 1. Install Global UncaughtExceptionHandler at Application level
+        final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            try {
+                saveCrashReport(thread, throwable);
+            } catch (Throwable t) {
+                Log.e(TAG, "Failed writing crash report", t);
+            } finally {
+                if (defaultHandler != null) {
+                    defaultHandler.uncaughtException(thread, throwable);
+                }
+            }
+        });
+
+        // 2. Query ApplicationExitInfo API (Android 11 / API 30+) to inspect previous process termination
+        checkHistoricalExitReasons();
+    }
+
+    private void saveCrashReport(Thread thread, Throwable throwable) {
+        try {
+            File crashFile = new File(getFilesDir(), CRASH_FILE_NAME);
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+            pw.println("=== XPRESSO NATIVE CRASH REPORT ===");
+            pw.println("Timestamp: " + timestamp);
+            pw.println("Thread: " + (thread != null ? thread.getName() + " (ID " + thread.getId() + ")" : "unknown"));
+            pw.println("Android OS: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")");
+            pw.println("Device: " + Build.MANUFACTURER + " " + Build.MODEL + " (" + Build.DEVICE + ")");
+            pw.println("----------------------------------------");
+            if (throwable != null) {
+                throwable.printStackTrace(pw);
+            } else {
+                pw.println("No Throwable provided.");
+            }
+            pw.println("========================================");
+            pw.flush();
+
+            try (FileOutputStream fos = new FileOutputStream(crashFile)) {
+                fos.write(sw.toString().getBytes("UTF-8"));
+            }
+            Log.e(TAG, "Crash report recorded to " + crashFile.getAbsolutePath() + ":\n" + sw.toString());
+        } catch (Throwable e) {
+            Log.e(TAG, "Failed to persist crash report", e);
+        }
+    }
+
+    private void checkHistoricalExitReasons() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+                if (am != null) {
+                    List<android.app.ApplicationExitInfo> exitList = am.getHistoricalProcessExitReasons(getPackageName(), 0, 3);
+                    if (exitList != null && !exitList.isEmpty()) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("=== HISTORICAL PROCESS EXIT REASONS (API 30+) ===\n");
+                        for (android.app.ApplicationExitInfo info : exitList) {
+                            String reasonName;
+                            switch (info.getReason()) {
+                                case android.app.ApplicationExitInfo.REASON_CRASH: reasonName = "CRASH (Java Exception)"; break;
+                                case android.app.ApplicationExitInfo.REASON_CRASH_NATIVE: reasonName = "CRASH_NATIVE (Signal/C++)"; break;
+                                case android.app.ApplicationExitInfo.REASON_ANR: reasonName = "ANR (Application Not Responding)"; break;
+                                case android.app.ApplicationExitInfo.REASON_LOW_MEMORY: reasonName = "LOW_MEMORY (System LMK)"; break;
+                                case android.app.ApplicationExitInfo.REASON_USER_REQUESTED: reasonName = "USER_REQUESTED"; break;
+                                case android.app.ApplicationExitInfo.REASON_USER_STOPPED: reasonName = "USER_STOPPED"; break;
+                                case android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE: reasonName = "INITIALIZATION_FAILURE"; break;
+                                case android.app.ApplicationExitInfo.REASON_PERMISSION_CHANGE: reasonName = "PERMISSION_CHANGE"; break;
+                                case android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE: reasonName = "EXCESSIVE_RESOURCE_USAGE"; break;
+                                default: reasonName = "REASON_CODE_" + info.getReason(); break;
+                            }
+
+                            String dateStr = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date(info.getTimestamp()));
+                            sb.append("Exit Time: ").append(dateStr)
+                              .append(" | PID: ").append(info.getPid())
+                              .append(" | Reason: ").append(reasonName)
+                              .append(" | Status: ").append(info.getStatus())
+                              .append(" | Description: ").append(info.getDescription())
+                              .append("\n");
+
+                            // If trace stream exists (e.g. for ANR or Native Crash)
+                            try (InputStream is = info.getTraceInputStream()) {
+                                if (is != null) {
+                                    sb.append("--- TRACE BEGIN ---\n");
+                                    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                                    String line;
+                                    int lineCount = 0;
+                                    while ((line = reader.readLine()) != null && lineCount < 200) {
+                                        sb.append(line).append("\n");
+                                        lineCount++;
+                                    }
+                                    sb.append("--- TRACE END ---\n");
+                                }
+                            } catch (Throwable t) {
+                                // Ignore trace stream errors
+                            }
+                            sb.append("--------------------------------------------------\n");
+                        }
+                        
+                        File exitFile = new File(getFilesDir(), "latest_exit_reason.txt");
+                        try (FileOutputStream fos = new FileOutputStream(exitFile)) {
+                            fos.write(sb.toString().getBytes("UTF-8"));
+                        }
+                        Log.i(TAG, sb.toString());
+                    }
+                }
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed reading historical exit reasons", t);
+            }
+        }
+    }
+}
