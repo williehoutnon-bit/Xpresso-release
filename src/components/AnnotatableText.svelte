@@ -178,6 +178,15 @@
     e.preventDefault();
     e.stopPropagation();
 
+    // Critical for Android WebView & touch devices: capture pointer so gestures/scrolling do not cancel stroke
+    if (e.currentTarget && typeof (e.currentTarget as Element).setPointerCapture === 'function') {
+      try {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      } catch (err) {
+        // Ignore if pointer capture fails on certain platforms
+      }
+    }
+
     if (isEraser) {
       eraseAtClientPoint(e.clientX, e.clientY);
       return;
@@ -208,16 +217,27 @@
     }
     if (!drawing) return;
     e.preventDefault();
+    e.stopPropagation();
 
     // 2.1 Stage A: Feed raw pointer to stabilizer and draw/store smoothed point
     const t = e.timeStamp || performance.now();
     const smoothed = stabilizer.addPoint(e.clientX, e.clientY, t);
     const pt = toNormalized(smoothed.x, smoothed.y);
-    currentStroke = [...currentStroke, pt];
+    currentStroke.push(pt);
+    currentStroke = currentStroke;
   }
 
   function handlePointerUp(e: PointerEvent) {
     if (readonly || !isSketchMode) return;
+
+    if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
+      try {
+        (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+      } catch (err) {
+        // Ignore release errors
+      }
+    }
+
     isPointerDown = false;
     if (!drawing) return;
     drawing = false;
@@ -342,16 +362,24 @@
   {/if}
 
   <!-- SVG Annotation Overlay anchored directly to text element's box -->
-  {#if box.width > 0 && box.height > 0}
+  {#if isSketchMode || allAnnotations.length > 0 || drawing || (box.width > 0 && box.height > 0)}
     <svg
       class="annotation-overlay pointer-events-none absolute inset-0 z-20 overflow-visible select-none"
-      width={box.width || '100%'}
-      height={box.height || '100%'}
-      style="width: {box.width ? box.width + 'px' : '100%'}; height: {box.height ? box.height + 'px' : '100%'}; overflow: visible; pointer-events: {!readonly && isSketchMode ? 'auto' : 'none'}; {!readonly && isSketchMode ? (isEraser ? 'cursor: cell;' : 'cursor: crosshair;') : ''}; min-width: 1px; min-height: 1px; touch-action: none;"
+      width={box.width > 0 ? box.width : '100%'}
+      height={box.height > 0 ? box.height : '100%'}
+      style="width: {box.width > 0 ? box.width + 'px' : '100%'}; height: {box.height > 0 ? box.height + 'px' : '100%'}; overflow: visible; pointer-events: {!readonly && isSketchMode ? 'auto' : 'none'}; {!readonly && isSketchMode ? (isEraser ? 'cursor: cell;' : 'cursor: crosshair;') : ''}; min-width: 100%; min-height: 100%; touch-action: none;"
       onpointerdown={handlePointerDown}
       onpointermove={handlePointerMove}
       onpointerup={handlePointerUp}
-      onpointercancel={() => { drawing = false; isPointerDown = false; }}
+      onpointercancel={(e) => {
+        if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
+          try {
+            (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+          } catch (err) {}
+        }
+        drawing = false;
+        isPointerDown = false;
+      }}
     >
       {#each allAnnotations as ann, idx (ann.id || idx)}
         {@const pathData = annotationToPath(ann)}

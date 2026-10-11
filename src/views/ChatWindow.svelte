@@ -1838,22 +1838,9 @@
                elevatingToId = null; // Successfully received elevated messages
             }
             
-            // Replace optimistic messages with their confirmed versions
-            // Since we use the same canonical ID, we just update in place
-            messages = messages.map(m => {
-              const latestMsg = latest.find((lm: any) => (lm.id || lm._id) === (m.id || m._id));
-              if (latestMsg && m._isOptimistic) {
-                return { ...m, ...latestMsg.toJSON(), _isOptimistic: false };
-              }
-              return m;
-            });
-            
-            // Filter to only include messages that exist in latest (remove deleted ones)
-            const latestIds = new Set(latest.map((m: any) => m.id || m._id));
-            messages = messages.filter(m => latestIds.has(m.id || m._id));
-            
-            messages = latest.map(m => {
-              const data = m.toJSON();
+            // Map and normalize incoming docs from RxDB
+            const normalizedLatest = latest.map(m => {
+              const data = typeof m.toJSON === 'function' ? m.toJSON() : { ...m };
               
               // Ensure every message has a stable id field
               // RxDB uses _id as primary key, so fall back to that if id is missing
@@ -1916,6 +1903,41 @@
               }
               return data;
             });
+
+            const latestMap = new Map(normalizedLatest.map(m => [m.id || m._id, m]));
+
+            // Seamless Optimistic UI:
+            // Retain any in-flight optimistic messages so the sent bubble never disappears
+            // between clicking send and database/upload acknowledgement!
+            const pendingOptimistic = messages.filter(m => m._isOptimistic && !latestMap.has(m.id || m._id));
+
+            // Merge confirmed messages with any corresponding optimistic message in local state
+            // to preserve rich styling, strokes, and attachments smoothly
+            const confirmedMerged = normalizedLatest.map(doc => {
+              const docId = doc.id || doc._id;
+              const existingOpt = messages.find(m => (m.id || m._id) === docId);
+              if (existingOpt) {
+                return {
+                  ...existingOpt,
+                  ...doc,
+                  id: docId,
+                  _isOptimistic: false,
+                  attachments: (doc.attachments && doc.attachments.length > 0) ? doc.attachments : (existingOpt.attachments || []),
+                  mathMeta: doc.mathMeta || existingOpt.mathMeta || existingOpt.math_meta,
+                  strokes: (doc.strokes && doc.strokes.length > 0) ? doc.strokes : (existingOpt.strokes || [])
+                };
+              }
+              return doc;
+            });
+
+            const combined = [...confirmedMerged, ...pendingOptimistic];
+            combined.sort((a, b) => {
+              const timeA = new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+              const timeB = new Date(b.createdAt ?? b.created_at ?? 0).getTime();
+              return timeA - timeB;
+            });
+
+            messages = combined;
 
             isLoading = false;
             isInitialLoadDone = true;
@@ -2282,17 +2304,21 @@
       const safeAttachments = Array.isArray(attachments) ? JSON.parse(JSON.stringify(attachments)) : [];
       const safeMathMeta = mathMetaToSend && typeof mathMetaToSend === 'object' ? JSON.parse(JSON.stringify(mathMetaToSend)) : undefined;
       
+      const nowIso = new Date().toISOString();
       // Add optimistic message to the list immediately with the canonical ID
       const optimisticMsg = {
         id: msgId,
         conversationId: activeConversationId,
         senderId: currentUserId,
+        sender_id: currentUserId,
         content: textToSend,
         type: msgType,
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
+        created_at: nowIso,
         status: 'pending',
         attachments: safeAttachments,
         mathMeta: safeMathMeta,
+        math_meta: safeMathMeta,
         strokes: strokesToSend,
         _isOptimistic: true
       };
@@ -2347,7 +2373,14 @@
             }
           }
           messages = messages.map(m => m.id === msgId
-            ? { ...m, ...result, status: m.status, conversationId: resolvedConversationId, _isOptimistic: false }
+            ? {
+                ...m,
+                ...result,
+                id: msgId,
+                status: ['sent', 'delivered', 'read'].includes(m.status) ? m.status : (result?.status || m.status || 'pending'),
+                conversationId: resolvedConversationId,
+                _isOptimistic: false
+              }
             : m);
         })
         .catch((err: any) => {
@@ -3524,7 +3557,7 @@
                           />
                        </div>
                     {/if}
-                    <div class="relative w-full inline-block {(!displayContent && resolvedStrokes && resolvedStrokes.length > 0) ? 'min-h-[140px]' : ''}">
+                    <div class="relative w-full inline-block {(!displayContent && resolvedStrokes && resolvedStrokes.length > 0) ? 'min-h-[140px]' : (isSketchMode ? 'min-h-[64px]' : '')}">
                       <AnnotatableText
                         text={displayContent}
                         nodes={m.mathMeta?.nodes || null}
@@ -3606,7 +3639,7 @@
                       onpointerdown={!isSketchMode ? handlePointerDown : undefined} class="flex flex-col w-full items-start group relative overflow-visible transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
           <div class="flex items-start transition-transform duration-100 w-full pl-[27px] pr-4">
              <div class="flex-1 relative flex flex-col items-start min-w-0 w-full">
-                <div class="w-full transition-all relative" style={draftBounds.extraBottomPadding > 0 ? `padding-bottom: ${draftBounds.extraBottomPadding}px;` : ''}>
+                <div class="w-full transition-all relative {isSketchMode ? 'min-h-[72px]' : ''}" style={draftBounds.extraBottomPadding > 0 ? `padding-bottom: ${draftBounds.extraBottomPadding}px;` : ''}>
                     <AnnotatableText
                       isEditor={true}
                       nodes={currentTree}
