@@ -47,7 +47,11 @@
   let drawing = false;
   let isPointerDown = false;
   let resizeObserver: ResizeObserver | null = null;
-  const stabilizer = new StrokeStabilizer(0.08, 0.6, 1.2);
+  // alphaMin 0.08 lagged ~200ms behind slow finger movement, which felt like drag at stroke start.
+  const stabilizer = new StrokeStabilizer(0.35, 0.85, 0.6);
+  let lastRawClient: { x: number; y: number } | null = null;
+
+  $: canDraw = !readonly && isSketchMode;
 
   $: resolvedNodes = nodes || (text ? deserializeTree(text) : []);
   $: allAnnotations = [
@@ -200,6 +204,7 @@
     stabilizer.reset();
     const t = e.timeStamp || performance.now();
     const smoothed = stabilizer.addPoint(e.clientX, e.clientY, t);
+    lastRawClient = { x: e.clientX, y: e.clientY };
     const pt = toNormalized(smoothed.x, smoothed.y);
     currentStroke = [pt];
   }
