@@ -3569,6 +3569,7 @@
                         readonly={!isSketchMode}
                         {isSketchMode}
                         {isEraser}
+                        hitSlop={14}
                         activeColor={textColors[activeTextColorIndex].displayColor}
                         activeWidth={strokeWidth}
                         onAnnotationCreate={(stroke) => addPendingMark(m.id, stroke)}
