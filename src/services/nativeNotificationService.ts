@@ -1,7 +1,25 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Badge } from '@capawesome/capacitor-badge';
 import { PushNotifications, type PushNotificationSchema, type ActionPerformed } from '@capacitor/push-notifications';
-import { LocalNotifications, type LocalNotificationSchema, type ActionPerformed as LocalActionPerformed } from '@capacitor/local-notifications';
+
+export const XPRESSO_ORANGE = '#E58A3A';
+
+interface XpressoNotificationPluginInterface {
+  showConversationNotification(options: {
+    conversationId: string;
+    senderId?: string;
+    senderName?: string;
+    content: string;
+    isGroup?: boolean;
+    groupTitle?: string;
+    unreadCount?: number;
+    totalBadgeCount?: number;
+  }): Promise<{ success: boolean }>;
+  dismissConversation(options: { conversationId: string }): Promise<{ success: boolean }>;
+  dismissAll(): Promise<{ success: boolean }>;
+}
+
+const XpressoNotification = registerPlugin<XpressoNotificationPluginInterface>('XpressoNotification');
 
 export interface NotificationPayload {
   id?: number;
@@ -59,25 +77,35 @@ class NativeNotificationService {
         console.warn('[NotificationService] Channel setup non-fatal error:', err);
       });
 
-      // 2. Setup Local Notification action listener if plugin available
-      if (Capacitor.isPluginAvailable('LocalNotifications')) {
-        try {
-          await LocalNotifications.addListener('localNotificationActionPerformed', (notification: LocalActionPerformed) => {
-            const extra = notification.notification?.extra || {};
-            const conversationId = extra.conversationId || extra.conversation_id;
-            console.info('[NotificationService] Local notification clicked:', { conversationId, extra });
-            this.dispatchNotificationClick({ conversationId, data: extra });
-          });
-        } catch (lErr) {
-          console.warn('[NotificationService] Local notification listener error:', lErr);
-        }
-      }
-
-      // 3. Setup Push Notification listeners if plugin available
+      // 2. Setup FCM Push Notification listeners (FCM is the sole notification pipeline)
       if (Capacitor.isPluginAvailable('PushNotifications')) {
         await this.setupPushListeners().catch((pErr) => {
           console.warn('[NotificationService] Push listeners non-fatal error:', pErr);
         });
+      }
+
+      // 4. Listen for app foreground / resume to sync unread badge and clear delivered notifications if all read
+      try {
+        const { App } = await import('@capacitor/app');
+        App.addListener('appStateChange', async (state) => {
+          if (state.isActive) {
+            try {
+              const { authService } = await import('./authService');
+              const user = await authService.getCurrentUser();
+              if (user) {
+                const { refreshTotalUnreadMessages } = await import('../stores/unread');
+                const unread = await refreshTotalUnreadMessages(user.$id || user.id);
+                if (unread === 0) {
+                  await this.clearDeliveredNotifications();
+                }
+              }
+            } catch (syncErr) {
+              console.warn('[NotificationService] App resume badge sync warning:', syncErr);
+            }
+          }
+        });
+      } catch (appErr) {
+        console.warn('[NotificationService] App listener setup non-fatal:', appErr);
       }
     } catch (err) {
       console.warn('[NotificationService] Error initializing native notification service:', err);
@@ -93,22 +121,19 @@ class NativeNotificationService {
     try {
       const channel = {
         id: 'xpresso_messages',
-        name: 'New Messages',
+        name: 'Conversations',
         description: 'Instant notifications for new direct messages and study group chats',
         importance: 5, // High: Heads-up banner, sound, vibration
         visibility: 1, // Public (shows on lock screen)
         vibration: true,
         lights: true,
-        lightColor: '#0050D8',
+        lightColor: XPRESSO_ORANGE,
       };
 
-      if (Capacitor.isPluginAvailable('LocalNotifications')) {
-        await LocalNotifications.createChannel(channel).catch(() => {});
-      }
       if (Capacitor.isPluginAvailable('PushNotifications')) {
         await PushNotifications.createChannel(channel).catch(() => {});
       }
-      console.info('[NotificationService] Notification channels configured with badge support');
+      console.info('[NotificationService] Notification channels configured with Xpresso orange badge support');
     } catch (err) {
       console.warn('[NotificationService] Failed to create notification channel:', err);
     }
@@ -131,7 +156,7 @@ class NativeNotificationService {
     }
 
     try {
-      // 1. Check or Request push notification permission if available
+      // Check or Request FCM push notification permission
       let pushGranted = false;
       if (Capacitor.isPluginAvailable('PushNotifications')) {
         try {
@@ -147,23 +172,7 @@ class NativeNotificationService {
         }
       }
 
-      // 2. Request local notifications permission separately if available
-      let localGranted = false;
-      if (Capacitor.isPluginAvailable('LocalNotifications')) {
-        try {
-          const checkLocal = await LocalNotifications.checkPermissions().catch(() => null);
-          if (checkLocal?.display === 'granted') {
-            localGranted = true;
-          } else {
-            const localStatus = await LocalNotifications.requestPermissions();
-            localGranted = localStatus.display === 'granted';
-          }
-        } catch (e) {
-          console.warn('[NotificationService] Local notification permission request error:', e);
-        }
-      }
-
-      // 3. Register for FCM tokens safely if granted and push plugin available
+      // Register for FCM tokens safely if granted and push plugin available
       if (pushGranted && Capacitor.isPluginAvailable('PushNotifications')) {
         setTimeout(async () => {
           try {
@@ -174,7 +183,7 @@ class NativeNotificationService {
         }, 500);
       }
 
-      return pushGranted || localGranted;
+      return pushGranted;
     } catch (err) {
       console.warn('[NotificationService] Permission request error:', err);
       return false;
@@ -203,12 +212,17 @@ class NativeNotificationService {
       });
 
       // Notification arrived while app is open
-      await PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
+      await PushNotifications.addListener('pushNotificationReceived', async (notification: PushNotificationSchema) => {
         console.info('[NotificationService] Push notification received in foreground:', notification);
-        // Increment or refresh badge
-        const badgeVal = notification.badge;
-        if (typeof badgeVal === 'number') {
-          this.setBadge(badgeVal);
+        try {
+          const { authService } = await import('./authService');
+          const user = await authService.getCurrentUser();
+          if (user) {
+            const { refreshTotalUnreadMessages } = await import('../stores/unread');
+            await refreshTotalUnreadMessages(user.$id || user.id);
+          }
+        } catch (rErr) {
+          console.warn('[NotificationService] Foreground push unread refresh error:', rErr);
         }
       });
 
@@ -217,6 +231,9 @@ class NativeNotificationService {
         const data = notification.notification?.data || {};
         const conversationId = data.conversationId || data.conversation_id;
         console.info('[NotificationService] Push notification action performed:', { conversationId, data });
+        if (conversationId) {
+          this.removeDeliveredForConversation(conversationId).catch(() => {});
+        }
         this.dispatchNotificationClick({ conversationId, data });
       });
     } catch (pushListenerErr) {
@@ -334,6 +351,58 @@ class NativeNotificationService {
   }
 
   /**
+   * Remove delivered notifications for a specific conversation from the notification drawer
+   */
+  async removeDeliveredForConversation(conversationId: string) {
+    if (!Capacitor.isNativePlatform() || !conversationId) return;
+
+    try {
+      try {
+        await XpressoNotification.dismissConversation({ conversationId }).catch(() => {});
+      } catch (e) {}
+
+      if (Capacitor.isPluginAvailable('PushNotifications')) {
+        const delivered = await PushNotifications.getDeliveredNotifications().catch(() => null);
+        if (delivered?.notifications?.length) {
+          const matching = delivered.notifications.filter((n) => {
+            const data = n.data || {};
+            const extra = (n as any).extra || {};
+            return (
+              data.conversationId === conversationId ||
+              data.conversation_id === conversationId ||
+              extra.conversationId === conversationId ||
+              extra.conversation_id === conversationId
+            );
+          });
+          if (matching.length > 0) {
+            await PushNotifications.removeDeliveredNotifications({ notifications: matching }).catch(() => {});
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[NotificationService] removeDeliveredForConversation non-fatal warning:', err);
+    }
+  }
+
+  /**
+   * Clear all delivered notifications from the notification drawer
+   */
+  async clearDeliveredNotifications() {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      try {
+        await XpressoNotification.dismissAll().catch(() => {});
+      } catch (e) {}
+
+      if (Capacitor.isPluginAvailable('PushNotifications')) {
+        await PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[NotificationService] clearDeliveredNotifications non-fatal warning:', err);
+    }
+  }
+
+  /**
    * Set the unread badge count on the launcher icon (1, 2, 3...)
    */
   async setBadge(count: number) {
@@ -352,11 +421,17 @@ class NativeNotificationService {
     }
 
     try {
-      if (!Capacitor.isPluginAvailable('Badge')) return;
       if (validCount === 0) {
-        await Badge.clear().catch(() => {});
+        if (Capacitor.isPluginAvailable('Badge')) {
+          await Badge.clear().catch(() => {});
+        }
+        // Critical for Android & Samsung One UI:
+        // Clear delivered tray notifications so Samsung Launcher removes the badge dot/counter
+        await this.clearDeliveredNotifications();
       } else {
-        await Badge.set({ count: validCount }).catch(() => {});
+        if (Capacitor.isPluginAvailable('Badge')) {
+          await Badge.set({ count: validCount }).catch(() => {});
+        }
       }
     } catch (err) {
       // Silently catch launchers that don't support badging
@@ -371,7 +446,8 @@ class NativeNotificationService {
   }
 
   /**
-   * Trigger a native local notification (shows in Android notification tray)
+   * Shows notification on web/desktop browser fallback.
+   * On native Android/iOS platforms, all notifications are handled exclusively via FCM.
    */
   async showLocalNotification(payload: NotificationPayload) {
     if (!Capacitor.isNativePlatform()) {
@@ -382,33 +458,6 @@ class NativeNotificationService {
           data: payload.extra || { conversationId: payload.conversationId },
         });
       }
-      return;
-    }
-
-    try {
-      if (!Capacitor.isPluginAvailable('LocalNotifications')) return;
-
-      const id = payload.id || Math.floor(Math.random() * 100000);
-      const notification: LocalNotificationSchema = {
-        id,
-        title: payload.title,
-        body: payload.body,
-        channelId: 'xpresso_messages',
-        smallIcon: 'ic_launcher_foreground',
-        iconColor: '#0050D8',
-        extra: {
-          conversationId: payload.conversationId,
-          senderId: payload.senderId,
-          senderName: payload.senderName,
-          ...(payload.extra || {}),
-        },
-      };
-
-      await LocalNotifications.schedule({
-        notifications: [notification],
-      });
-    } catch (err) {
-      console.warn('[NotificationService] Failed to schedule local notification:', err);
     }
   }
 

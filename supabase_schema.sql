@@ -259,6 +259,10 @@ CREATE TABLE IF NOT EXISTS public.participants (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     has_unreads BOOLEAN DEFAULT false,
     role TEXT DEFAULT 'member',
+    last_read_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    last_message_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    cleared_at TIMESTAMP WITH TIME ZONE,
+    is_deleted BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -604,9 +608,12 @@ CREATE TRIGGER update_accounts_modtime BEFORE UPDATE ON public.accounts FOR EACH
 -- Following the PDF: "SWIPE DELETE RELATIONSHIP: When a conversation is swipe-deleted in the UI:"
 
 -- STEP 1: Local Update & STEP 2: Remote Push
--- We need an is_deleted column on the participants table to capture the swipe delete state.
+-- We need is_deleted, last_read_at, last_message_at, cleared_at columns on the participants table
 ALTER TABLE public.participants 
-ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS last_read_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+ADD COLUMN IF NOT EXISTS cleared_at TIMESTAMP WITH TIME ZONE;
 
 -- STEP 3: Restoration
 -- "If a new message is received in that conversation later, automatically update is_deleted to false remotely."

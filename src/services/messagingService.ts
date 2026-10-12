@@ -553,23 +553,6 @@ export const messagingService = {
                      .catch((err: any) => console.warn('[MessagingService] Failed to send delivery receipt:', err?.message || err));
                }
 
-               // 2b. Trigger native notification for incoming message
-               if (user && senderId && senderId !== user.$id && payload.eventType === 'INSERT') {
-                  const preview = doc.content || (attachments?.length ? '[Attachment]' : 'New message');
-                  dbService.getProfile(senderId, false).then((senderProfile: any) => {
-                     const senderName = senderProfile?.fullName || senderProfile?.name || 'New message';
-                     import('./nativeNotificationService').then(({ nativeNotificationService }) => {
-                        nativeNotificationService.showLocalNotification({
-                           title: senderName,
-                           body: preview,
-                           conversationId,
-                           senderId,
-                           senderName,
-                        });
-                     }).catch(() => {});
-                  }).catch(() => {});
-               }
-
                // 3. Update participant lastMessageAt so conversation sorting updates immediately
                if (user && conversationId) {
                   try {
@@ -1584,6 +1567,7 @@ export const messagingService = {
         // Dispatch the native notification only after Supabase has accepted the message.
         import('./nativeNotificationService').then(async ({ nativeNotificationService }) => {
           let recipientIds: string[] = [];
+          const currentUserId = user.id || user.$id;
           try {
             const db = await dbService.getRawDB();
             const partDocs = await db.participants.find({
@@ -1591,16 +1575,16 @@ export const messagingService = {
             }).exec();
             recipientIds = partDocs
               .map((p: any) => p.userId || p.user_id)
-              .filter((uid: string) => uid && uid !== user.$id);
+              .filter((uid: string) => uid && uid !== currentUserId);
           } catch (pErr) {}
 
           nativeNotificationService.dispatchPushNotification({
             conversationId,
-            senderId: user.$id,
+            senderId: currentUserId,
             senderName: user.name || user.prefs?.lastName || 'Xpresso User',
             content: finalContent,
             type,
-            recipientIds,
+            recipientIds: recipientIds.length > 0 ? recipientIds : undefined,
           });
         }).catch(() => {});
       }).catch(async (error: any) => {
@@ -1673,7 +1657,7 @@ export const messagingService = {
   async markConversationAsRead(conversationId: string) {
     const user = await authService.getCurrentUser();
     if (!user) return;
-    const userId = user.$id;
+    const userId = user.$id || user.id;
     const now = new Date().toISOString();
 
     try {
@@ -1687,32 +1671,37 @@ export const messagingService = {
 
       if (doc) {
         participantId = doc.id || doc.$id;
-        await dbService.safePatchParticipant(doc.id || doc.$id, { lastReadAt: now });
+        await dbService.safePatchParticipant(doc.id || doc.$id, { lastReadAt: now, has_unreads: false });
       }
 
-      // 2. Sync to Appwrite in background
-      if (participantId && isAppwriteConfigured && APPWRITE_CONFIG.collections.participants) {
-        if (!isValidId(participantId)) {
-          console.warn('markConversationAsRead: Skipping remote update for invalid participant ID:', participantId);
-          return;
+      // 2. Sync to Supabase in background
+      try {
+        const { getSupabase, getSupabaseAdmin } = await import('./supabaseService');
+        const client = getSupabaseAdmin() || getSupabase();
+        if (client) {
+          await client
+            .from('participants')
+            .update({ last_read_at: now, has_unreads: false, updated_at: now })
+            .match({ conversation_id: conversationId, user_id: userId });
         }
+      } catch (sbErr) {
+        console.warn('markConversationAsRead: Supabase sync warning:', sbErr);
+      }
 
-        databases.updateDocument(
-          APPWRITE_CONFIG.databaseId,
-          APPWRITE_CONFIG.collections.participants,
-          participantId,
-          { lastReadAt: now }
-        ).catch(err => {
-           if (err.code === 404 || err.message?.includes('not found')) {
-             console.log('markConversationAsRead: Participant not found on remote, likely local-seeded data. Skipping sync.');
-           } else {
-             if (err.message && err.message.toLowerCase().includes('fetch')) {
-               console.warn('markConversationAsRead backend sync deferred (offline or network block).');
-             } else {
-               console.warn('Failed to sync lastReadAt:', err.message || err);
-             }
-           }
-        });
+      // 3. Dismiss delivered tray notification for this conversation
+      try {
+        const { nativeNotificationService } = await import('./nativeNotificationService');
+        await nativeNotificationService.removeDeliveredForConversation(conversationId);
+      } catch (nErr) {
+        console.warn('markConversationAsRead: notification dismiss error:', nErr);
+      }
+
+      // 4. Immediately refresh total unread count and update launcher badge
+      try {
+        const { refreshTotalUnreadMessages } = await import('../stores/unread');
+        await refreshTotalUnreadMessages(userId);
+      } catch (uErr) {
+        console.warn('markConversationAsRead: badge refresh error:', uErr);
       }
     } catch (err) {
       console.error('Error marking conversation as read:', err);

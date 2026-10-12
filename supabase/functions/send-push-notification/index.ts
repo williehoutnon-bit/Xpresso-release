@@ -125,7 +125,9 @@ serve(async (req) => {
 
     // 1. Determine target recipient user IDs
     let recipientUserIds: string[] = [];
-    const directRecipients = payload.recipientIds || (payload.recipientId ? [payload.recipientId] : []);
+    const directRecipients = (payload.recipientIds && payload.recipientIds.length > 0)
+      ? payload.recipientIds
+      : (payload.recipientId ? [payload.recipientId] : []);
 
     if (directRecipients.length > 0) {
       recipientUserIds = directRecipients.filter((id) => id && id !== senderId);
@@ -234,9 +236,46 @@ serve(async (req) => {
       preview = preview.slice(0, 117) + "...";
     }
 
-    // 6. Send high-priority FCM message to each token
+    // 6. Calculate total unread messages count per recipient for accurate WhatsApp-like launcher badges
+    const recipientUnreadMap = new Map<string, number>();
+    await Promise.all(
+      recipientUserIds.map(async (uId) => {
+        try {
+          const { data: userParts } = await supabase
+            .from("participants")
+            .select("conversation_id, last_read_at, cleared_at")
+            .eq("user_id", uId);
+
+          let totalUnread = 0;
+          if (userParts && userParts.length > 0) {
+            for (const part of userParts) {
+              const watermark = part.last_read_at || part.cleared_at || "1970-01-01T00:00:00.000Z";
+              const { count, error } = await supabase
+                .from("messages")
+                .select("*", { count: "exact", head: true })
+                .eq("conversation_id", part.conversation_id)
+                .gt("created_at", watermark)
+                .neq("sender_id", uId);
+
+              if (!error && typeof count === "number") {
+                totalUnread += count;
+              }
+            }
+          }
+          // The newly posted message makes it at least 1
+          recipientUnreadMap.set(uId, Math.max(1, totalUnread));
+        } catch (cErr) {
+          console.warn(`Unread calculation warning for user ${uId}:`, cErr);
+          recipientUnreadMap.set(uId, 1);
+        }
+      })
+    );
+
+    // 7. Send high-priority FCM message to each token with dynamic badge count
     const results = await Promise.all(
       tokenRows.map(async (row) => {
+        const badgeCount = recipientUnreadMap.get(row.user_id) || 1;
+
         const fcmPayload = {
           message: {
             token: row.token,
@@ -248,17 +287,29 @@ serve(async (req) => {
               conversationId: String(conversationId || ""),
               senderId: String(senderId || ""),
               senderName: String(senderDisplayName || ""),
+              content: String(preview || ""),
               type: String(msgType || "text"),
+              badge: String(badgeCount),
+              tag: `conv_${conversationId}`,
             },
             android: {
               priority: "high",
               notification: {
                 channel_id: "xpresso_messages",
                 icon: "ic_launcher_foreground",
-                color: "#0050D8",
+                color: "#E58A3A",
+                tag: `conv_${conversationId}`,
                 sound: "default",
                 default_vibrate_timings: true,
-                notification_count: 1, // Updates launcher badge counter
+                notification_count: badgeCount, // Dynamically updates launcher badge counter
+              },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  badge: badgeCount,
+                  sound: "default",
+                },
               },
             },
           },

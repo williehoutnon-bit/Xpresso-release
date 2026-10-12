@@ -30,10 +30,6 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
-    LocalNotifications: {
-      smallIcon: 'ic_launcher_foreground',
-      iconColor: '#0050D8',
-    },
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,

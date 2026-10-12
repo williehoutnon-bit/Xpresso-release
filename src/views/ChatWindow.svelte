@@ -792,12 +792,15 @@
   });
 
   let lastReadUpdate = 0;
-  const READ_UPDATE_COOLDOWN = 10000; // 10s
+  let lastReadConvoId = '';
+  const READ_UPDATE_COOLDOWN = 3000; // 3s
 
-  const throttledMarkAsRead = (id: string) => {
+  const throttledMarkAsRead = (id: string, force = false) => {
+     if (!id || id.startsWith('local_convo_')) return;
      const now = Date.now();
-     if (now - lastReadUpdate > READ_UPDATE_COOLDOWN) {
+     if (force || id !== lastReadConvoId || now - lastReadUpdate > READ_UPDATE_COOLDOWN) {
         lastReadUpdate = now;
+        lastReadConvoId = id;
         messagingService.markConversationAsRead(id);
      }
   };
@@ -831,7 +834,7 @@
         scrollToBottom('instant');
       }
       isInitialScrollDone = true;
-      throttledMarkAsRead(activeConversationId);
+      throttledMarkAsRead(activeConversationId, true);
       prevMessageCount = messages.length;
       return;
     }
