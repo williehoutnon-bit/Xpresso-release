@@ -58,9 +58,11 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Decode Signing Keystore (if present)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != ''
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n ' | base64 -d > android/app/release.keystore
+          echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > android/app/release.keystore
           echo "Keystore successfully decoded to android/app/release.keystore"
 
       - name: Build Android APK
