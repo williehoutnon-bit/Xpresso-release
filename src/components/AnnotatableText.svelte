@@ -47,7 +47,12 @@
   let drawing = false;
   let isPointerDown = false;
   let resizeObserver: ResizeObserver | null = null;
-  const stabilizer = new StrokeStabilizer(0.08, 0.6, 1.2);
+  // alphaMin 0.08 lagged ~200ms behind slow finger movement, which felt like drag at stroke start.
+  const stabilizer = new StrokeStabilizer(0.35, 0.85, 0.6);
+  let lastRawClient: { x: number; y: number } | null = null;
+  let svgEl: SVGSVGElement | null = null;
+
+  $: canDraw = !readonly && isSketchMode;
 
   $: resolvedNodes = nodes || (text ? deserializeTree(text) : []);
   $: allAnnotations = [
@@ -178,10 +183,12 @@
     e.preventDefault();
     e.stopPropagation();
 
-    // Critical for Android WebView & touch devices: capture pointer so gestures/scrolling do not cancel stroke
-    if (e.currentTarget && typeof (e.currentTarget as Element).setPointerCapture === 'function') {
+    // Capture on the SVG (not currentTarget) so strokes started from the host row still route
+    // move/up events back to this component's handlers.
+    const captureTarget = (svgEl ?? e.currentTarget) as Element | null;
+    if (captureTarget && typeof captureTarget.setPointerCapture === 'function') {
       try {
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        captureTarget.setPointerCapture(e.pointerId);
       } catch (err) {
         // Ignore if pointer capture fails on certain platforms
       }
@@ -200,6 +207,7 @@
     stabilizer.reset();
     const t = e.timeStamp || performance.now();
     const smoothed = stabilizer.addPoint(e.clientX, e.clientY, t);
+    lastRawClient = { x: e.clientX, y: e.clientY };
     const pt = toNormalized(smoothed.x, smoothed.y);
     currentStroke = [pt];
   }
@@ -306,6 +314,25 @@
     currentStroke = [];
   }
 
+  // Lets the parent message row act as a boundary-less drawing surface: a touch anywhere on the
+  // row starts a stroke here, instead of only touches that land on the text-sized SVG.
+  export function beginStroke(e: PointerEvent) {
+    if (!canDraw) return;
+    if (svgEl && e.target instanceof Node && svgEl.contains(e.target)) return;
+    handlePointerDown(e);
+  }
+
+  function handlePointerCancel(e: PointerEvent) {
+    if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
+      try {
+        (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+    drawing = false;
+    isPointerDown = false;
+    currentStroke = [];
+  }
+
   function eraseAtClientPoint(clientX: number, clientY: number) {
     const pt = toNormalized(clientX, clientY);
     const threshold = 0.06;
@@ -364,6 +391,7 @@
   <!-- SVG Annotation Overlay anchored directly to text element's box -->
   {#if isSketchMode || allAnnotations.length > 0 || drawing || (box.width > 0 && box.height > 0)}
     <svg
+      bind:this={svgEl}
       class="annotation-overlay pointer-events-none absolute inset-0 z-20 overflow-visible select-none"
       width={box.width > 0 ? box.width : '100%'}
       height={box.height > 0 ? box.height : '100%'}
@@ -371,15 +399,7 @@
       onpointerdown={handlePointerDown}
       onpointermove={handlePointerMove}
       onpointerup={handlePointerUp}
-      onpointercancel={(e) => {
-        if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
-          try {
-            (e.currentTarget as Element).releasePointerCapture(e.pointerId);
-          } catch (err) {}
-        }
-        drawing = false;
-        isPointerDown = false;
-      }}
+      onpointercancel={handlePointerCancel}
     >
       {#each allAnnotations as ann, idx (ann.id || idx)}
         {@const pathData = annotationToPath(ann)}
