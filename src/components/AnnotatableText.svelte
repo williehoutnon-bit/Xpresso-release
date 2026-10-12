@@ -36,8 +36,6 @@
   export let onAnnotationCreate: ((ann: any) => void) | null = null;
   export let onStrokesChanged: ((allStrokes: any[]) => void) | null = null;
   export let onpointerdown: ((e: PointerEvent) => void) | null = null;
-  // Extra px around the text box that still starts a stroke instead of a native scroll.
-  export let hitSlop: number = 0;
   export let onkeydown: ((e: KeyboardEvent) => void) | null = null;
   export let oncopy: ((e: ClipboardEvent) => void) | null = null;
   export let oncut: ((e: ClipboardEvent) => void) | null = null;
@@ -52,6 +50,7 @@
   // alphaMin 0.08 lagged ~200ms behind slow finger movement, which felt like drag at stroke start.
   const stabilizer = new StrokeStabilizer(0.35, 0.85, 0.6);
   let lastRawClient: { x: number; y: number } | null = null;
+  let svgEl: SVGSVGElement | null = null;
 
   $: canDraw = !readonly && isSketchMode;
 
@@ -184,10 +183,12 @@
     e.preventDefault();
     e.stopPropagation();
 
-    // Critical for Android WebView & touch devices: capture pointer so gestures/scrolling do not cancel stroke
-    if (e.currentTarget && typeof (e.currentTarget as Element).setPointerCapture === 'function') {
+    // Capture on the SVG (not currentTarget) so strokes started from the host row still route
+    // move/up events back to this component's handlers.
+    const captureTarget = (svgEl ?? e.currentTarget) as Element | null;
+    if (captureTarget && typeof captureTarget.setPointerCapture === 'function') {
       try {
-        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        captureTarget.setPointerCapture(e.pointerId);
       } catch (err) {
         // Ignore if pointer capture fails on certain platforms
       }
@@ -313,6 +314,14 @@
     currentStroke = [];
   }
 
+  // Lets the parent message row act as a boundary-less drawing surface: a touch anywhere on the
+  // row starts a stroke here, instead of only touches that land on the text-sized SVG.
+  export function beginStroke(e: PointerEvent) {
+    if (!canDraw) return;
+    if (svgEl && e.target instanceof Node && svgEl.contains(e.target)) return;
+    handlePointerDown(e);
+  }
+
   function handlePointerCancel(e: PointerEvent) {
     if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
       try {
@@ -379,27 +388,10 @@
     </p>
   {/if}
 
-  <!--
-    The SVG only covers the text line box, so touches on the bubble's blank space fell through to the
-    scrolling message list (touch-action: auto) and were consumed as pans. Previously drawn ink, painted
-    with overflow: visible, *was* hit-testable, so the drawable area grew stroke by stroke ("warm-up").
-    This layer claims the surrounding slop with touch-action: none so strokes start immediately.
-  -->
-  {#if canDraw && hitSlop > 0}
-    <div
-      class="absolute z-[19] select-none"
-      style="top: -{hitSlop}px; right: -{hitSlop}px; bottom: -{hitSlop}px; left: -{hitSlop}px; touch-action: none; {isEraser ? 'cursor: cell;' : 'cursor: crosshair;'}"
-      aria-hidden="true"
-      onpointerdown={handlePointerDown}
-      onpointermove={handlePointerMove}
-      onpointerup={handlePointerUp}
-      onpointercancel={handlePointerCancel}
-    ></div>
-  {/if}
-
   <!-- SVG Annotation Overlay anchored directly to text element's box -->
   {#if isSketchMode || allAnnotations.length > 0 || drawing || (box.width > 0 && box.height > 0)}
     <svg
+      bind:this={svgEl}
       class="annotation-overlay pointer-events-none absolute inset-0 z-20 overflow-visible select-none"
       width={box.width > 0 ? box.width : '100%'}
       height={box.height > 0 ? box.height : '100%'}

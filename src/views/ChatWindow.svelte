@@ -892,6 +892,7 @@
   let mathFormula = $state('');
   let mathCanvasEl = $state<HTMLCanvasElement | null>(null);
   let isSketchMode = $state(false);
+  let annotatableRefs: Record<string, any> = $state({});
   let sketchHistory = $state<ImageData[]>([]);
   let sketchHistoryIndex = $state(-1);
   let isDrawing = false;
@@ -3345,6 +3346,8 @@
           data-message-id={m.id}
           use:readOnVisible={m}
           class={`flex flex-col w-full group transition-all duration-500 rounded-2xl relative overflow-visible items-start ${highlightedMessageId === m.id ? 'bg-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02] shadow-md z-10 duration-200' : ''}`}
+          style={isSketchMode && annotatableRefs[m.id] ? 'touch-action: none;' : undefined}
+          onpointerdown={(e) => { if (isSketchMode) annotatableRefs[m.id]?.beginStroke(e); }}
           ontouchstart={(e) => handleTouchStart(e, m.id, 'msg')}
           ontouchmove={handleTouchMove}
           ontouchend={handleTouchEnd}
@@ -3569,7 +3572,7 @@
                         readonly={!isSketchMode}
                         {isSketchMode}
                         {isEraser}
-                        hitSlop={14}
+                        bind:this={annotatableRefs[m.id]}
                         activeColor={textColors[activeTextColorIndex].displayColor}
                         activeWidth={strokeWidth}
                         onAnnotationCreate={(stroke) => addPendingMark(m.id, stroke)}
