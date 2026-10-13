@@ -30,5 +30,11 @@ public class MainActivity extends BridgeActivity {
         // Also auto-copy on resume in case a crash was recorded while minimized
         XpressoApplication.copyCrashLogToClipboardAndDownloads(this);
     }
+
+    @Override
+    public void onBackPressed() {
+        // WhatsApp experience: never destroy the Activity on back press; keep app alive in background
+        moveTaskToBack(true);
+    }
 }
 

@@ -659,7 +659,7 @@
   let messagesContainer = $state<HTMLElement | null>(null);
   let unreadMarkerEl = $state<HTMLElement | null>(null);
 
-  let cachedDraftId: string | null = null;
+  let cachedDraftId = $state<string | null>(null);
 
   function getOrCreateDraftId(): string {
     if (cachedDraftId) return cachedDraftId;
@@ -669,9 +669,11 @@
     return cachedDraftId;
   }
 
-  let messages = $state<any[]>([]);
-  let currentUserId = $state('');
-  let currentUserName = $state('Unknown Setup');
+  const offlineUser = typeof window !== 'undefined' ? authService.getOfflineUser() : null;
+  const initialCachedMsgs = conversationId ? messagingService.getCachedMessages(conversationId) : [];
+  let messages = $state<any[]>(initialCachedMsgs);
+  let currentUserId = $state(offlineUser?.$id || offlineUser?.id || '');
+  let currentUserName = $state(offlineUser?.prefs?.fullName || offlineUser?.name || 'Learner');
   let subscriptions: any[] = [];
   let isProfileLightboxOpen = $state(false);
   let profileData = $state<any>(null);
@@ -708,10 +710,10 @@
     }
   });
 
-  let isLoading = $state(true);
+  let isLoading = $state(initialCachedMsgs.length === 0);
   let isSyncing = $state(false);
   let isNewChat = $state(false);
-  let isInitialLoadDone = $state(false);
+  let isInitialLoadDone = $state(initialCachedMsgs.length > 0);
   let elevatingToId: string | null = null;
   let isElevating = false;
   let conversationResolutionPromise: Promise<string | null> | null = null;
@@ -1131,13 +1133,22 @@
     handleStrokesChanged([]);
   }
 
+  let savedScrollTop = 0;
+
   function toggleSketchMode() {
     isSketchMode = !isSketchMode;
     if (isSketchMode) {
+      if (messagesContainer) {
+        savedScrollTop = messagesContainer.scrollTop;
+      }
       showFormattingPanel = false;
       showContextMenu = false;
       if (document.activeElement && typeof (document.activeElement as HTMLElement).blur === 'function') {
         (document.activeElement as HTMLElement).blur();
+      }
+    } else {
+      if (messagesContainer && savedScrollTop > 0) {
+        messagesContainer.scrollTop = savedScrollTop;
       }
     }
   }
@@ -1748,14 +1759,34 @@
     }, 100);
   };
 
-  // Handle Case where conversationId prop changes
-  let lastProcessedProp = conversationId;
+  // Handle Case where conversationId prop changes OR on initial mount
+  let lastProcessedProp = '';
   $effect(() => {
     if (conversationId && conversationId !== lastProcessedProp) {
         lastProcessedProp = conversationId;
         isInitialScrollDone = false;
-        messages = [];
-        isLoading = true;
+        
+        // Fast-path: check in-memory cache first for instant 0ms render
+        const memCached = messagingService.getCachedMessages(conversationId);
+        if (memCached && memCached.length > 0) {
+          messages = memCached;
+          isLoading = false;
+          isInitialLoadDone = true;
+        }
+
+        // Check local database cache to ensure messages in local DB are displayed immediately
+        dbService.getMessages(conversationId).then(cached => {
+          if (cached && cached.length > 0) {
+            messages = cached;
+            messagingService.setCachedMessages(conversationId, cached);
+            isLoading = false;
+            isInitialLoadDone = true;
+          } else if (messages.length === 0) {
+            isLoading = false;
+          }
+        }).catch(() => {
+          if (messages.length === 0) isLoading = false;
+        });
         
         // Re-run resolution if needed
         if (conversationId.startsWith('user_')) {
@@ -1942,6 +1973,7 @@
             });
 
             messages = combined;
+            messagingService.setCachedMessages(convoToWatch, combined);
 
             isLoading = false;
             isInitialLoadDone = true;
@@ -2079,6 +2111,24 @@
 
   $effect(() => {
     if (showMathKeyboard) hideSystemKeyboard();
+  });
+
+  // Deactivate scroll on messagesContainer when annotation tool (isSketchMode) is active
+  $effect(() => {
+    if (!messagesContainer) return;
+    const preventScroll = (e: Event) => {
+      if (isSketchMode) {
+        e.preventDefault();
+      }
+    };
+    if (isSketchMode) {
+      messagesContainer.addEventListener('wheel', preventScroll, { passive: false });
+      messagesContainer.addEventListener('touchmove', preventScroll, { passive: false });
+    }
+    return () => {
+      messagesContainer?.removeEventListener('wheel', preventScroll);
+      messagesContainer?.removeEventListener('touchmove', preventScroll);
+    };
   });
 
   onDestroy(() => {
@@ -3194,9 +3244,25 @@
     </div>
     {/if}
 
+    {#if isSketchMode}
+      <div class="absolute top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
+        <div class="px-3.5 py-1.5 bg-[#00274d]/95 backdrop-blur-md rounded-full text-[11px] font-semibold text-white shadow-xl border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+          <span>Annotation Active • Canvas locked for drawing</span>
+          <button 
+            type="button" 
+            onclick={toggleSketchMode} 
+            class="ml-1 text-[10px] uppercase font-bold text-orange-300 hover:text-white underline cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    {/if}
+
     <div 
       bind:this={messagesContainer} 
-      onscroll={handleScroll}
+      onscroll={(e) => { if (isSketchMode) return; handleScroll(e); }}
       ondblclick={() => { 
         if (isSketchMode) return;
         if (Date.now() - lastTouchDblTapTime < 800) return;
@@ -3213,11 +3279,11 @@
         }
       }}
       data-math-canvas-open={isMathCanvasOpen}
-      class="flex-1 overflow-y-auto px-5 pt-6 {showMathKeyboard ? 'pb-[360px]' : 'pb-40'} space-y-8 relative"
-      style="background-image: linear-gradient(90deg, transparent 44px, rgba(254, 188, 167, 0.5) 44px, rgba(254, 188, 167, 0.5) 45px, transparent 45px), repeating-linear-gradient(transparent 0px, transparent calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) var(--chat-line-height, 1.75rem)); background-color: var(--color-theme-card); background-size: 100% var(--chat-line-height, 1.75rem); background-attachment: local;"
-      ontouchstart={(e) => { if (!swipingMessageId && !swipingPinnedId) handleTouchStart(e, 'undo', 'undo') }}
-      ontouchmove={handleTouchMove}
-      ontouchend={handleTouchEnd}
+      class="flex-1 {isSketchMode ? 'overflow-hidden touch-none select-none overscroll-none' : 'overflow-y-auto'} px-5 pt-6 {showMathKeyboard ? 'pb-[360px]' : 'pb-40'} space-y-8 relative"
+      style="{isSketchMode ? 'touch-action: none; overflow-y: hidden; overscroll-behavior: none;' : ''} background-image: linear-gradient(90deg, transparent 44px, rgba(254, 188, 167, 0.5) 44px, rgba(254, 188, 167, 0.5) 45px, transparent 45px), repeating-linear-gradient(transparent 0px, transparent calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) var(--chat-line-height, 1.75rem)); background-color: var(--color-theme-card); background-size: 100% var(--chat-line-height, 1.75rem); background-attachment: local;"
+      ontouchstart={(e) => { if (isSketchMode) return; if (!swipingMessageId && !swipingPinnedId) handleTouchStart(e, 'undo', 'undo'); }}
+      ontouchmove={(e) => { if (isSketchMode) { e.preventDefault(); return; } handleTouchMove(e); }}
+      ontouchend={(e) => { if (isSketchMode) return; handleTouchEnd(); }}
     >
       {#if isLoading && messages.length === 0}
         <div class="flex-1 flex flex-col items-center justify-center pt-32 gap-6">
@@ -3346,11 +3412,11 @@
           data-message-id={m.id}
           use:readOnVisible={m}
           class={`flex flex-col w-full group transition-all duration-500 rounded-2xl relative overflow-visible items-start ${highlightedMessageId === m.id ? 'bg-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02] shadow-md z-10 duration-200' : ''}`}
-          style={isSketchMode && annotatableRefs[m.id] ? 'touch-action: none;' : undefined}
+          style={isSketchMode ? 'touch-action: none;' : undefined}
           onpointerdown={(e) => { if (isSketchMode) annotatableRefs[m.id]?.beginStroke(e); }}
-          ontouchstart={(e) => handleTouchStart(e, m.id, 'msg')}
-          ontouchmove={handleTouchMove}
-          ontouchend={handleTouchEnd}
+          ontouchstart={(e) => { if (isSketchMode) return; handleTouchStart(e, m.id, 'msg'); }}
+          ontouchmove={(e) => { if (isSketchMode) return; handleTouchMove(e); }}
+          ontouchend={(e) => { if (isSketchMode) return; handleTouchEnd(); }}
           oncontextmenu={(e) => { e.preventDefault(); handlePin(m.id); }}
           use:markRead={{ messageId: m.id, myUserId: currentUserId, senderId: m.senderId ?? m.sender_id, disabled: isMathCanvasOpen }}
         >
@@ -3643,7 +3709,9 @@
       {#if showMathKeyboard || msg.trim().length > 0 || isSketchMode || currentStrokes.length > 0}
         {@const draftBounds = getAnnotationBounds(currentStrokes)}
         <div bind:this={draftBubbleEl} data-draft-id={cachedDraftId ?? undefined} oncontextmenu={handleContextMenu}
-                      onpointerdown={!isSketchMode ? handlePointerDown : undefined} class="flex flex-col w-full items-start group relative overflow-visible transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+                      onpointerdown={!isSketchMode ? handlePointerDown : undefined} 
+                      style={isSketchMode ? 'touch-action: none;' : undefined}
+                      class="flex flex-col w-full items-start group relative overflow-visible transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
           <div class="flex items-start transition-transform duration-100 w-full pl-[27px] pr-4">
              <div class="flex-1 relative flex flex-col items-start min-w-0 w-full">
                 <div class="w-full transition-all relative {isSketchMode ? 'min-h-[72px]' : ''}" style={draftBounds.extraBottomPadding > 0 ? `padding-bottom: ${draftBounds.extraBottomPadding}px;` : ''}>
@@ -3887,11 +3955,24 @@
                   <button 
                     onclick={toggleSketchMode} 
                     class="transition-all border shadow-sm cursor-pointer flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 hover:scale-105 active:scale-95 {isSketchMode ? 'bg-[#00274d] text-white border-transparent ring-2 ring-[#00274d]/30' : 'text-[#00274d] hover:bg-blue-50/50 bg-white border-blue-600'}" 
-                    title="Annotation Mode"
+                    title={isSketchMode ? "Exit Annotation Mode (Unlocks Scroll)" : "Annotation Tool (Draw math on messages)"}
                   >
                      <Pencil size={20} strokeWidth={2.2} />
                   </button>
                 </div>
+
+                {#if isSketchMode}
+                  <!-- Eraser button when sketch mode is active -->
+                  <div class="relative shrink-0">
+                    <button 
+                      onclick={() => { isEraser = !isEraser; }} 
+                      class="transition-all border shadow-sm cursor-pointer flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 hover:scale-105 active:scale-95 {isEraser ? 'bg-rose-600 text-white border-transparent ring-2 ring-rose-500/30' : 'text-[#00274d] hover:bg-blue-50/50 bg-white border-blue-600'}" 
+                      title={isEraser ? "Eraser Active (Tap to Draw)" : "Eraser (Tap to Erase Strokes)"}
+                    >
+                       <Eraser size={20} strokeWidth={2.2} />
+                    </button>
+                  </div>
+                {/if}
 
                 <!-- 3. Plus button (Attach) -->
                 <button 

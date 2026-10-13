@@ -81,6 +81,7 @@ export const authService = {
       };
       cachedCurrentUser = enrichedUser;
       localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
+      localStorage.setItem('exup_persistent_session', JSON.stringify(cachedCurrentUser));
       return cachedCurrentUser;
     } catch (error: any) {
       console.error('Signup failed:', error);
@@ -117,6 +118,7 @@ export const authService = {
       };
       cachedCurrentUser = enrichedUser;
       localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
+      localStorage.setItem('exup_persistent_session', JSON.stringify(cachedCurrentUser));
       
       const localProfile = {
         userId: user.id,
@@ -144,6 +146,7 @@ export const authService = {
     profileCache.clear();
     if (typeof localStorage !== 'undefined') {
        localStorage.removeItem('exup_offline_user');
+       localStorage.removeItem('exup_persistent_session');
     }
     // Remove registered FCM push token and clear launcher badge on logout
     import('./nativeNotificationService').then(({ nativeNotificationService }) => {
@@ -158,24 +161,147 @@ export const authService = {
     }
   },
 
-  async getCurrentUser() {
+  getOfflineUser(): any | null {
     if (cachedCurrentUser) {
       if (cachedCurrentUser.id && !cachedCurrentUser.$id) cachedCurrentUser.$id = cachedCurrentUser.id;
       if (cachedCurrentUser.$id && !cachedCurrentUser.id) cachedCurrentUser.id = cachedCurrentUser.$id;
       return cachedCurrentUser;
     }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const offlineData = localStorage.getItem('exup_offline_user') || localStorage.getItem('exup_persistent_session');
+        if (offlineData) {
+          const parsed = JSON.parse(offlineData);
+          if (parsed && (parsed.id || parsed.$id)) {
+            const uid = parsed.id || parsed.$id;
+            parsed.id = uid;
+            parsed.$id = uid;
+            if (!parsed.prefs) parsed.prefs = {};
+            cachedCurrentUser = parsed;
+            // Keep both storage keys synchronized for permanent resilience
+            localStorage.setItem('exup_offline_user', JSON.stringify(parsed));
+            localStorage.setItem('exup_persistent_session', JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+
+        // WhatsApp model fallback: Recover user from Supabase auth token stored in localStorage if exup keys are missing
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+            const tokenStr = localStorage.getItem(key);
+            if (tokenStr) {
+              const parsedToken = JSON.parse(tokenStr);
+              const sbUser = parsedToken?.user;
+              if (sbUser && (sbUser.id || sbUser.$id)) {
+                const uid = sbUser.id || sbUser.$id;
+                const recovered = {
+                  ...sbUser,
+                  id: uid,
+                  $id: uid,
+                  emailVerification: true,
+                  prefs: sbUser.user_metadata || {}
+                };
+                cachedCurrentUser = recovered;
+                localStorage.setItem('exup_offline_user', JSON.stringify(recovered));
+                localStorage.setItem('exup_persistent_session', JSON.stringify(recovered));
+                return recovered;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[authService] Failed to parse offline user from localStorage:', e);
+      }
+    }
+    return null;
+  },
+
+  normalizeProfile(profile: any) {
+    if (!profile) return;
+    if (profile.preferred_subjects && Array.isArray(profile.preferred_subjects)) {
+      profile.preferredSubjects = profile.preferred_subjects.join(', ');
+    }
+    if (profile.clubs && Array.isArray(profile.clubs)) {
+      profile.clubs = profile.clubs.join(', ');
+    }
+    profile.avatarUrl = profile.avatar_url || profile.avatarUrl || '';
+    profile.studentClass = profile.grade_class || profile.studentClass || '';
+    profile.subjectCombination = profile.subject_combination || profile.subjectCombination || '';
+    profile.surname = profile.surname || '';
+    profile.lastName = profile.last_name || profile.lastName || '';
+    profile.fullName = profile.fullName || `${profile.surname} ${profile.lastName}`.trim() || 'User';
+  },
+
+  async getCurrentUser() {
+    // 1. In-memory cache for 0ms retrieval
+    if (cachedCurrentUser) {
+      if (cachedCurrentUser.id && !cachedCurrentUser.$id) cachedCurrentUser.$id = cachedCurrentUser.id;
+      if (cachedCurrentUser.$id && !cachedCurrentUser.id) cachedCurrentUser.id = cachedCurrentUser.$id;
+      return cachedCurrentUser;
+    }
+
+    // 2. Persistent device storage check (WhatsApp persistent login model)
+    const offlineUser = this.getOfflineUser();
+
+    // 3. WhatsApp persistent login guarantee:
+    // If a user has logged in on this device, ALWAYS return their identity immediately (0ms)!
+    // Never delay or block on remote network roundtrips, and NEVER log out the user when offline.
+    if (offlineUser) {
+      cachedCurrentUser = offlineUser;
+
+      // Asynchronously refresh profile in background if network is active (non-blocking)
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        Promise.resolve().then(async () => {
+          try {
+            const uid = offlineUser.$id || offlineUser.id;
+            const remoteUser = await Promise.race([
+              supabaseAuthService.getCurrentUser(),
+              new Promise<null>(r => setTimeout(() => r(null), 3000))
+            ]);
+            if (remoteUser) {
+              const profile = await Promise.race([
+                supabaseDbService.getProfile(uid),
+                new Promise<null>(r => setTimeout(() => r(null), 3000))
+              ]).catch(() => null);
+              if (profile && Object.keys(profile).length > 0) {
+                this.normalizeProfile(profile);
+                cachedCurrentUser = {
+                  ...cachedCurrentUser,
+                  prefs: { ...cachedCurrentUser?.prefs, ...profile }
+                };
+                localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
+                localStorage.setItem('exup_persistent_session', JSON.stringify(cachedCurrentUser));
+              }
+            }
+          } catch (e) {}
+        });
+      }
+      return offlineUser;
+    }
+
+    // 4. No offline user found yet (e.g. brand new install). Attempt remote check with 2.5s network timeout
     try {
-      const user = await supabaseAuthService.getCurrentUser();
-      if (!user) return null;
-      
+      const remotePromise = supabaseAuthService.getCurrentUser();
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+      const user = await Promise.race([remotePromise, timeoutPromise]);
+
+      if (!user) {
+        return null;
+      }
+
       // Ensure matching id and $id
       const uid = user.id || (user as any).$id;
       (user as any).id = uid;
       (user as any).$id = uid;
 
-      let profile = await supabaseDbService.getProfile(uid).catch(() => null);
+      let profile = await Promise.race([
+        supabaseDbService.getProfile(uid),
+        new Promise<null>(r => setTimeout(() => r(null), 2500))
+      ]).catch(() => null);
+
       if (!profile || Object.keys(profile).length === 0) {
-        // Fallback to local profile
+        // Fallback to local profile in RxDB or offlineUser
         const local = await dbService.getProfile(uid, false).catch(() => null);
         if (local) {
           profile = {
@@ -193,35 +319,20 @@ export const authService = {
             clubs: local.clubs ? (Array.isArray(local.clubs) ? local.clubs : local.clubs.split(',').map((s: any) => String(s).trim())) : []
           };
         } else {
-          profile = {};
+          profile = {
+            user_id: uid,
+            surname: '',
+            lastName: 'Learner',
+            fullName: 'Learner',
+            role: 'student',
+            school: '',
+            studentClass: '',
+            avatarUrl: ''
+          };
         }
       }
 
-      if (profile && Object.keys(profile).length > 0) {
-        if (profile.preferred_subjects && Array.isArray(profile.preferred_subjects)) {
-          profile.preferredSubjects = profile.preferred_subjects.join(', ');
-        }
-        if (profile.clubs && Array.isArray(profile.clubs)) {
-          profile.clubs = profile.clubs.join(', ');
-        }
-        profile.avatarUrl = profile.avatar_url || profile.avatarUrl || '';
-        profile.studentClass = profile.grade_class || profile.studentClass || '';
-        profile.subjectCombination = profile.subject_combination || profile.subjectCombination || '';
-        profile.surname = profile.surname || '';
-        profile.lastName = profile.last_name || profile.lastName || '';
-        profile.fullName = profile.fullName || `${profile.surname} ${profile.lastName}`.trim() || 'User';
-      } else {
-        profile = {
-          user_id: uid,
-          surname: '',
-          lastName: 'Learner',
-          fullName: 'Learner',
-          role: 'student',
-          school: '',
-          studentClass: '',
-          avatarUrl: ''
-        };
-      }
+      this.normalizeProfile(profile);
 
       // Save/synchronize user profile to local RxDB
       try {
@@ -243,7 +354,6 @@ export const authService = {
           isOnline: true
         };
         await dbService.upsertProfile(localProfile);
-        // Also update local profile cache entry
         this.updateProfileCacheEntry(uid, localProfile);
       } catch (upsertErr) {
         console.warn('App: Failed to sync user profile to local DB during session initialization:', upsertErr);
@@ -258,24 +368,12 @@ export const authService = {
       };
       
       localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
+      localStorage.setItem('exup_persistent_session', JSON.stringify(cachedCurrentUser));
       import('./nativeNotificationService').then(({ nativeNotificationService }) => {
         nativeNotificationService.syncSavedPushToken().catch(() => {});
       }).catch(() => {});
       return cachedCurrentUser;
     } catch (err) {
-      const offlineUser = localStorage.getItem('exup_offline_user');
-      if (offlineUser) {
-          try {
-             const parsed = JSON.parse(offlineUser);
-             if (parsed) {
-               const uid = parsed.id || parsed.$id;
-               parsed.id = uid;
-               parsed.$id = uid;
-               cachedCurrentUser = parsed;
-               return cachedCurrentUser;
-             }
-          } catch (e) {}
-      }
       return null;
     }
   },

@@ -51,6 +51,6 @@ export async function initLiveUpdates() {
   // Must run on every launch, otherwise Capgo rolls back to the previous bundle.
   await CapacitorUpdater.notifyAppReady().catch(() => {});
 
+  // Run initial check quietly in background on startup only
   checkForUpdate();
-  App.addListener('resume', checkForUpdate);
 }

@@ -14,11 +14,23 @@ export const supabase = createClient(
   supabaseUrl,
   supabaseKey,
   {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+    },
     global: {
       fetch: async (url, options) => {
         try {
           return await fetch(url, options);
         } catch (err: any) {
+          const urlStr = typeof url === 'string' ? url : (url as any)?.url || '';
+          if (urlStr.includes('/auth/v1/')) {
+            // Rethrow so Supabase Auth handles offline network connectivity properly
+            // without interpreting an artificial 502 HTTP response as a token revocation
+            throw err;
+          }
           console.warn("[Supabase Custom Fetch] Failed:", url, err);
           return new Response(JSON.stringify({ error: err.message || 'Fetch failed' }), {
             status: 502,
@@ -91,9 +103,14 @@ export const supabaseAuthService = {
     } catch (e) {
       console.warn("[Supabase Auth] handleUrlAuth failed:", e);
     }
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) return null;
-    return session?.user ?? null;
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) return null;
+      return session?.user ?? null;
+    } catch (err) {
+      console.warn("[Supabase Auth] getSession error (offline/transport):", err);
+      return null;
+    }
   }
 };
 

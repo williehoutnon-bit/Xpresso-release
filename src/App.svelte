@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
-import LandingView from './views/LandingView.svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
+  import LandingView from './views/LandingView.svelte';
   import LoginView from './views/LoginView.svelte';
   import SignupView from './views/SignupView.svelte';
   import AboutView from './views/AboutView.svelte';
@@ -45,15 +45,18 @@ import LandingView from './views/LandingView.svelte';
   import CrashLogModal from './components/CrashLogModal.svelte';
   import { checkAndRetrieveCrashLog, type CrashLogsResult } from './services/crashReporterService';
   
-  let currentView = $state('landing');
-  let authRole = $state('');
-  let userName = $state('Learner');
-  let userClass = $state('');
-  let isEmailVerified = $state(false);
+  // Instant WhatsApp-style persistent login state:
+  // If the user previously logged in on this device, initialize their session immediately!
+  const initialOfflineUser = typeof window !== 'undefined' ? authService.getOfflineUser() : null;
+  let currentView = $state(initialOfflineUser ? 'messages' : 'landing');
+  let authRole = $state(initialOfflineUser?.prefs?.role || (initialOfflineUser ? 'student' : ''));
+  let userName = $state(initialOfflineUser?.prefs?.lastName || initialOfflineUser?.name || 'Learner');
+  let userClass = $state(initialOfflineUser?.prefs?.studentClass || '');
+  let isEmailVerified = $state(initialOfflineUser ? (initialOfflineUser.emailVerification ?? true) : false);
   let selectedContact = $state('');
   let selectedConversationId = $state('');
   let selectedExam = $state<any>(null);
-  let isInitializing = $state(true);
+  let isInitializing = $state(!initialOfflineUser);
   let detectedCrash = $state<CrashLogsResult | null>(null);
   
   // PWA Back Button Support
@@ -72,6 +75,11 @@ import LandingView from './views/LandingView.svelte';
     const parent = getBackView(currentView);
     if (parent) {
       currentView = parent;
+    } else if (currentView === 'messages') {
+      // WhatsApp behavior: Minimize app to background at root, NEVER exit or kill process
+      import('@capacitor/app').then(({ App }) => {
+        App.minimizeApp().catch(() => {});
+      }).catch(() => {});
     } else if (window.history.length > 1) {
       window.history.back();
     }
@@ -88,18 +96,16 @@ import LandingView from './views/LandingView.svelte';
     }
   });
 
-  $effect(() => {
+  onMount(() => {
     // Initial dummy state mapping for base load
     try {
       window.history.replaceState({ view: currentView }, '');
-    } catch (e) {
-      console.warn('History API blocked (likely in iframe preview):', e);
-    }
-    
+    } catch (e) {}
+
     const handlePopState = (e: PopStateEvent) => {
       const targetView = e.state?.view;
       const parentView = getBackView(currentHistView);
-      const isRoot = currentHistView === 'dashboard' || currentHistView === 'landing';
+      const isRoot = currentHistView === 'messages' || currentHistView === 'dashboard' || currentHistView === 'landing';
       const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
       // Prevent PWA Exit at Root
@@ -117,14 +123,26 @@ import LandingView from './views/LandingView.svelte';
       } else if (parentView) {
         currentHistView = parentView;
         currentView = parentView;
-        try {
-          window.history.replaceState({ view: parentView }, '');
-        } catch (e) {}
+      } else if (currentHistView === 'messages') {
+        import('@capacitor/app').then(({ App }) => {
+          App.minimizeApp().catch(() => {});
+        }).catch(() => {});
       }
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    // Native Android Back Button intercepted from Capacitor
+    const handleNativeBack = (e: Event) => {
+      e.preventDefault();
+      handleBack();
+    };
+    window.addEventListener('xpresso:native-back', handleNativeBack);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('xpresso:native-back', handleNativeBack);
+    };
   });
 
   function handleExitPWA() {
@@ -143,8 +161,8 @@ import LandingView from './views/LandingView.svelte';
     });
   });
 
-  // Check session on mount
-  $effect(() => {
+  // Check session on mount (Mount-only lifecycle, NEVER reactive to currentView)
+  onMount(() => {
     // Check for previous crash logs or exit reasons on startup
     checkAndRetrieveCrashLog().then((logs) => {
       if (logs && (logs.hasCrash || logs.uncaughtCrash || (logs.historicalExitReasons && logs.historicalExitReasons.includes('CRASH')))) {
@@ -163,34 +181,44 @@ import LandingView from './views/LandingView.svelte';
     async function checkSession() {
       console.log('App: Initializing session check...');
       try {
-        // Simple timeout to prevent hanging on initial load if Appwrite is non-responsive
-        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('timeout'), 30000));
+        const offlineUser = authService.getOfflineUser();
+        if (offlineUser) {
+          authRole = offlineUser.prefs?.role || 'student';
+          userName = offlineUser.prefs?.lastName || offlineUser.name || 'Learner';
+          userClass = offlineUser.prefs?.studentClass || '';
+          isEmailVerified = offlineUser.emailVerification ?? true;
+          if (['landing', 'login', 'signup'].includes(currentView)) {
+            currentView = 'messages';
+          }
+        }
+
+        // Fast timeout (3.5s) to prevent hanging on initial load if network is slow/offline
+        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('timeout'), 3500));
         const userPromise = authService.getCurrentUser();
         
         const result = await Promise.race([userPromise, timeoutPromise]);
+        const activeUser = (result && result !== 'timeout' && result) ? result : (offlineUser || authService.getOfflineUser());
         
-        if (result === 'timeout') {
-          console.warn('App: Session check timed out.');
-        } else if (result) {
-          const user = result as any;
-          console.log('App: User found, role:', user.prefs?.role);
+        if (activeUser) {
+          const user = activeUser as any;
+          console.log('App: User session confirmed, role:', user.prefs?.role);
           authRole = user.prefs?.role || 'student';
           userName = user.prefs?.lastName || user.name || 'Learner';
           userClass = user.prefs?.studentClass || '';
-          isEmailVerified = user.emailVerification;
+          isEmailVerified = user.emailVerification ?? true;
 
           // Real-time RxDB Profile subscription for current user
           try {
             const db = await dbService.getRawDB();
             if (db && db.profiles) {
                // Load initial profile data immediately
-               const initialProfile = await dbService.getProfile(user.$id, false);
+               const initialProfile = await dbService.getProfile(user.$id || user.id, false);
                if (initialProfile) {
                  userName = initialProfile.lastName || initialProfile.surname || initialProfile.fullName || user.prefs?.lastName || user.name || 'Learner';
                  userClass = initialProfile.studentClass || user.prefs?.studentClass || '';
                }
                
-               const profileDoc$ = db.profiles.findOne(user.$id).$;
+               const profileDoc$ = db.profiles.findOne(user.$id || user.id).$;
                const sub = profileDoc$.subscribe((p: any) => {
                   if (p) {
                     const data = p.toJSON();
@@ -207,7 +235,7 @@ import LandingView from './views/LandingView.svelte';
           
           if (!isEmailVerified && currentView !== 'signup') {
             currentView = 'verify_email_pending';
-          } else {
+          } else if (['landing', 'login', 'signup'].includes(currentView)) {
             currentView = 'messages';
           }
 
@@ -249,10 +277,35 @@ import LandingView from './views/LandingView.svelte';
              }
           });
         } else {
-          console.log('App: No user session found.');
+          // WhatsApp persistence model: NEVER force logout due to network drop!
+          const recovered = authService.getOfflineUser();
+          if (recovered) {
+            console.log('App: Maintaining persistent offline session:', recovered.$id || recovered.id);
+            authRole = recovered.prefs?.role || 'student';
+            userName = recovered.prefs?.lastName || recovered.name || 'Learner';
+            userClass = recovered.prefs?.studentClass || '';
+            isEmailVerified = recovered.emailVerification ?? true;
+            if (['landing', 'login', 'signup'].includes(currentView)) {
+              currentView = 'messages';
+            }
+          } else {
+            console.log('App: No user session found on device.');
+            authRole = '';
+            currentView = 'landing';
+          }
         }
       } catch (err) {
         console.error('App: Initialization error:', err);
+        const fallbackUser = authService.getOfflineUser();
+        if (fallbackUser) {
+          authRole = fallbackUser.prefs?.role || 'student';
+          userName = fallbackUser.prefs?.lastName || fallbackUser.name || 'Learner';
+          userClass = fallbackUser.prefs?.studentClass || '';
+          isEmailVerified = fallbackUser.emailVerification ?? true;
+          if (['landing', 'login', 'signup'].includes(currentView)) {
+            currentView = 'messages';
+          }
+        }
       } finally {
         console.log('App: Initialization complete.');
         isInitializing = false;
@@ -403,6 +456,13 @@ import LandingView from './views/LandingView.svelte';
     </div>
   {:else}
     <main class="flex-1 flex flex-col {currentView === 'chat' ? 'overflow-hidden' : 'overflow-y-auto'} relative bg-cream">
+    {#if authRole !== ''}
+      <!-- Persistent WhatsApp Inbox View: NEVER destroyed during chat sessions so conversations, scroll, and listeners stay stable -->
+      <div class="flex-1 flex flex-col h-full w-full" class:hidden={currentView !== 'messages'}>
+        <InboxView onback={handleBack} onopenchat={(id, name) => { selectedConversationId = id; selectedContact = name; currentView = 'chat'; }} />
+      </div>
+    {/if}
+
     {#if currentView === 'landing'}
       <LandingView onstart={handleStart} onlogin={handleLogin} onsignup={handleSignUp} onabout={() => currentView = 'about'} />
     {:else if currentView === 'login'}
@@ -527,7 +587,7 @@ import LandingView from './views/LandingView.svelte';
     {:else if currentView === 'forum'}
       <ForumView onviewprofile={() => currentView = 'profile'} onback={handleBack} timeLeft={forumTimer} />
     {:else if currentView === 'messages'}
-      <InboxView onback={handleBack} onopenchat={(id, name) => { selectedConversationId = id; selectedContact = name; currentView = 'chat'; }} />
+      <!-- Managed by persistent InboxView container above for 0ms transitions and zero reload -->
     {:else if currentView === 'chat'}
       <ChatWindow conversationId={selectedConversationId} contactName={selectedContact} onback={handleBack} />
     {:else if currentView === 'share_notes'}

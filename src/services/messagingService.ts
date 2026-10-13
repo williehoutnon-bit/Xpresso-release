@@ -18,6 +18,9 @@ const CONVO_SYNC_COOLDOWN = 90000; // 90 seconds cooldown for automatic backgrou
 const syncingMessagesPromises = new Map<string, Promise<void>>();
 const processingPins = new Set<string>();
 
+// WhatsApp-grade In-Memory Instant Message Cache (0ms instant chat loading)
+const inMemoryMessagesCache = new Map<string, any[]>();
+
 /**
  * Generates a client-side compliant UUID v4 to support offline-first RxDB.
  */
@@ -1113,11 +1116,27 @@ export const messagingService = {
   },
 
   /**
+   * Fast in-memory message cache for immediate 0ms UI render
+   */
+  getCachedMessages(conversationId: string): any[] {
+    if (!conversationId) return [];
+    return inMemoryMessagesCache.get(conversationId) || [];
+  },
+
+  setCachedMessages(conversationId: string, messages: any[]): void {
+    if (!conversationId || !messages) return;
+    inMemoryMessagesCache.set(conversationId, messages);
+  },
+
+  /**
    * Get messages for a specific conversation
    */
   async getMessages(conversationId: string) {
     // 1. Get from local RxDB
     const localMessages = await dbService.getMessages(conversationId);
+    if (localMessages && localMessages.length > 0) {
+      inMemoryMessagesCache.set(conversationId, localMessages);
+    }
     console.log(`[OFFLINE-DB] Retrieved ${localMessages.length} messages for ${conversationId} from local storage.`);
     
     // 2. Trigger background sync
@@ -1287,27 +1306,37 @@ export const messagingService = {
     console.log('messagingService: Starting background preload of all messages...');
     
     try {
+      const offlineUser = authService.getOfflineUser();
+      const user = offlineUser || await authService.getCurrentUser();
+      if (!user) {
+        isPreloaded = false;
+        return;
+      }
+
+      // Step A: Immediately warm up in-memory cache for all local conversations from local DB (0ms offline-first)
+      const uid = user.$id || user.id;
+      const localConversations = await dbService.getMyConversations(uid);
+      for (const convo of localConversations) {
+        const convoId = convo.id || convo.conversationId;
+        if (convoId) {
+          dbService.getMessages(convoId).then(localMsgs => {
+            if (localMsgs && localMsgs.length > 0) {
+              inMemoryMessagesCache.set(convoId, localMsgs);
+            }
+          }).catch(() => {});
+        }
+      }
+      
       // 1. Sync conversations first to know what to fetch
       await this.syncConversations();
       
       // 2. Setup realtime early
       await this.setupRealtimeListeners();
       
-      const user = await authService.getCurrentUser();
-      if (!user) {
-        isPreloaded = false;
-        return;
-      }
-      
-      const localConversations = await dbService.getMyConversations(user.$id);
-      
-      // 3. Batch sync messages for each conversation
-      // We do this with a slight delay between each to avoid bogging down
+      // 3. Batch sync messages for each conversation in background
       for (const convo of localConversations) {
-        // Sync last 20 messages for each conversation to warm up the inbox
         await this.syncMessages(convo.id, 20);
-        // Small breathing room
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 150));
       }
       
       console.log('messagingService: Background preload complete.');
@@ -1325,6 +1354,7 @@ export const messagingService = {
    */
   resetSyncState() {
     isPreloaded = false;
+    inMemoryMessagesCache.clear();
     activeSubscriptions.forEach(sub => {
       if (typeof sub === 'function') {
         sub();

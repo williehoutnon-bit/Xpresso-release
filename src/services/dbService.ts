@@ -789,10 +789,10 @@ export const dbService = {
       let messages = result.map(doc => doc.toJSON());
       try {
         const { authService } = await import('./authService');
-        const user = await authService.getCurrentUser();
+        const user = authService.getOfflineUser();
         if (user) {
           const participant = await db.participants.findOne({
-            selector: { conversationId: conversationId, userId: user.$id }
+            selector: { conversationId: conversationId, userId: user.$id || user.id }
           }).exec();
           if (participant) {
              const pData = participant.toJSON() as any;
@@ -823,10 +823,10 @@ export const dbService = {
       let clearedAt = null;
       try {
         const { authService } = await import('./authService');
-        const user = await authService.getCurrentUser();
+        const user = authService.getOfflineUser();
         if (user) {
           const participant = await db.participants.findOne({
-            selector: { conversationId: conversationId, userId: user.$id }
+            selector: { conversationId: conversationId, userId: user.$id || user.id }
           }).exec();
           if (participant && participant.clearedAt) {
             clearedAt = participant.clearedAt;
@@ -928,7 +928,7 @@ export const dbService = {
   async getMessages$(conversationId: string) {
     const db = await getDB();
     const { authService } = await import('./authService');
-    const user = await authService.getCurrentUser();
+    const user = authService.getOfflineUser();
     
     if (!user) {
       return db.messages.find({
@@ -945,7 +945,7 @@ export const dbService = {
     }).$;
 
     const participant$ = db.participants.findOne({
-      selector: { conversationId: conversationId, userId: user.$id }
+      selector: { conversationId: conversationId, userId: user.$id || user.id }
     }).$;
 
     return combineLatest([messages$, participant$]).pipe(

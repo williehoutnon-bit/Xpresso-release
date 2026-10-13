@@ -219,9 +219,10 @@
     subscriptions.push({ unsubscribe: unsubNotif });
 
     try {
-      const user = await authService.getCurrentUser();
+      const offlineUser = authService.getOfflineUser();
+      const user = offlineUser || await authService.getCurrentUser();
       if (user) {
-        currentUserId = user.$id;
+        currentUserId = user.$id || user.id;
         
         // Load pending requests
         import('../services/friendshipService').then(m => {
@@ -1021,7 +1022,7 @@
     <div class="relative">
       {#if activeTab === 'messages'}
         <div in:fade|local={{ duration: 200 }} out:fade|local={{ duration: 200 }} class="space-y-4 relative w-full left-0 top-0 filter drop-shadow-[0_8px_16px_rgba(15,23,42,0.06)]">
-          {#if isLoading}
+          {#if isLoading && conversations.length === 0}
             <Skeleton variant="deckle" count={4} />
           {:else if filteredConversations.length === 0}
             <div class="p-12 text-center text-[#46698A] font-sans font-bold text-base">

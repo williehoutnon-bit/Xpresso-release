@@ -47,10 +47,27 @@
   let drawing = false;
   let isPointerDown = false;
   let resizeObserver: ResizeObserver | null = null;
-  // alphaMin 0.08 lagged ~200ms behind slow finger movement, which felt like drag at stroke start.
-  const stabilizer = new StrokeStabilizer(0.35, 0.85, 0.6);
+  // High responsiveness (0.85 alphaMin) eliminates initial drag / resistance at stroke start
+  const stabilizer = new StrokeStabilizer(0.85, 0.98, 0.5);
   let lastRawClient: { x: number; y: number } | null = null;
   let svgEl: SVGSVGElement | null = null;
+  let windowListenersAttached = false;
+
+  function attachWindowListeners() {
+    if (windowListenersAttached || typeof window === 'undefined') return;
+    windowListenersAttached = true;
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+  }
+
+  function cleanupWindowListeners() {
+    if (!windowListenersAttached || typeof window === 'undefined') return;
+    windowListenersAttached = false;
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+    window.removeEventListener('pointercancel', handlePointerCancel);
+  }
 
   $: canDraw = !readonly && isSketchMode;
 
@@ -83,15 +100,22 @@
     return () => {
       resizeObserver?.disconnect();
       window.removeEventListener('resize', measure);
+      cleanupWindowListeners();
     };
+  });
+
+  onDestroy(() => {
+    cleanupWindowListeners();
   });
 
   // Convert raw client px to normalized [0, 1] relative to text box
   function toNormalized(clientX: number, clientY: number): { x: number; y: number } {
     if (!textEl) return { x: 0, y: 0 };
     const r = textEl.getBoundingClientRect();
-    const w = r.width || box.width || 1;
-    const h = r.height || box.height || 1;
+    const parentW = textEl.parentElement ? textEl.parentElement.getBoundingClientRect().width : 0;
+    const parentH = textEl.parentElement ? textEl.parentElement.getBoundingClientRect().height : 0;
+    const w = r.width || box.width || parentW || 100;
+    const h = r.height || box.height || parentH || 40;
     return {
       x: (clientX - r.left) / w,
       y: (clientY - r.top) / h
@@ -183,9 +207,8 @@
     e.preventDefault();
     e.stopPropagation();
 
-    // Capture on the SVG (not currentTarget) so strokes started from the host row still route
-    // move/up events back to this component's handlers.
-    const captureTarget = (svgEl ?? e.currentTarget) as Element | null;
+    // Capture on target or SVG if available
+    const captureTarget = (e.target ?? svgEl ?? e.currentTarget) as Element | null;
     if (captureTarget && typeof captureTarget.setPointerCapture === 'function') {
       try {
         captureTarget.setPointerCapture(e.pointerId);
@@ -202,6 +225,9 @@
     drawing = true;
     isPointerDown = true;
     measure();
+
+    // Attach window listeners so all pointer movements are caught everywhere on screen
+    attachWindowListeners();
 
     // 2.1 Stage A: Live input stabilization (reset on pointer down)
     stabilizer.reset();
@@ -237,29 +263,42 @@
 
   function handlePointerUp(e: PointerEvent) {
     if (readonly || !isSketchMode) return;
+    cleanupWindowListeners();
 
-    if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
+    if (e.target && typeof (e.target as Element).releasePointerCapture === 'function') {
       try {
-        (e.currentTarget as Element).releasePointerCapture(e.pointerId);
-      } catch (err) {
-        // Ignore release errors
-      }
+        (e.target as Element).releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+    if (svgEl && typeof svgEl.releasePointerCapture === 'function') {
+      try {
+        svgEl.releasePointerCapture(e.pointerId);
+      } catch (err) {}
     }
 
     isPointerDown = false;
     if (!drawing) return;
     drawing = false;
 
-    if (currentStroke.length > 1) {
+    if (currentStroke.length >= 1) {
+      // If it's a single dot/tap, add a micro-offset point so it renders and persists as a valid dot
+      let strokePoints = currentStroke;
+      if (strokePoints.length === 1) {
+        strokePoints = [
+          strokePoints[0],
+          { x: strokePoints[0].x + 0.0001, y: strokePoints[0].y + 0.0001 }
+        ];
+      }
+
       // 1. Convert normalized points to pixel coordinates for processing
-      const pixelPoints = currentStroke.map(p => toAbsolute(p));
+      const pixelPoints = strokePoints.map(p => toAbsolute(p));
 
       // 2.2 Stage B: Resample (4px) -> RDP Simplify (1.2px) -> Catmull-Rom to Cubic Bezier
       const processed = processStrokeEnd(pixelPoints, 4, 1.2);
       const pixelSegments = processed.segments;
 
       // 2.3 Render layer: Compute smooth Bezier SVG path (never straight L segments)
-      const strokePath = bezierSegmentsToSvgPath(pixelSegments) || pointsToPath(currentStroke);
+      const strokePath = bezierSegmentsToSvgPath(pixelSegments) || pointsToPath(strokePoints);
 
       const w = box.width || (textEl ? textEl.getBoundingClientRect().width : 0) || 1;
       const h = box.height || (textEl ? textEl.getBoundingClientRect().height : 0) || 1;
@@ -277,8 +316,8 @@
         p1: { x: seg.p1.x / w, y: seg.p1.y / h }
       }));
 
-      const xs = normPoints.length > 0 ? normPoints.map(p => p.x) : currentStroke.map(p => p.x);
-      const ys = normPoints.length > 0 ? normPoints.map(p => p.y) : currentStroke.map(p => p.y);
+      const xs = normPoints.length > 0 ? normPoints.map(p => p.x) : strokePoints.map(p => p.x);
+      const ys = normPoints.length > 0 ? normPoints.map(p => p.y) : strokePoints.map(p => p.y);
 
       const newAnn = {
         id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'ann_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
@@ -286,7 +325,7 @@
         color: activeColor,
         strokeWidth: activeWidth,
         width: activeWidth,
-        points: normPoints.length > 0 ? normPoints : currentStroke,
+        points: normPoints.length > 0 ? normPoints : strokePoints,
         segments: normSegments,
         path: strokePath,
         pathNormalized: bezierSegmentsToSvgPath(normSegments),
@@ -323,10 +362,24 @@
   }
 
   function handlePointerCancel(e: PointerEvent) {
-    if (e.currentTarget && typeof (e.currentTarget as Element).releasePointerCapture === 'function') {
+    cleanupWindowListeners();
+
+    if (e.target && typeof (e.target as Element).releasePointerCapture === 'function') {
       try {
-        (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+        (e.target as Element).releasePointerCapture(e.pointerId);
       } catch (err) {}
+    }
+    if (svgEl && typeof svgEl.releasePointerCapture === 'function') {
+      try {
+        svgEl.releasePointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+
+    // Do NOT discard strokes if the browser interrupted with pointercancel:
+    // If user already drew points, commit them rather than clearing them off!
+    if (drawing && currentStroke.length >= 1) {
+      handlePointerUp(e);
+      return;
     }
     drawing = false;
     isPointerDown = false;
@@ -362,7 +415,7 @@
   }
 </script>
 
-<div class="annotatable-wrap relative inline-block w-full overflow-visible">
+<div class="annotatable-wrap relative inline-block w-full overflow-visible" style={isSketchMode ? 'touch-action: none;' : undefined}>
   {#if isEditor}
     <div 
       bind:this={textEl}
