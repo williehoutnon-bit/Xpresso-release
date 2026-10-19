@@ -22,6 +22,10 @@ if (isNative) {
   });
 }
 
+if (typeof document !== 'undefined' && 'fonts' in document) {
+  void (document as any).fonts.load('16px Kalam');
+}
+
 const app = mount(App, {
   target: document.getElementById('root')!
 });

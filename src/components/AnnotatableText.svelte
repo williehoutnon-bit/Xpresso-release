@@ -23,6 +23,7 @@
   export let isEditor: boolean = false;
   export let isSketchMode: boolean = false;
   export let isEraser: boolean = false;
+  export let enableDirectDrawing: boolean = false;
   export let activeColor: string = '#e63946';
   export let activeWidth: number = 2.5;
   export let textColor: string = '#1d4ed8';
@@ -69,7 +70,7 @@
     window.removeEventListener('pointercancel', handlePointerCancel);
   }
 
-  $: canDraw = !readonly && isSketchMode;
+  $: canDraw = !readonly && isSketchMode && enableDirectDrawing;
 
   $: resolvedNodes = nodes || (text ? deserializeTree(text) : []);
   $: allAnnotations = [
@@ -80,8 +81,12 @@
   export function measure() {
     if (!textEl) return;
     const r = textEl.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) {
-      box = { width: r.width, height: r.height };
+    const parent = textEl.parentElement;
+    const parentR = parent ? parent.getBoundingClientRect() : null;
+    const computedW = r.width > 0 ? r.width : (parentR?.width ?? 0);
+    const computedH = r.height > 0 ? r.height : (parentR?.height ?? 0);
+    if (computedW > 0 || computedH > 0) {
+      box = { width: computedW, height: computedH };
     }
   }
 
@@ -112,10 +117,8 @@
   function toNormalized(clientX: number, clientY: number): { x: number; y: number } {
     if (!textEl) return { x: 0, y: 0 };
     const r = textEl.getBoundingClientRect();
-    const parentW = textEl.parentElement ? textEl.parentElement.getBoundingClientRect().width : 0;
-    const parentH = textEl.parentElement ? textEl.parentElement.getBoundingClientRect().height : 0;
-    const w = r.width || box.width || parentW || 100;
-    const h = r.height || box.height || parentH || 40;
+    const w = box.width > 0 ? box.width : (r.width > 0 ? r.width : 100);
+    const h = box.height > 0 ? box.height : (r.height > 0 ? r.height : 40);
     return {
       x: (clientX - r.left) / w,
       y: (clientY - r.top) / h
@@ -207,11 +210,10 @@
     e.preventDefault();
     e.stopPropagation();
 
-    // Capture on target or SVG if available
-    const captureTarget = (e.target ?? svgEl ?? e.currentTarget) as Element | null;
-    if (captureTarget && typeof captureTarget.setPointerCapture === 'function') {
+    // Safely capture pointer on the SVG overlay container
+    if (svgEl && typeof svgEl.setPointerCapture === 'function') {
       try {
-        captureTarget.setPointerCapture(e.pointerId);
+        svgEl.setPointerCapture(e.pointerId);
       } catch (err) {
         // Ignore if pointer capture fails on certain platforms
       }
@@ -249,13 +251,20 @@
       eraseAtClientPoint(e.clientX, e.clientY);
       return;
     }
-    if (!drawing) return;
+    if (!drawing || !isPointerDown) return;
     e.preventDefault();
     e.stopPropagation();
+
+    // Skip redundant identical points if distance moved is negligible (< 1px)
+    if (lastRawClient) {
+      const d = Math.hypot(e.clientX - lastRawClient.x, e.clientY - lastRawClient.y);
+      if (d < 1) return;
+    }
 
     // 2.1 Stage A: Feed raw pointer to stabilizer and draw/store smoothed point
     const t = e.timeStamp || performance.now();
     const smoothed = stabilizer.addPoint(e.clientX, e.clientY, t);
+    lastRawClient = { x: e.clientX, y: e.clientY };
     const pt = toNormalized(smoothed.x, smoothed.y);
     currentStroke.push(pt);
     currentStroke = currentStroke;
@@ -265,11 +274,6 @@
     if (readonly || !isSketchMode) return;
     cleanupWindowListeners();
 
-    if (e.target && typeof (e.target as Element).releasePointerCapture === 'function') {
-      try {
-        (e.target as Element).releasePointerCapture(e.pointerId);
-      } catch (err) {}
-    }
     if (svgEl && typeof svgEl.releasePointerCapture === 'function') {
       try {
         svgEl.releasePointerCapture(e.pointerId);
@@ -364,20 +368,15 @@
   function handlePointerCancel(e: PointerEvent) {
     cleanupWindowListeners();
 
-    if (e.target && typeof (e.target as Element).releasePointerCapture === 'function') {
-      try {
-        (e.target as Element).releasePointerCapture(e.pointerId);
-      } catch (err) {}
-    }
     if (svgEl && typeof svgEl.releasePointerCapture === 'function') {
       try {
         svgEl.releasePointerCapture(e.pointerId);
       } catch (err) {}
     }
 
-    // Do NOT discard strokes if the browser interrupted with pointercancel:
-    // If user already drew points, commit them rather than clearing them off!
-    if (drawing && currentStroke.length >= 1) {
+    // Only commit if the stroke has at least 5 points (a real deliberate stroke),
+    // and never commit 1-point micro-dots on accidental browser cancellations
+    if (drawing && currentStroke.length >= 5) {
       handlePointerUp(e);
       return;
     }
@@ -419,7 +418,7 @@
   {#if isEditor}
     <div 
       bind:this={textEl}
-      class="m-0 break-words whitespace-pre-wrap tracking-normal w-full text-left math-root touch-none outline-none focus:outline-none focus-visible:outline-none {isItalic ? 'italic' : ''} {isUnderlined ? 'underline underline-offset-4 decoration-2' : ''}"
+      class="m-0 break-words whitespace-pre-wrap tracking-normal w-full text-left math-root {isSketchMode ? 'touch-none' : ''} outline-none focus:outline-none focus-visible:outline-none {isItalic ? 'italic' : ''} {isUnderlined ? 'underline underline-offset-4 decoration-2' : ''}"
       style="font-size: var(--chat-font-size, 1.0625rem); line-height: var(--chat-line-height, 1.75rem); color: {textColor}; font-weight: {isBold ? '550' : '400'}; min-height: var(--chat-line-height, 1.75rem); cursor: text; font-family: {fontFamily}; user-select: text; -webkit-user-select: text;"
       data-container-path="[]"
       tabindex={isSketchMode ? -1 : 0}
@@ -448,9 +447,8 @@
       class="annotation-overlay pointer-events-none absolute inset-0 z-20 overflow-visible select-none"
       width={box.width > 0 ? box.width : '100%'}
       height={box.height > 0 ? box.height : '100%'}
-      style="width: {box.width > 0 ? box.width + 'px' : '100%'}; height: {box.height > 0 ? box.height + 'px' : '100%'}; overflow: visible; pointer-events: {!readonly && isSketchMode ? 'auto' : 'none'}; {!readonly && isSketchMode ? (isEraser ? 'cursor: cell;' : 'cursor: crosshair;') : ''}; min-width: 100%; min-height: 100%; touch-action: none;"
+      style="width: {box.width > 0 ? box.width + 'px' : '100%'}; height: {box.height > 0 ? box.height + 'px' : '100%'}; overflow: visible; pointer-events: {!readonly && isSketchMode && enableDirectDrawing ? 'auto' : 'none'}; {!readonly && isSketchMode && enableDirectDrawing ? (isEraser ? 'cursor: cell;' : 'cursor: crosshair;') : ''}; min-width: 100%; min-height: 100%; touch-action: none;"
       onpointerdown={handlePointerDown}
-      onpointermove={handlePointerMove}
       onpointerup={handlePointerUp}
       onpointercancel={handlePointerCancel}
     >

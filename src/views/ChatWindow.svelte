@@ -44,7 +44,15 @@
   import InkOverlay from '../components/InkOverlay.svelte';
   import InkCanvasOverlay from '../components/InkCanvasOverlay.svelte';
   import AnnotatableText from '../components/AnnotatableText.svelte';
+  import ChatAnnotationLayer from '../components/ChatAnnotationLayer.svelte';
   import type { StrokeElement } from '../types/ink';
+  import {
+    StrokeStabilizer,
+    processStrokeEnd,
+    pointsToBezierSvgPath,
+    bezierSegmentsToSvgPath,
+    type CubicBezierSegment
+  } from '../math/inkMath';
   // @ts-ignore
   import inboxViewRaw from '../views/InboxView.svelte?raw';
   // @ts-ignore
@@ -345,7 +353,7 @@
   let isBold = $state(true);
   let isItalic = $state(false);
   let isUnderlined = $state(false);
-  let activeFontFamily = $state("'Kalam', 'Caveat', 'Comic Sans MS', cursive");
+  let activeFontFamily = $state("'Kalam', cursive");
   let showFormattingPanel = $state(false);
 
   // Auto-record history of typed text
@@ -406,6 +414,11 @@
 
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
+    touchGestureType = 'long_press';
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
     showContextMenu = true;
     contextMenuPos = { x: e.clientX, y: e.clientY };
   }
@@ -498,10 +511,20 @@
     showContextMenu = false;
   }
 
-  let isDragging = false;
-  let dragMoved = false;
-  let longPressTimer: any;
+  type TouchGestureType = 'undetermined' | 'single_tap' | 'scroll' | 'long_press' | 'drag_select';
+  let touchGestureType = $state<TouchGestureType>('undetermined');
   let startPointerPos = { x: 0, y: 0 };
+  let startPointerTime = 0;
+  let hasMovedBeyondSlop = false;
+  let longPressTimer: any = null;
+  let pointerDownTargetEl: HTMLElement | null = null;
+  let lastScrollTimestamp = 0;
+
+  function cleanupPointerListeners() {
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+    window.removeEventListener('pointercancel', handlePointerCancel);
+  }
 
   function handlePointerDown(e: PointerEvent) {
     if (isSketchMode) return;
@@ -509,90 +532,140 @@
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     
     showContextMenu = false;
-    e.stopPropagation();
-    
-    showMathKeyboard = true;
-    hasSeenTypingInstructions = true;
-    isDragging = true;
-    dragMoved = false;
-    startPointerPos = { x: e.clientX, y: e.clientY };
-    
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
-    
-    tick().then(() => {
-      textareaEl?.focus();
-      scrollToBottom('smooth');
-      setTimeout(() => scrollToBottom('smooth'), 150);
-      setTimeout(() => scrollToBottom('smooth'), 350);
-    });
 
-    if (textareaEl) {
-      const res = resolveSpatialTap(e.clientX, e.clientY, textareaEl, currentTree);
-      if (res) {
-        currentTree = res.tree;
-        currentCursorPath = res.path;
-        selectionAnchorPath = res.path;
-      }
+    // If the chat view was recently scrolling or momentum scrolling, treat this as a scroll interaction
+    if (Date.now() - lastScrollTimestamp < 220) {
+      touchGestureType = 'scroll';
+      return;
     }
 
+    touchGestureType = 'undetermined';
+    startPointerPos = { x: e.clientX, y: e.clientY };
+    startPointerTime = Date.now();
+    hasMovedBeyondSlop = false;
+    pointerDownTargetEl = (e.target as HTMLElement)?.closest?.('.math-root') as HTMLElement || textareaEl;
+    
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerCancel);
+
+    // Start long-press detection timer (380ms)
+    // If held without movement, definitively classify as LONG PRESS - preventing caret auto-placement!
+    if (longPressTimer) clearTimeout(longPressTimer);
     longPressTimer = setTimeout(() => {
-        if (!dragMoved && isDragging) {
+        if (!hasMovedBeyondSlop && touchGestureType === 'undetermined') {
+            // Touch type is definitively determined: LONG PRESS!
+            touchGestureType = 'long_press';
             showContextMenu = true;
             contextMenuPos = { x: startPointerPos.x, y: startPointerPos.y - 40 };
-            isDragging = false;
+            cleanupPointerListeners();
+            // Caret auto-placement is completely prevented on long press!
         }
-    }, 500);
+    }, 380);
   }
 
   function handlePointerMove(e: PointerEvent) {
-    if (!isDragging) return;
-    
-    // If it's a touch and we've moved mostly vertically, treat it as a scroll and cancel selection.
-    if (e.pointerType === 'touch') {
-       const dx = Math.abs(e.clientX - startPointerPos.x);
-       const dy = Math.abs(e.clientY - startPointerPos.y);
-       if (dy > dx && dy > 5) {
-          handlePointerUp(e);
-          return;
-       }
-    }
+    if (touchGestureType === 'scroll' || touchGestureType === 'long_press') return;
     
     const dx = e.clientX - startPointerPos.x;
     const dy = e.clientY - startPointerPos.y;
-    if (!dragMoved && Math.sqrt(dx*dx + dy*dy) > 10) {
-      dragMoved = true;
-    }
-    
-    if (dragMoved) {
-      if (longPressTimer) clearTimeout(longPressTimer);
-      if (textareaEl) {
-        const res = resolveSpatialTap(e.clientX, e.clientY, textareaEl, currentTree);
-        if (res) {
-          currentTree = res.tree;
-          currentCursorPath = res.path;
-        }
-      }
+    const dist = Math.hypot(dx, dy);
+
+    // Slop threshold (8px) to distinguish a stationary touch from a scroll or drag
+    if (dist > 8) {
+       hasMovedBeyondSlop = true;
+       if (longPressTimer) {
+         clearTimeout(longPressTimer);
+         longPressTimer = null;
+       }
+
+       // If vertical movement is detected or dominates, it is definitively a SCROLL gesture!
+       if (Math.abs(dy) >= 6 || Math.abs(dy) >= Math.abs(dx) * 0.5) {
+          touchGestureType = 'scroll';
+          cleanupPointerListeners();
+          // Caret is NEVER repositioned on scroll!
+          return;
+       }
+
+       // Only if movement is strongly horizontal across text lines do we consider drag_select
+       if (Math.abs(dx) >= 16 && Math.abs(dx) > Math.abs(dy) * 2) {
+          touchGestureType = 'drag_select';
+          const activeEl = pointerDownTargetEl || textareaEl;
+          if (activeEl) {
+            const res = resolveSpatialTap(e.clientX, e.clientY, activeEl, currentTree);
+            if (res) {
+              currentTree = res.tree;
+              currentCursorPath = res.path;
+            }
+          }
+       }
     }
   }
 
+  function handlePointerCancel() {
+    touchGestureType = 'scroll';
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+    cleanupPointerListeners();
+  }
+
   function handlePointerUp(e: PointerEvent) {
-    isDragging = false;
-    if (longPressTimer) clearTimeout(longPressTimer);
-    
-    if (!dragMoved) {
-      selectionAnchorPath = null;
-    } else {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+    cleanupPointerListeners();
+
+    // 1. If touch was determined to be a scroll, long-press, or moved beyond slop, DO NOT place the caret!
+    if (touchGestureType === 'scroll' || touchGestureType === 'long_press' || hasMovedBeyondSlop) {
+      return;
+    }
+
+    // 2. If recent scroll occurred within 220ms, prevent caret placement
+    if (Date.now() - lastScrollTimestamp < 220) {
+      touchGestureType = 'scroll';
+      return;
+    }
+
+    // 3. If user dragged to select text
+    if (touchGestureType === 'drag_select') {
       if (selectedNodeIds && selectedNodeIds.size > 0) {
         showContextMenu = true;
         contextMenuPos = { x: e.clientX, y: e.clientY - 40 };
       }
+      return;
     }
-    
-    window.removeEventListener('pointermove', handlePointerMove);
-    window.removeEventListener('pointerup', handlePointerUp);
-    window.removeEventListener('pointercancel', handlePointerUp);
+
+    // 4. Touch type determination: It is a genuine SINGLE TAP only if:
+    // - Movement stayed strictly within slop threshold (<= 8px)
+    // - Duration was within a genuine tap window (>= 30ms and < 380ms)
+    // - It was not cancelled, scrolled, or held
+    const elapsed = Date.now() - startPointerTime;
+    const finalDist = Math.hypot(e.clientX - startPointerPos.x, e.clientY - startPointerPos.y);
+
+    if (touchGestureType === 'undetermined' && !hasMovedBeyondSlop && finalDist <= 8 && elapsed >= 30 && elapsed < 380) {
+      touchGestureType = 'single_tap';
+      
+      // Now, and ONLY now after the touch type is definitively determined as single tap, place the caret!
+      showMathKeyboard = true;
+      hasSeenTypingInstructions = true;
+      
+      const activeEl = pointerDownTargetEl || textareaEl;
+      if (activeEl) {
+        const res = resolveSpatialTap(startPointerPos.x, startPointerPos.y, activeEl, currentTree);
+        if (res) {
+          currentTree = res.tree;
+          currentCursorPath = res.path;
+          selectionAnchorPath = null;
+        }
+      }
+
+      tick().then(() => {
+        textareaEl?.focus();
+      });
+    }
   }
 
   function handleCopy(e: ClipboardEvent) {
@@ -620,6 +693,16 @@
   }
 
   function handlePaste(e: ClipboardEvent) {
+    const files = e.clipboardData?.files;
+    if (files && files.length > 0) {
+      const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (imgFiles.length > 0) {
+        e.preventDefault();
+        handleImageUpload({ target: { files: imgFiles, value: '' } } as any);
+        return;
+      }
+    }
+
     const text = e.clipboardData?.getData('text/plain');
     if (text) {
       e.preventDefault();
@@ -659,13 +742,10 @@
   let messagesContainer = $state<HTMLElement | null>(null);
   let unreadMarkerEl = $state<HTMLElement | null>(null);
 
-  let cachedDraftId = $state<string | null>(null);
+  let cachedDraftId = $state<string | null>('draft');
 
   function getOrCreateDraftId(): string {
-    if (cachedDraftId) return cachedDraftId;
-    cachedDraftId = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `draft_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    if (!cachedDraftId) cachedDraftId = 'draft';
     return cachedDraftId;
   }
 
@@ -760,6 +840,7 @@
   // Scroll Tracking State
   let isNearBottom = $state(true);
   let showNewMsgBtn = $state(false);
+  let unreadCountBelow = $state(0);
   let prevMessageCount = 0;
   let isInitialScrollDone = false;
   let participantLastReadAt = $state('1970-01-01T00:00:00.000Z');
@@ -787,9 +868,6 @@
       if (showMathKeyboard && !isSketchMode && document.activeElement !== textareaEl) {
         textareaEl.focus();
       }
-    }
-    if (showMathKeyboard && isCurrentlyTyping) {
-       scrollToBottom('smooth');
     }
   });
 
@@ -830,18 +908,20 @@
   $effect(() => {
     // This effect acts like afterUpdate in Svelte 4, running after DOM update.
     if (!isInitialScrollDone && messages.length > 0 && messagesContainer) {
-      if (unreadMarkerEl) {
-        unreadMarkerEl.scrollIntoView({ behavior: 'instant', block: 'start' });
-      } else {
-        scrollToBottom('instant');
-      }
+      scrollToBottom('instant');
       isInitialScrollDone = true;
       throttledMarkAsRead(activeConversationId, true);
       prevMessageCount = messages.length;
+      unreadCountBelow = 0;
+      showNewMsgBtn = false;
       return;
     }
     
     if (isInitialScrollDone && renderedMessages.length > prevMessageCount && messagesContainer) {
+      if (isSketchMode) {
+        prevMessageCount = messages.length;
+        return;
+      }
       const latestMsg = renderedMessages[renderedMessages.length - 1];
       const isMine = latestMsg?.isMe;
       
@@ -853,6 +933,8 @@
         scrollToBottom('smooth');
         if (!isMathCanvasOpen) throttledMarkAsRead(activeConversationId);
       } else {
+        const countDiff = Math.max(1, renderedMessages.length - prevMessageCount);
+        unreadCountBelow += countDiff;
         showNewMsgBtn = true;
       }
       prevMessageCount = messages.length;
@@ -903,6 +985,67 @@
   let penWidth = $state(3);
   let eraserMode = $state(false);
 
+  interface StagedDraftImage {
+    id: string;
+    file: File;
+    url: string;
+    dominantColor: string;
+    name: string;
+    gapTextTree: MathNode[];
+  }
+
+  // Staged Images for Draft Composer (allows multiple images and typing in the gaps below)
+  let stagedImages = $state<StagedDraftImage[]>([]);
+  let selectedDraftImageId = $state<string | null>(null);
+  let lastSelectedDraftImageId = $state<string | null>(null);
+  let focusedGapImageId = $state<string | null>(null);
+
+  const stagedImage = $derived(stagedImages.length > 0 ? stagedImages[0] : null);
+
+  function selectDraftImage(imgId: string) {
+    if (selectedDraftImageId === imgId) {
+      selectedDraftImageId = null;
+    } else {
+      selectedDraftImageId = imgId;
+      lastSelectedDraftImageId = imgId;
+    }
+  }
+
+  function removeStagedImage(imgId: string) {
+    const idx = stagedImages.findIndex(i => i.id === imgId);
+    if (idx === -1) return;
+    if (selectedDraftImageId === imgId) selectedDraftImageId = null;
+    if (lastSelectedDraftImageId === imgId) lastSelectedDraftImageId = null;
+
+    const remaining = stagedImages.filter(i => i.id !== imgId);
+    stagedImages = remaining;
+    if (remaining.length === 0) {
+      focusedGapImageId = null;
+    } else {
+      const nextFocus = remaining[Math.min(idx, remaining.length - 1)];
+      switchFocusedGap(nextFocus.id);
+    }
+  }
+
+  function switchFocusedGap(targetImgId: string) {
+    if (Date.now() - lastScrollTimestamp < 220 || touchGestureType === 'scroll') return;
+    if (focusedGapImageId === targetImgId) return;
+    if (focusedGapImageId) {
+      const prev = stagedImages.find(i => i.id === focusedGapImageId);
+      if (prev) {
+        prev.gapTextTree = [...currentTree];
+      }
+    }
+    focusedGapImageId = targetImgId;
+    const target = stagedImages.find(i => i.id === targetImgId);
+    if (target) {
+      currentTree = [...(target.gapTextTree || [])];
+      currentCursorPath = { containerPath: [], offset: currentTree.length };
+    }
+    selectedDraftImageId = null;
+    tick().then(() => textareaEl?.focus());
+  }
+
   // Vector Ink Annotation State
   let currentStrokes = $state<StrokeElement[]>([]);
   let strokeWidth = $state(2.5);
@@ -911,15 +1054,31 @@
   let strokeHistoryIndex = $state(0);
   let isStrokeUndoRedo = false;
 
+  const stagedImageStrokes = $derived(
+    currentStrokes.filter(s => s.targetContainer === 'image' || s.targetElement === 'image')
+  );
+  const draftTextStrokes = $derived(
+    currentStrokes.filter(s => s.targetContainer !== 'image' && s.targetElement !== 'image')
+  );
+
+  $effect(() => {
+    if (focusedGapImageId && stagedImages.length > 0) {
+      const cur = stagedImages.find(i => i.id === focusedGapImageId);
+      if (cur) {
+        cur.gapTextTree = currentTree;
+      }
+    }
+  });
+
   // Unsent ink drawn over existing bubbles, keyed by the target message id.
   const DRAFT_TARGET = '__draft__';
   let pendingMarks = $state<Record<string, StrokeElement[]>>({});
   let sketchUndoLog = $state<string[]>([]);
   let sketchRedoLog = $state<{ target: string; stroke?: StrokeElement }[]>([]);
   const hasPendingMarks = $derived(Object.values(pendingMarks).some((list) => list.length > 0));
-  const canSketchUndo = $derived(strokeHistoryIndex > 0 || sketchUndoLog.some((t) => t !== DRAFT_TARGET));
+  const canSketchUndo = $derived(strokeHistoryIndex > 0 || sketchUndoLog.length > 0);
   const canSketchRedo = $derived(
-    strokeHistoryIndex < strokeHistory.length - 1 || sketchRedoLog.some((e) => e.target !== DRAFT_TARGET)
+    strokeHistoryIndex < strokeHistory.length - 1 || sketchRedoLog.length > 0
   );
 
   function parseMeta(m: any): any {
@@ -970,6 +1129,87 @@
     const kept = existing.filter((s) => survivingIds.has(s.id));
     if (kept.length !== existing.length) {
       pendingMarks = { ...pendingMarks, [targetId]: kept };
+    }
+  }
+
+  function handleLayerStrokeCommitted(targetId: string, stroke: StrokeElement) {
+    if (targetId === DRAFT_TARGET || targetId === '__draft__' || targetId === 'draft') {
+      if (!currentStrokes.some(s => s.id === stroke.id)) {
+        handleStrokesChanged([...currentStrokes, stroke]);
+      }
+    } else {
+      addPendingMark(targetId, stroke);
+    }
+  }
+
+  function isStrokeHit(stroke: any, clientX: number, clientY: number, targetRect: DOMRect): boolean {
+    const pts = stroke.points || stroke.rawPoints;
+    if (!Array.isArray(pts) || pts.length === 0) return false;
+    const hitRadius = 24;
+    for (const p of pts) {
+      const pxNorm = typeof p === 'object' && !Array.isArray(p) ? (p.x ?? 0) : (Array.isArray(p) ? p[0] : 0);
+      const pyNorm = typeof p === 'object' && !Array.isArray(p) ? (p.y ?? 0) : (Array.isArray(p) ? p[1] : 0);
+      const screenX = targetRect.left + pxNorm * targetRect.width;
+      const screenY = targetRect.top + pyNorm * targetRect.height;
+      if (Math.hypot(screenX - clientX, screenY - clientY) <= hitRadius) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function handleGlobalErase(clientX: number, clientY: number) {
+    let pendingChanged = false;
+    const newPendingMarks: Record<string, StrokeElement[]> = {};
+    for (const [targetId, marks] of Object.entries(pendingMarks)) {
+      const el = document.getElementById(`msg-${targetId}`) || document.querySelector(`[data-message-id="${targetId}"]`);
+      const imgContainer = el?.querySelector<HTMLElement>('[data-image-container]');
+      const wrap = el?.querySelector<HTMLElement>('.annotatable-wrap') || el;
+      if (!imgContainer && !wrap) {
+        newPendingMarks[targetId] = marks;
+        continue;
+      }
+      const remaining = marks.filter(s => {
+        const isImage = s.targetContainer === 'image' || s.targetElement === 'image';
+        if (isImage && imgContainer) {
+          return !isStrokeHit(s, clientX, clientY, imgContainer.getBoundingClientRect());
+        }
+        if (!isImage && wrap) {
+          return !isStrokeHit(s, clientX, clientY, wrap.getBoundingClientRect());
+        }
+        if (imgContainer && isStrokeHit(s, clientX, clientY, imgContainer.getBoundingClientRect())) return false;
+        if (wrap && isStrokeHit(s, clientX, clientY, wrap.getBoundingClientRect())) return false;
+        return true;
+      });
+      if (remaining.length !== marks.length) {
+        pendingChanged = true;
+      }
+      if (remaining.length > 0) {
+        newPendingMarks[targetId] = remaining;
+      }
+    }
+    if (pendingChanged) {
+      pendingMarks = newPendingMarks;
+    }
+
+    if (currentStrokes.length > 0 && draftBubbleEl) {
+      const imgContainer = draftBubbleEl.querySelector<HTMLElement>('[data-image-container]');
+      const wrap = draftBubbleEl.querySelector<HTMLElement>('.annotatable-wrap') || draftBubbleEl;
+      const remaining = currentStrokes.filter(s => {
+        const isImage = s.targetContainer === 'image' || s.targetElement === 'image';
+        if (isImage && imgContainer) {
+          return !isStrokeHit(s, clientX, clientY, imgContainer.getBoundingClientRect());
+        }
+        if (!isImage && wrap) {
+          return !isStrokeHit(s, clientX, clientY, wrap.getBoundingClientRect());
+        }
+        if (imgContainer && isStrokeHit(s, clientX, clientY, imgContainer.getBoundingClientRect())) return false;
+        if (wrap && isStrokeHit(s, clientX, clientY, wrap.getBoundingClientRect())) return false;
+        return true;
+      });
+      if (remaining.length !== currentStrokes.length) {
+        handleStrokesChanged(remaining);
+      }
     }
   }
 
@@ -1133,23 +1373,37 @@
     handleStrokesChanged([]);
   }
 
-  let savedScrollTop = 0;
+  let canvasZoom = $state(1.0);
+  let canvasPanX = $state(0);
+  let canvasPanY = $state(0);
+  let isPinching = $state(false);
+
+  let lockedSketchScrollTop: number | null = null;
+
+  function handleCanvasTransform(scale: number, panX: number, panY: number, pinching: boolean) {
+    canvasZoom = scale;
+    canvasPanX = panX;
+    canvasPanY = panY;
+    isPinching = pinching;
+  }
 
   function toggleSketchMode() {
+    const savedScroll = messagesContainer ? messagesContainer.scrollTop : 0;
     isSketchMode = !isSketchMode;
+    cancelScrollAnim();
     if (isSketchMode) {
-      if (messagesContainer) {
-        savedScrollTop = messagesContainer.scrollTop;
-      }
+      lockedSketchScrollTop = savedScroll;
       showFormattingPanel = false;
       showContextMenu = false;
-      if (document.activeElement && typeof (document.activeElement as HTMLElement).blur === 'function') {
-        (document.activeElement as HTMLElement).blur();
+      if (messagesContainer) {
+        messagesContainer.scrollTop = savedScroll;
       }
     } else {
-      if (messagesContainer && savedScrollTop > 0) {
-        messagesContainer.scrollTop = savedScrollTop;
-      }
+      lockedSketchScrollTop = null;
+      canvasZoom = 1.0;
+      canvasPanX = 0;
+      canvasPanY = 0;
+      isPinching = false;
     }
   }
 
@@ -1541,6 +1795,9 @@
   let swipeDistance = $state(0);
   let swipeDirection = $state<'left' | 'right' | null>(null);
   let startX = 0;
+  let startY = 0;
+  let isVerticalScroll = false;
+  let isGestureConfirmed = false;
 
   // Undo state
   let lastDeletedMessage = $state<any>(null);
@@ -1582,6 +1839,9 @@
     lastTapTime = currentTime;
 
     startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isVerticalScroll = false;
+    isGestureConfirmed = false;
     swipeDirection = null;
     swipeDistance = 0;
     if (type === 'pin') {
@@ -1604,27 +1864,53 @@
 
   function handleTouchMove(e: TouchEvent) {
     if (!swipingMessageId && !swipingPinnedId && !swipingAllPins && !swipingUndo) return;
+    if (isVerticalScroll) return;
+
     const currentX = e.touches[0].clientX;
-    const diff = currentX - startX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - startX;
+    const diffY = currentY - startY;
+    const absX = Math.abs(diffX);
+    const absY = Math.abs(diffY);
     
-    // Message/Pin swiping
+    // Message swiping with strict anti-wobble and 30px resistance threshold
     if (swipingMessageId) {
-      if (Math.abs(diff) > 5) {
-        swipeDirection = diff < 0 ? 'left' : 'right';
-        swipeDistance = Math.min(Math.abs(diff), 120);
-        if (swipeDistance > 10) clearTimeout(pressTimer);
+      if (!isGestureConfirmed) {
+        // If movement is predominantly vertical, lock out swiping to allow natural smooth scrolling
+        if (absY > absX && absY > 8) {
+          isVerticalScroll = true;
+          swipingMessageId = null;
+          swipeDistance = 0;
+          swipeDirection = null;
+          return;
+        }
+
+        // 30px initial resistance threshold: card stays completely stationary
+        if (absX < 30) {
+          swipeDistance = 0;
+          return;
+        }
+
+        // Horizontal gesture confirmed past threshold
+        isGestureConfirmed = true;
+        clearTimeout(pressTimer);
       }
+
+      // Card only translates horizontally after crossing the 30px threshold
+      const effectiveDiff = absX - 30;
+      swipeDirection = diffX < 0 ? 'left' : 'right';
+      swipeDistance = Math.min(effectiveDiff * 1.15, 120);
     } else if (swipingPinnedId || swipingAllPins) {
-      if (diff < 0) {
+      if (diffX < 0) {
         swipeDirection = 'left';
-        swipeDistance = Math.min(Math.abs(diff), 120);
+        swipeDistance = Math.min(absX, 120);
       }
     } 
     // Undo swiping (Right swipe = positive diff)
     else if (swipingUndo) {
-      if (diff > 0) {
+      if (diffX > 0) {
         swipeDirection = 'right';
-        swipeDistance = Math.min(diff, 120);
+        swipeDistance = Math.min(diffX, 120);
       }
     }
   }
@@ -1639,18 +1925,18 @@
     const dir = swipeDirection;
 
     // Left swipe actions (Delete/Unpin)
-    if (dist > 40 && dir === 'left' && (msgId || pinId || isAll)) {
+    if (dir === 'left' && (msgId || pinId || isAll)) {
       if (msgId) {
-        if (dist > 70) await handleDelete(msgId);
-      } else if (pinId) {
+        if (dist >= 50) await handleDelete(msgId);
+      } else if (pinId && dist > 40) {
         await handlePin(pinId);
-      } else if (isAll) {
+      } else if (isAll && dist > 40) {
         await handleClearAllPins();
       }
     }
     // Right swipe actions (Undo/Reply)
-    else if (dist > 50 && dir === 'right') {
-      if (msgId) {
+    else if (dir === 'right') {
+      if (msgId && dist >= 45) {
         const msgObject = messages.find(m => m.id === msgId);
         if (msgObject) {
           setReplyingTo(msgObject);
@@ -1667,6 +1953,8 @@
     swipingUndo = false;
     swipeDistance = 0;
     swipeDirection = null;
+    isVerticalScroll = false;
+    isGestureConfirmed = false;
   }
 
   async function handleDelete(id: string) {
@@ -1735,28 +2023,43 @@
 
 
   let isInitialLoad = true;
-  let showScrollDown = $state(false);
-  let unreadCountBelow = $state(0);
 
   // Optimized scroll handler to reduce CPU usage
   let scrollTimeout: any;
   const handleScroll = (e: any) => {
+    lastScrollTimestamp = Date.now();
+    if (touchGestureType === 'undetermined') {
+      touchGestureType = 'scroll';
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
     const el = e.target;
     
-    // Throttle scroll logic
+    if (isSketchMode && lockedSketchScrollTop !== null && messagesContainer) {
+      if (messagesContainer.scrollTop !== lockedSketchScrollTop) {
+        messagesContainer.scrollTop = lockedSketchScrollTop;
+      }
+      return;
+    }
+
+    // Responsive scroll logic with low-latency throttle
     if (scrollTimeout) return;
     scrollTimeout = setTimeout(() => {
       scrollTimeout = null;
-      const threshold = 150;
+      const threshold = 100;
       const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       
-      const wasNearBottom = isNearBottom;
       isNearBottom = distanceToBottom < threshold;
       
       if (isNearBottom) {
         showNewMsgBtn = false;
+        unreadCountBelow = 0;
+      } else {
+        showNewMsgBtn = true;
       }
-    }, 100);
+    }, 50);
   };
 
   // Handle Case where conversationId prop changes OR on initial mount
@@ -1765,6 +2068,12 @@
     if (conversationId && conversationId !== lastProcessedProp) {
         lastProcessedProp = conversationId;
         isInitialScrollDone = false;
+        showNewMsgBtn = false;
+        unreadCountBelow = 0;
+        stagedImages = [];
+        selectedDraftImageId = null;
+        lastSelectedDraftImageId = null;
+        focusedGapImageId = null;
         
         // Fast-path: check in-memory cache first for instant 0ms render
         const memCached = messagingService.getCachedMessages(conversationId);
@@ -2113,23 +2422,7 @@
     if (showMathKeyboard) hideSystemKeyboard();
   });
 
-  // Deactivate scroll on messagesContainer when annotation tool (isSketchMode) is active
-  $effect(() => {
-    if (!messagesContainer) return;
-    const preventScroll = (e: Event) => {
-      if (isSketchMode) {
-        e.preventDefault();
-      }
-    };
-    if (isSketchMode) {
-      messagesContainer.addEventListener('wheel', preventScroll, { passive: false });
-      messagesContainer.addEventListener('touchmove', preventScroll, { passive: false });
-    }
-    return () => {
-      messagesContainer?.removeEventListener('wheel', preventScroll);
-      messagesContainer?.removeEventListener('touchmove', preventScroll);
-    };
-  });
+
 
   onDestroy(() => {
     document.removeEventListener('focusin', lockNativeKeyboard, true);
@@ -2163,6 +2456,7 @@
   };
 
   const snappyScrollTo = (element: HTMLElement, targetTop: number, isInstant = false) => {
+    if (isSketchMode) return;
     cancelScrollAnim();
 
     if (isInstant) {
@@ -2202,6 +2496,7 @@
   };
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', forceBottom = false) => {
+    if (isSketchMode) return;
     tick().then(() => {
       if (messagesContainer) {
         const isInstant = behavior === 'instant' || forceBottom;
@@ -2221,11 +2516,17 @@
            
            snappyScrollTo(messagesContainer, Math.max(0, targetScroll), isInstant);
         } else {
-           cancelScrollAnim();
-           messagesContainer.scrollTop = messagesContainer.scrollHeight;
+           if (isInstant) {
+             cancelScrollAnim();
+             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+           } else {
+             const targetScroll = Math.max(0, messagesContainer.scrollHeight - messagesContainer.clientHeight);
+             snappyScrollTo(messagesContainer, targetScroll, false);
+           }
         }
       }
       showNewMsgBtn = false;
+      unreadCountBelow = 0;
     });
   };
 
@@ -2270,7 +2571,7 @@
     const draftStrokes = Array.isArray(currentStrokes) ? currentStrokes : [];
     const targetStrokes: StrokeElement[] = JSON.parse(JSON.stringify(Object.values(pendingMarks).flat()));
     const strokesToSend = JSON.parse(JSON.stringify(draftStrokes));
-    if (!msg.trim() && !sketchUrl && strokesToSend.length === 0 && targetStrokes.length === 0 && currentTree.length === 0) return;
+    if (!msg.trim() && !sketchUrl && strokesToSend.length === 0 && targetStrokes.length === 0 && currentTree.length === 0 && stagedImages.length === 0) return;
     const textToSend = msg.trim();
     
     // Generate stable UUID for the message - this will be the canonical ID
@@ -2289,6 +2590,75 @@
     
     // Send typing indicator first
     messagingService.sendTypingIndicator(activeConversationId, false);
+
+    // Handle sending staged images with captions in the gaps below
+    if (stagedImages.length > 0) {
+      if (focusedGapImageId) {
+        const cur = stagedImages.find(i => i.id === focusedGapImageId);
+        if (cur) cur.gapTextTree = [...currentTree];
+      }
+
+      const imagesToUpload = stagedImages.map(img => img.file);
+      const sections = stagedImages.map((img, idx) => ({
+        imageIndex: idx,
+        text: serializeTree(img.gapTextTree),
+        nodes: img.gapTextTree
+      }));
+      const combinedCaption = sections
+        .map(s => s.text.trim())
+        .filter(Boolean)
+        .join('\n\n') || textToSend;
+
+      stagedImages = [];
+      selectedDraftImageId = null;
+      lastSelectedDraftImageId = null;
+      focusedGapImageId = null;
+
+      let mathMetaToSend: any = undefined;
+      if (strokesToSend.length > 0 || targetStrokes.length > 0 || (Array.isArray(treeToClear) && treeToClear.length > 0)) {
+        mathMetaToSend = {
+          ...(strokesToSend.length > 0 ? { strokes: strokesToSend } : {}),
+          ...(targetStrokes.length > 0 ? { annotations: targetStrokes } : {}),
+          ...(Array.isArray(treeToClear) && treeToClear.length > 0 ? { nodes: treeToClear } : {})
+        };
+      }
+
+      // Clear draft state and exit typing mode IMMEDIATELY for instant UX
+      currentTree = [];
+      currentCursorPath = { containerPath: [], offset: 0 };
+      currentStrokes = [];
+      resetSketchState();
+      strokeHistory = [[]];
+      strokeHistoryIndex = 0;
+      isSketchMode = false;
+      isEraser = false;
+      showFormattingPanel = false;
+      showContextMenu = false;
+      msgHistory = [''];
+      historyIndex = 0;
+      showMathKeyboard = false;
+
+      cancelScrollAnim();
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      try {
+        await messagingService.sendImageMessage(
+          conversationIdForSend, 
+          imagesToUpload, 
+          combinedCaption, 
+          mathMetaToSend,
+          sections
+        );
+        ensureRealConversationId();
+        pendingMarks = {};
+      } catch (err: any) {
+        console.error('Image message send failed:', err);
+        triggerNotification("Send Failed", { body: err.message || "Could not send image message", type: 'error' });
+      }
+      return;
+    }
 
     // Sandbox Call Demo Interceptors
     if (textToSend === '/incoming' || textToSend === '/call') {
@@ -2739,14 +3109,79 @@
     const input = e.target as HTMLInputElement;
     if (!input.files?.length) return;
     
-    const file = input.files[0];
-    try {
-      await messagingService.sendImageMessage(activeConversationId, file);
-      ensureRealConversationId();
-    } catch (err: any) {
-      console.error('Image upload failed:', err);
-      triggerNotification("Upload Failed", { body: err.message || "Could not upload image", type: 'error' });
+    const files = Array.from(input.files);
+    for (const file of files) {
+      try {
+        const url = URL.createObjectURL(file);
+        let dominantColor = '#e2e8f0';
+        try {
+          const { getAverageColor } = await import('../utils/dominantColor');
+          dominantColor = await getAverageColor(file);
+        } catch (err) {}
+
+        const newImageItem: StagedDraftImage = {
+          id: `draft_img_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file,
+          url,
+          dominantColor,
+          name: file.name,
+          gapTextTree: []
+        };
+
+        // 1. If a user selects an image, inserting another one swaps out the selection!
+        if (selectedDraftImageId) {
+          const selIdx = stagedImages.findIndex(img => img.id === selectedDraftImageId);
+          if (selIdx !== -1) {
+            // Respect the text in the gap below the swapped image!
+            newImageItem.gapTextTree = stagedImages[selIdx].gapTextTree;
+            stagedImages[selIdx] = newImageItem;
+            selectedDraftImageId = newImageItem.id;
+            lastSelectedDraftImageId = newImageItem.id;
+            focusedGapImageId = newImageItem.id;
+          } else {
+            stagedImages = [...stagedImages, newImageItem];
+            selectedDraftImageId = newImageItem.id;
+            lastSelectedDraftImageId = newImageItem.id;
+            focusedGapImageId = newImageItem.id;
+          }
+        } else {
+          // 2. But without selection another image gets inserted below the current selection still respecting the text between the gaps!
+          if (stagedImages.length === 0) {
+            // First image being inserted: existing text in draft becomes gap 1 below it
+            newImageItem.gapTextTree = [...currentTree];
+            stagedImages = [newImageItem];
+            lastSelectedDraftImageId = newImageItem.id;
+            focusedGapImageId = newImageItem.id;
+          } else {
+            // Find insertion position below the last selected/current image (or at the end)
+            const targetIdx = lastSelectedDraftImageId
+              ? stagedImages.findIndex(img => img.id === lastSelectedDraftImageId)
+              : stagedImages.length - 1;
+
+            const insertIdx = targetIdx !== -1 ? targetIdx + 1 : stagedImages.length;
+            const updatedList = [...stagedImages];
+            updatedList.splice(insertIdx, 0, newImageItem);
+            stagedImages = updatedList;
+            lastSelectedDraftImageId = newImageItem.id;
+            focusedGapImageId = newImageItem.id;
+            // Clear current editor for the new gap below this inserted image
+            currentTree = [];
+            currentCursorPath = { containerPath: [], offset: 0 };
+          }
+        }
+
+        showMathKeyboard = true;
+        hasSeenTypingInstructions = true;
+        tick().then(() => {
+          textareaEl?.focus();
+          scrollToBottom('smooth');
+        });
+      } catch (err: any) {
+        console.error('Image staging failed:', err);
+        triggerNotification("Upload Failed", { body: err.message || "Could not stage image", type: 'error' });
+      }
     }
+    input.value = '';
   };
 
   const openProfileLightbox = async () => {
@@ -3141,6 +3576,7 @@
         ontouchstart={(e) => handleTouchStart(e, 'all', 'all')}
         ontouchmove={handleTouchMove}
         ontouchend={handleTouchEnd}
+        ontouchcancel={handleTouchEnd}
         onkeydown={(e) => { if(e.key === 'Enter') showPinnedList = !showPinnedList }}
       >
         <!-- Swipe indicator for all pins -->
@@ -3204,6 +3640,7 @@
               ontouchstart={(e) => handleTouchStart(e, pm.id, 'pin')}
               ontouchmove={handleTouchMove}
               ontouchend={handleTouchEnd}
+              ontouchcancel={handleTouchEnd}
               onkeydown={(e) => { if(e.key === 'Enter') scrollToMessage(pm.id) }}
             >
               <!-- Unpin Indicator background -->
@@ -3244,25 +3681,22 @@
     </div>
     {/if}
 
-    {#if isSketchMode}
-      <div class="absolute top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-auto">
-        <div class="px-3.5 py-1.5 bg-[#00274d]/95 backdrop-blur-md rounded-full text-[11px] font-semibold text-white shadow-xl border border-white/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-          <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-          <span>Annotation Active • Canvas locked for drawing</span>
-          <button 
-            type="button" 
-            onclick={toggleSketchMode} 
-            class="ml-1 text-[10px] uppercase font-bold text-orange-300 hover:text-white underline cursor-pointer"
-          >
-            Done
-          </button>
-        </div>
-      </div>
-    {/if}
+    <!-- Full-Screen Interactive Annotation Layer -->
+    <ChatAnnotationLayer
+      isActive={isSketchMode}
+      {isEraser}
+      activeColor={textColors[activeTextColorIndex].displayColor}
+      {strokeWidth}
+      containerEl={messagesContainer}
+      onStrokeCommitted={handleLayerStrokeCommitted}
+      onErase={handleGlobalErase}
+      onCanvasTransform={handleCanvasTransform}
+      zoomScale={canvasZoom}
+    />
 
     <div 
       bind:this={messagesContainer} 
-      onscroll={(e) => { if (isSketchMode) return; handleScroll(e); }}
+      onscroll={handleScroll}
       ondblclick={() => { 
         if (isSketchMode) return;
         if (Date.now() - lastTouchDblTapTime < 800) return;
@@ -3279,12 +3713,29 @@
         }
       }}
       data-math-canvas-open={isMathCanvasOpen}
-      class="flex-1 {isSketchMode ? 'overflow-hidden touch-none select-none overscroll-none' : 'overflow-y-auto'} px-5 pt-6 {showMathKeyboard ? 'pb-[360px]' : 'pb-40'} space-y-8 relative"
-      style="{isSketchMode ? 'touch-action: none; overflow-y: hidden; overscroll-behavior: none;' : ''} background-image: linear-gradient(90deg, transparent 44px, rgba(254, 188, 167, 0.5) 44px, rgba(254, 188, 167, 0.5) 45px, transparent 45px), repeating-linear-gradient(transparent 0px, transparent calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) var(--chat-line-height, 1.75rem)); background-color: var(--color-theme-card); background-size: 100% var(--chat-line-height, 1.75rem); background-attachment: local;"
-      ontouchstart={(e) => { if (isSketchMode) return; if (!swipingMessageId && !swipingPinnedId) handleTouchStart(e, 'undo', 'undo'); }}
-      ontouchmove={(e) => { if (isSketchMode) { e.preventDefault(); return; } handleTouchMove(e); }}
-      ontouchend={(e) => { if (isSketchMode) return; handleTouchEnd(); }}
+      class="flex-1 overflow-y-auto px-5 pt-6 {showMathKeyboard ? 'pb-[360px]' : 'pb-40'} relative"
+      style="scrollbar-gutter: stable; {isSketchMode ? 'touch-action: none; overscroll-behavior: none;' : ''} background-image: linear-gradient(90deg, transparent 44px, rgba(254, 188, 167, 0.5) 44px, rgba(254, 188, 167, 0.5) 45px, transparent 45px), repeating-linear-gradient(transparent 0px, transparent calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) calc(var(--chat-line-height, 1.75rem) - 1px), rgba(226, 232, 240, 0.5) var(--chat-line-height, 1.75rem)); background-color: var(--color-theme-card); background-size: 100% var(--chat-line-height, 1.75rem); background-attachment: local;"
+      ontouchstart={(e) => { 
+        if (isSketchMode) return; 
+        if (!swipingMessageId && !swipingPinnedId) handleTouchStart(e, 'undo', 'undo'); 
+      }}
+      ontouchmove={(e) => { 
+        if (isSketchMode) return; 
+        handleTouchMove(e); 
+      }}
+      ontouchend={(e) => { 
+        if (isSketchMode) return; 
+        handleTouchEnd(); 
+      }}
+      ontouchcancel={(e) => { 
+        if (isSketchMode) return; 
+        handleTouchEnd(); 
+      }}
     >
+      <div 
+        class="canvas-stage w-full min-h-full space-y-8 origin-top-left"
+        style="transform: translate({canvasPanX}px, {canvasPanY}px) scale({canvasZoom}); transform-origin: 0 0; transition: {isPinching ? 'none' : 'transform 0.15s ease-out'}; will-change: transform;"
+      >
       {#if isLoading && messages.length === 0}
         <div class="flex-1 flex flex-col items-center justify-center pt-32 gap-6">
            <div class="relative">
@@ -3380,7 +3831,7 @@
                  <path d="M0,4 Q25,3.85 50,4 T100,4" fill="none" class="stroke-[#253b70] dark:stroke-[#5b7290]" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
                </svg>
              </div>
-             <span class="text-[14px] text-[#253b70] dark:text-[#5b7290] tracking-normal px-0 bg-transparent flex items-center mb-1 font-medium" style="font-family: 'Kalam', 'Caveat', 'Comic Sans MS', cursive;">
+             <span class="text-[14px] text-[#253b70] dark:text-[#5b7290] tracking-normal px-0 bg-transparent flex items-center mb-1 font-medium" style="font-family: 'Kalam', cursive;">
                {dateStr}
              </span>
              <div class="flex-1 max-w-[120px] mr-auto">
@@ -3412,11 +3863,13 @@
           data-message-id={m.id}
           use:readOnVisible={m}
           class={`flex flex-col w-full group transition-all duration-500 rounded-2xl relative overflow-visible items-start ${highlightedMessageId === m.id ? 'bg-orange-500/15 ring-2 ring-orange-500/30 scale-[1.02] shadow-md z-10 duration-200' : ''}`}
-          style={isSketchMode ? 'touch-action: none;' : undefined}
-          onpointerdown={(e) => { if (isSketchMode) annotatableRefs[m.id]?.beginStroke(e); }}
-          ontouchstart={(e) => { if (isSketchMode) return; handleTouchStart(e, m.id, 'msg'); }}
+          ontouchstart={(e) => { 
+            if (isSketchMode) return; 
+            handleTouchStart(e, m.id, 'msg'); 
+          }}
           ontouchmove={(e) => { if (isSketchMode) return; handleTouchMove(e); }}
           ontouchend={(e) => { if (isSketchMode) return; handleTouchEnd(); }}
+          ontouchcancel={(e) => { if (isSketchMode) return; handleTouchEnd(); }}
           oncontextmenu={(e) => { e.preventDefault(); handlePin(m.id); }}
           use:markRead={{ messageId: m.id, myUserId: currentUserId, senderId: m.senderId ?? m.sender_id, disabled: isMathCanvasOpen }}
         >
@@ -3456,9 +3909,10 @@
                  {@const videoStrokes = getResolvedStrokes(m)}
                  {@render replyBox(m)}
                  <div 
+                   data-image-container={m.id}
                    class="w-full aspect-video relative cursor-pointer group/video overflow-hidden border-l-2 border-dashed border-ink/20 rotate-[-1deg] transition-all hover:scale-[1.01]"
                    style="clip-path: {getTornClipPath(m.id)}; filter: drop-shadow(0px 2px 4px rgba(10, 29, 51, 0.03)) drop-shadow(0px 8px 16px rgba(10, 29, 51, 0.06)); background-color: {getFallbackColor(m.id)};"
-                   onclick={() => zoomedImageId = m.id}
+                   onclick={() => { if (!isSketchMode) zoomedImageId = m.id; }}
                  >
                     <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1.5 w-16 h-4 bg-yellow-100/60 rotate-[-3deg] border-x border-dashed border-yellow-200/50 backdrop-blur-[0.5px] shadow-sm z-20"></div>
                     {#if videoAttachment.thumbnail}
@@ -3491,24 +3945,63 @@
                     </div>
                   </div>
               {:else if msgType === 'image'}
-                 {@const imgAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'image')}
+                 {@const imgAttachments = m.attachments?.filter((a: any) => typeof a === 'object' && a.type === 'image') || []}
+                 {@const primaryAttachment = imgAttachments[0] || (typeof m.attachments?.[0] === 'object' ? m.attachments[0] : null)}
                  {@const imageStrokes = getResolvedStrokes(m)}
+                 {@const receivedMarks = receivedMarksByTarget[m.id] ?? []}
+                 {@const draftMarks = pendingMarks[m.id] ?? []}
+                 {@const allMarks = [...(imageStrokes || []), ...receivedMarks, ...draftMarks]}
+                 {@const imageStrokesForCard = allMarks.filter(s => s.targetContainer === 'image' || s.targetElement === 'image' || (!s.targetContainer && !displayContent))}
+                 {@const textStrokesForCard = allMarks.filter(s => s.targetContainer === 'text' || s.targetElement === 'text' || (!s.targetContainer && displayContent))}
                  {@render replyBox(m)}
-                 {#if imgAttachment}
+                 {#if imgAttachments.length > 0}
+                    <div class="flex flex-col gap-3 w-full items-start">
+                       {#each imgAttachments as att, imgIdx (att.fileId || att.url || imgIdx)}
+                          <div 
+                            data-image-container={m.id}
+                            class="relative max-w-full inline-block group/img overflow-hidden rounded-none cursor-pointer transition-transform hover:scale-[1.005] bg-transparent border-0 shadow-none"
+                            style="background: transparent; border: none; box-shadow: none; border-radius: 0;"
+                            onclick={() => { if (!isSketchMode) zoomedImageId = m.id; }}
+                          >
+                             <img 
+                               src={att.url} 
+                               alt={att.name || 'attached'} 
+                               class="w-auto max-w-full h-auto max-h-[520px] object-contain rounded-none block border-0 shadow-none transition-opacity duration-500 {loadedImages[`${m.id}_${imgIdx}`] || loadedImages[m.id] ? 'opacity-100' : 'opacity-0'}" 
+                               style="aspect-ratio: auto; max-width: 100%; height: auto; border-radius: 0;"
+                               onload={() => { loadedImages[`${m.id}_${imgIdx}`] = true; loadedImages[m.id] = true; }}
+                             />
+                             {#if imgIdx === 0 && imageStrokesForCard && imageStrokesForCard.length > 0}
+                                <InkOverlay strokes={imageStrokesForCard} {isMe} />
+                             {/if}
+                             {#if imgIdx === imgAttachments.length - 1}
+                                <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
+                                   <div class="flex items-center gap-[10px]">
+                                      <span>{new Date((m.createdAt ?? m.created_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                      {#if isMe}{@render statusTicks(m, 'text-white/80', 'text-white')}{/if}
+                                   </div>
+                                   <button onclick={(e) => { e.stopPropagation(); setReplyingTo(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Reply"><CornerUpLeft size={12} /></button>
+                                   <button onclick={(e) => { e.stopPropagation(); handleShare(m); }} class="text-white/80 hover:text-white bg-transparent border-none cursor-pointer" title="Share"><Share size={12} /></button>
+                                </div>
+                             {/if}
+                          </div>
+                       {/each}
+                    </div>
+                 {:else if primaryAttachment}
                     <div 
-                      class="w-full aspect-[16/10] relative cursor-pointer group/img overflow-hidden border-l-2 border-dashed border-ink/20 rotate-[1deg] transition-all hover:scale-[1.01]"
-                      style="clip-path: {getTornClipPath(m.id)}; filter: drop-shadow(0px 2px 4px rgba(10, 29, 51, 0.03)) drop-shadow(0px 8px 16px rgba(10, 29, 51, 0.06)); background-color: {imgAttachment.dominantColor || getFallbackColor(m.id)};"
-                      onclick={() => zoomedImageId = m.id}
+                      data-image-container={m.id}
+                      class="relative max-w-full inline-block group/img overflow-hidden rounded-none cursor-pointer transition-transform hover:scale-[1.005] bg-transparent border-0 shadow-none"
+                      style="background: transparent; border: none; box-shadow: none; border-radius: 0;"
+                      onclick={() => { if (!isSketchMode) zoomedImageId = m.id; }}
                     >
-                       <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1.5 w-16 h-4 bg-yellow-100/60 rotate-[2deg] border-x border-dashed border-yellow-200/50 backdrop-blur-[0.5px] shadow-sm z-20"></div>
                        <img 
-                         src={imgAttachment.url} 
+                         src={primaryAttachment.url} 
                          alt="attached" 
-                         class="w-full h-full object-cover transition-opacity duration-500 {loadedImages[m.id] ? 'opacity-100' : 'opacity-0'}" 
+                         class="w-auto max-w-full h-auto max-h-[520px] object-contain rounded-none block border-0 shadow-none transition-opacity duration-500 {loadedImages[m.id] ? 'opacity-100' : 'opacity-0'}" 
+                         style="aspect-ratio: auto; max-width: 100%; height: auto; border-radius: 0;"
                          onload={() => loadedImages[m.id] = true}
                        />
-                       {#if imageStrokes && imageStrokes.length > 0}
-                          <InkOverlay strokes={imageStrokes} {isMe} />
+                       {#if imageStrokesForCard && imageStrokesForCard.length > 0}
+                          <InkOverlay strokes={imageStrokesForCard} {isMe} />
                        {/if}
                        <div class="absolute bottom-3 right-3 text-[10px] font-bold text-white/90 drop-shadow-md flex items-center gap-2">
                           <div class="flex items-center gap-[10px]">
@@ -3523,12 +4016,26 @@
                  {#if displayContent}
                     <div class="mt-2 w-full transition-all">
                        {@render replyBox(m)}
-                       <p 
-                         class={`m-0 break-words whitespace-pre-wrap font-chat tracking-normal w-full font-bold ${isMe ? 'text-[#1d4ed8] text-left' : 'text-slate-600 text-left'}`}
-                         style="font-size: var(--chat-font-size, 1.0625rem); line-height: var(--chat-line-height, 1.75rem);"
-                       >
-                         <StaticMathRenderer nodes={deserializeTree(displayContent)} {isMe} />
-                       </p>
+                       <div class="relative w-full inline-block">
+                         <AnnotatableText
+                           text={displayContent}
+                           nodes={m.mathMeta?.nodes || null}
+                           annotations={textStrokesForCard}
+                           readonly={!isSketchMode}
+                           {isSketchMode}
+                           {isEraser}
+                           activeColor={textColors[activeTextColorIndex].displayColor}
+                           activeWidth={strokeWidth}
+                           onAnnotationCreate={(stroke) => addPendingMark(m.id, { ...stroke, targetContainer: 'text', targetElement: 'text' })}
+                           onStrokesChanged={(survivors) => handleMarkStrokesChanged(m.id, [...imageStrokesForCard, ...survivors])}
+                           {isMe}
+                           textColor={textStyleColor}
+                           isBold={isMsgBold}
+                           isItalic={isMsgItalic}
+                           isUnderlined={isMsgUnderlined}
+                           fontFamily={activeFontFamily}
+                         />
+                       </div>
                        <div class="flex items-center gap-2 mt-0.5 select-none w-full justify-start">
                           <div class="flex items-center gap-[10px]">
                              <span class={`text-[9px] font-mono font-extrabold uppercase tracking-wider ${isMe ? 'text-blue-800/50' : 'text-slate-400'}`}>
@@ -3569,9 +4076,10 @@
                   {@render replyBox(m)}
                   {#if m.mathMeta}
                      <div 
+                        data-image-container={m.id}
                         class="w-full aspect-[16/10] relative overflow-hidden cursor-pointer group/mathcanvas bg-theme-card p-3 border-l-2 border-dashed border-ink/20"
                         style="clip-path: {getTornClipPath(m.id)}; filter: drop-shadow(0px 2px 4px rgba(10, 29, 51, 0.03)) drop-shadow(0px 8px 16px rgba(10, 29, 51, 0.06));"
-                        onclick={() => openCanvas(m)}
+                        onclick={() => { if (!isSketchMode) openCanvas(m); }}
                         role="button"
                         tabindex="0"
                         onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCanvas(m); } }}
@@ -3611,38 +4119,46 @@
                  {@const resolvedStrokes = getResolvedStrokes(m)}
                  {@const receivedMarks = receivedMarksByTarget[m.id] ?? []}
                  {@const draftMarks = pendingMarks[m.id] ?? []}
-                 {@const annBounds = getAnnotationBounds([...resolvedStrokes, ...receivedMarks, ...draftMarks])}
+                 {@const allMarks = [...(resolvedStrokes || []), ...receivedMarks, ...draftMarks]}
+                 {@const imageMarks = allMarks.filter(s => s.targetContainer === 'image' || s.targetElement === 'image')}
+                 {@const textMarks = allMarks.filter(s => s.targetContainer !== 'image' && s.targetElement !== 'image')}
+                 {@const annBounds = getAnnotationBounds(allMarks)}
                  {@const sketchAttachment = m.attachments?.find((a: any) => typeof a === 'object' && a.type === 'math_sketch')}
-                 <div class="w-full transition-all relative" style={annBounds.extraBottomPadding > 0 ? `padding-bottom: ${annBounds.extraBottomPadding}px;` : ''}>
+                 <div class="w-full relative" style={annBounds.extraBottomPadding > 0 ? `padding-bottom: ${annBounds.extraBottomPadding}px;` : ''}>
                     {@render replyBox(m)}
                     {#if sketchAttachment}
                        <div 
-                         class="w-full text-left p-1.5 overflow-hidden relative block rounded-xl transition-all mb-2 cursor-pointer"
-                         style="background-color: {getFallbackColor(m.id)};"
-                         onclick={() => zoomedImageId = m.id}
+                         data-image-container={m.id}
+                         class="w-full text-left p-0 overflow-hidden relative block rounded-none transition-all mb-2 cursor-pointer bg-transparent border-0 shadow-none"
+                         style="background: transparent; border: none; box-shadow: none; border-radius: 0;"
+                         onclick={() => { if (!isSketchMode) zoomedImageId = m.id; }}
                        >
                           <img 
                             src={sketchAttachment.url} 
                             alt="Math Sketch" 
-                            class="w-full h-auto aspect-[16/10] object-contain transition-opacity duration-500 {loadedImages[m.id + '_sketch'] ? 'opacity-100' : 'opacity-0'}" 
+                            class="w-auto max-w-full h-auto max-h-[520px] object-contain rounded-none block border-0 shadow-none transition-opacity duration-500 {loadedImages[m.id + '_sketch'] ? 'opacity-100' : 'opacity-0'}" 
+                            style="aspect-ratio: auto; max-width: 100%; height: auto; border-radius: 0;"
                             onload={() => loadedImages[m.id + '_sketch'] = true}
                           />
+                          {#if imageMarks.length > 0}
+                             <InkOverlay strokes={imageMarks} {isMe} />
+                          {/if}
                        </div>
                     {/if}
-                    <div class="relative w-full inline-block {(!displayContent && resolvedStrokes && resolvedStrokes.length > 0) ? 'min-h-[140px]' : (isSketchMode ? 'min-h-[64px]' : '')}">
+                    <div class="relative w-full inline-block {(!displayContent && textMarks && textMarks.length > 0) ? 'min-h-[140px]' : ''}">
                       <AnnotatableText
                         text={displayContent}
                         nodes={m.mathMeta?.nodes || null}
-                        annotations={[...resolvedStrokes, ...receivedMarks]}
-                        strokes={draftMarks}
+                        annotations={textMarks}
+                        strokes={[]}
                         readonly={!isSketchMode}
                         {isSketchMode}
                         {isEraser}
                         bind:this={annotatableRefs[m.id]}
                         activeColor={textColors[activeTextColorIndex].displayColor}
                         activeWidth={strokeWidth}
-                        onAnnotationCreate={(stroke) => addPendingMark(m.id, stroke)}
-                        onStrokesChanged={(survivors) => handleMarkStrokesChanged(m.id, survivors)}
+                        onAnnotationCreate={(stroke) => addPendingMark(m.id, { ...stroke, targetContainer: 'text', targetElement: 'text' })}
+                        onStrokesChanged={(survivors) => handleMarkStrokesChanged(m.id, [...imageMarks, ...survivors])}
                         {isMe}
                         textColor={textStyleColor}
                         isBold={isMsgBold}
@@ -3706,53 +4222,184 @@
       {/if}
 
       <!-- Draft Editable Bubble -->
-      {#if showMathKeyboard || msg.trim().length > 0 || isSketchMode || currentStrokes.length > 0}
+      {#if showMathKeyboard || msg.trim().length > 0 || isSketchMode || currentStrokes.length > 0 || stagedImages.length > 0}
         {@const draftBounds = getAnnotationBounds(currentStrokes)}
-        <div bind:this={draftBubbleEl} data-draft-id={cachedDraftId ?? undefined} oncontextmenu={handleContextMenu}
+        <div bind:this={draftBubbleEl} data-draft-id="draft" oncontextmenu={handleContextMenu}
                       onpointerdown={!isSketchMode ? handlePointerDown : undefined} 
-                      style={isSketchMode ? 'touch-action: none;' : undefined}
                       class="flex flex-col w-full items-start group relative overflow-visible transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
           <div class="flex items-start transition-transform duration-100 w-full pl-[27px] pr-4">
              <div class="flex-1 relative flex flex-col items-start min-w-0 w-full">
-                <div class="w-full transition-all relative {isSketchMode ? 'min-h-[72px]' : ''}" style={draftBounds.extraBottomPadding > 0 ? `padding-bottom: ${draftBounds.extraBottomPadding}px;` : ''}>
-                    <AnnotatableText
-                      isEditor={true}
-                      nodes={currentTree}
-                      annotations={currentStrokes}
-                      readonly={false}
-                      {isSketchMode}
-                      {isEraser}
-                      activeColor={textColors[activeTextColorIndex].displayColor}
-                      activeWidth={strokeWidth}
-                      textColor={textColors[activeTextColorIndex].displayColor}
-                      {isBold}
-                      {isItalic}
-                      {isUnderlined}
-                      fontFamily={activeFontFamily}
-                      {currentCursorPath}
-                      {selectedNodeIds}
-                      bind:textareaEl
-                      onAnnotationCreate={(newAnn) => {
-                        if (!currentStrokes.some(s => s.id === newAnn.id)) {
-                          currentStrokes = [...currentStrokes, newAnn];
-                        }
-                      }}
-                      onStrokesChanged={handleStrokesChanged}
-                      oncopy={handleCopy}
-                      oncut={handleCut}
-                      onpaste={handlePaste}
-                      onkeydown={(e) => {
-                        if (isSketchMode) return;
-                        if (e.key === 'Backspace' && selectedNodeIds.size > 0) {
-                          e.preventDefault();
-                          currentTree = deleteNodes(currentTree, selectedNodeIds);
-                          selectionAnchorPath = null;
-                          currentCursorPath = { containerPath: [], offset: 0 };
-                        }
-                      }}
-                      onpointerdown={!isSketchMode ? handlePointerDown : undefined}
-                    />
-                </div>
+                {#if stagedImages.length > 0}
+                   {#each stagedImages as img, imgIdx (img.id)}
+                      <!-- Draft Image Container (No bevels, retains natural shape & ratio) -->
+                      <div 
+                        data-image-container="draft"
+                        class="relative max-w-full inline-block group/draftimg overflow-visible mb-2 transition-all rounded-none cursor-pointer bg-transparent border-0 shadow-none {selectedDraftImageId === img.id ? 'ring-2 ring-blue-500' : ''}"
+                        style="background: transparent; border: none; box-shadow: none; border-radius: 0;"
+                        onclick={() => { if (!isSketchMode) selectDraftImage(img.id); }}
+                      >
+                         <div class="rounded-none overflow-hidden bg-transparent border-0 shadow-none" style="border-radius: 0;">
+                           <img 
+                             src={img.url} 
+                             alt={img.name || 'staged attachment'} 
+                             class="w-auto max-w-full h-auto max-h-[520px] object-contain rounded-none block border-0 shadow-none"
+                             style="aspect-ratio: auto; max-width: 100%; height: auto; border-radius: 0;"
+                           />
+                         </div>
+                         {#if stagedImageStrokes && stagedImageStrokes.length > 0}
+                            <InkOverlay strokes={stagedImageStrokes} isMe={true} />
+                         {/if}
+
+                         <!-- Action bar for selected/hovered image -->
+                         <div class="absolute top-2 right-2 flex items-center gap-1.5 z-30">
+                           {#if selectedDraftImageId === img.id}
+                              <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                Selected
+                              </span>
+                              <button 
+                                type="button"
+                                onclick={(e) => { 
+                                  e.stopPropagation(); 
+                                  selectedDraftImageId = img.id; 
+                                  document.getElementById('image-input')?.click(); 
+                                }}
+                                class="px-2 py-1 rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-semibold flex items-center gap-1 shadow-md transition-all active:scale-95 border border-white/20 cursor-pointer"
+                                title="Swap this image"
+                              >
+                                Swap
+                              </button>
+                              <button 
+                                type="button"
+                                onclick={(e) => { 
+                                  e.stopPropagation(); 
+                                  lastSelectedDraftImageId = img.id; 
+                                  selectedDraftImageId = null; 
+                                  document.getElementById('image-input')?.click(); 
+                                }}
+                                class="px-2 py-1 rounded-lg bg-black/60 hover:bg-black/80 text-white text-[11px] font-semibold flex items-center gap-1 shadow-md transition-all active:scale-95 border border-white/20 cursor-pointer"
+                                title="Insert another image below this one"
+                              >
+                                + Below
+                              </button>
+                           {/if}
+                           <button 
+                             type="button"
+                             onclick={(e) => { e.stopPropagation(); removeStagedImage(img.id); }}
+                             class="w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-transform hover:scale-110 active:scale-95 shadow-md border border-white/20 z-30 cursor-pointer"
+                             title="Remove image"
+                             aria-label="Remove image"
+                           >
+                              <X size={15} strokeWidth={2.5} />
+                           </button>
+                         </div>
+                      </div>
+
+                      <!-- Text gap below this image -->
+                      <div 
+                        class="w-full transition-all relative mb-3 {isSketchMode ? 'min-h-[72px]' : ''}" 
+                        style={draftBounds.extraBottomPadding > 0 ? `padding-bottom: ${draftBounds.extraBottomPadding}px;` : ''}
+                        onclick={() => { switchFocusedGap(img.id); }}
+                      >
+                         {#if (!focusedGapImageId && imgIdx === 0) || focusedGapImageId === img.id}
+                            <AnnotatableText
+                              isEditor={true}
+                              nodes={currentTree}
+                              annotations={draftTextStrokes}
+                              readonly={false}
+                              {isSketchMode}
+                              {isEraser}
+                              activeColor={textColors[activeTextColorIndex].displayColor}
+                              activeWidth={strokeWidth}
+                              textColor={textColors[activeTextColorIndex].displayColor}
+                              {isBold}
+                              {isItalic}
+                              {isUnderlined}
+                              fontFamily={activeFontFamily}
+                              {currentCursorPath}
+                              {selectedNodeIds}
+                              bind:textareaEl
+                              onAnnotationCreate={(newAnn) => {
+                                const annWithTarget = { ...newAnn, targetContainer: 'text', targetElement: 'text' };
+                                if (!currentStrokes.some(s => s.id === annWithTarget.id)) {
+                                  currentStrokes = [...currentStrokes, annWithTarget];
+                                }
+                              }}
+                              onStrokesChanged={(survivors) => {
+                                handleStrokesChanged([...stagedImageStrokes, ...survivors]);
+                              }}
+                              oncopy={handleCopy}
+                              oncut={handleCut}
+                              onpaste={handlePaste}
+                              onkeydown={(e) => {
+                                if (isSketchMode) return;
+                                if (e.key === 'Backspace' && selectedNodeIds.size > 0) {
+                                  e.preventDefault();
+                                  currentTree = deleteNodes(currentTree, selectedNodeIds);
+                                  selectionAnchorPath = null;
+                                  currentCursorPath = { containerPath: [], offset: 0 };
+                                }
+                              }}
+                              onpointerdown={!isSketchMode ? handlePointerDown : undefined}
+                            />
+                         {:else}
+                            <div class="cursor-text w-full min-h-[1.75rem] py-0.5">
+                               <AnnotatableText
+                                 isEditor={false}
+                                 nodes={img.gapTextTree && img.gapTextTree.length > 0 ? img.gapTextTree : null}
+                                 text={img.gapTextTree && img.gapTextTree.length > 0 ? '' : 'Type text in this gap...'}
+                                 annotations={[]}
+                                 readonly={true}
+                                 textColor={img.gapTextTree && img.gapTextTree.length > 0 ? textColors[activeTextColorIndex].displayColor : '#94a3b8'}
+                               />
+                            </div>
+                         {/if}
+                      </div>
+                   {/each}
+                {:else}
+                   <!-- Default editor when no images are staged -->
+                   <div class="w-full transition-all relative {isSketchMode ? 'min-h-[72px]' : ''}" style={draftBounds.extraBottomPadding > 0 ? `padding-bottom: ${draftBounds.extraBottomPadding}px;` : ''}>
+                       <AnnotatableText
+                         isEditor={true}
+                         nodes={currentTree}
+                         annotations={draftTextStrokes}
+                         readonly={false}
+                         {isSketchMode}
+                         {isEraser}
+                         activeColor={textColors[activeTextColorIndex].displayColor}
+                         activeWidth={strokeWidth}
+                         textColor={textColors[activeTextColorIndex].displayColor}
+                         {isBold}
+                         {isItalic}
+                         {isUnderlined}
+                         fontFamily={activeFontFamily}
+                         {currentCursorPath}
+                         {selectedNodeIds}
+                         bind:textareaEl
+                         onAnnotationCreate={(newAnn) => {
+                           const annWithTarget = { ...newAnn, targetContainer: 'text', targetElement: 'text' };
+                           if (!currentStrokes.some(s => s.id === annWithTarget.id)) {
+                             currentStrokes = [...currentStrokes, annWithTarget];
+                           }
+                         }}
+                         onStrokesChanged={(survivors) => {
+                           handleStrokesChanged([...stagedImageStrokes, ...survivors]);
+                         }}
+                         oncopy={handleCopy}
+                         oncut={handleCut}
+                         onpaste={handlePaste}
+                         onkeydown={(e) => {
+                           if (isSketchMode) return;
+                           if (e.key === 'Backspace' && selectedNodeIds.size > 0) {
+                             e.preventDefault();
+                             currentTree = deleteNodes(currentTree, selectedNodeIds);
+                             selectionAnchorPath = null;
+                             currentCursorPath = { containerPath: [], offset: 0 };
+                           }
+                         }}
+                         onpointerdown={!isSketchMode ? handlePointerDown : undefined}
+                       />
+                   </div>
+                {/if}
              </div>
           </div>
         </div>
@@ -3762,6 +4409,7 @@
           onpointerdown={!isSketchMode ? handlePointerDown : undefined}
         ></div>
       {/if}
+      </div>
     </div>
 
     <!-- Full Screen Image Preview Overlay -->
@@ -3799,13 +4447,14 @@
          <div class="relative w-full h-full flex items-center justify-center pointer-events-none">
            {#if zoomedImg}
               <div 
-                class="relative flex items-center justify-center rounded-xl overflow-hidden pointer-events-auto shadow-2xl transition-all max-w-[90vw] max-h-[90vh]"
-                style="background-color: {zoomedImg.dominantColor || getFallbackColor(zoomedMsg?.id || 'zoomed')}; min-width: 150px; min-height: 150px;"
+                class="relative flex items-center justify-center rounded-none overflow-hidden pointer-events-auto shadow-none transition-all max-w-[90vw] max-h-[90vh]"
+                style="background: transparent; border-radius: 0; min-width: 150px; min-height: 150px;"
               >
                  <img 
                    src={zoomedImg.url} 
                    alt="Zoomed" 
-                   class="max-w-full max-h-[90vh] object-contain rounded-xl animate-in zoom-in-95 duration-200 transition-opacity duration-300 {loadedImages[(zoomedMsg?.id || '') + '_zoomed'] ? 'opacity-100' : 'opacity-0'}" 
+                   class="max-w-full max-h-[90vh] object-contain rounded-none animate-in zoom-in-95 duration-200 transition-opacity duration-300 {loadedImages[(zoomedMsg?.id || '') + '_zoomed'] ? 'opacity-100' : 'opacity-0'}" 
+                   style="border-radius: 0;"
                    onload={() => loadedImages[(zoomedMsg?.id || '') + '_zoomed'] = true}
                  />
               </div>
@@ -3827,20 +4476,9 @@
       </div>
     {/if}
 
-    {#if showNewMsgBtn}
-      <button 
-        onclick={() => scrollToBottom('smooth')}
-        class="absolute {showMathKeyboard ? 'bottom-[355px]' : 'bottom-[96px]'} left-1/2 -translate-x-1/2 z-[45] px-6 py-3 bg-[#00274d] text-white rounded-full shadow-2xl flex items-center gap-3 active:scale-95 transition-all hover:bg-[#003366] border border-white/10 group"
-      >
-        <div class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-        <span class="text-xs font-bold uppercase tracking-widest">New messages</span>
-        <ChevronDown size={18} class="group-hover:translate-y-0.5 transition-transform" />
-      </button>
-    {/if}
-
     <div class="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex flex-col items-center">
       <footer class="w-full px-3 sm:px-5 pt-3 sm:pt-4 {showMathKeyboard ? 'pb-2 sm:pb-3' : 'pb-6 sm:pb-10'} flex justify-center pointer-events-none transition-all duration-300">
-        <div class="w-full max-w-lg pointer-events-auto bg-transparent">
+        <div class="w-full max-w-lg pointer-events-auto bg-transparent relative">
         
         {#if replyingToMessage}
           <div class="mb-3 p-3 bg-theme-card rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] border border-gray-100 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2 fade-in duration-200">
@@ -3954,8 +4592,10 @@
                 <div class="relative shrink-0">
                   <button 
                     onclick={toggleSketchMode} 
-                    class="transition-all border shadow-sm cursor-pointer flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 hover:scale-105 active:scale-95 {isSketchMode ? 'bg-[#00274d] text-white border-transparent ring-2 ring-[#00274d]/30' : 'text-[#00274d] hover:bg-blue-50/50 bg-white border-blue-600'}" 
-                    title={isSketchMode ? "Exit Annotation Mode (Unlocks Scroll)" : "Annotation Tool (Draw math on messages)"}
+                    oncontextmenu={(e) => { e.preventDefault(); selectTextColor((activeTextColorIndex + 1) % textColors.length); }}
+                    style="background-color: {textColors[activeTextColorIndex].displayColor};"
+                    class="transition-all shadow-sm cursor-pointer flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 hover:scale-105 active:scale-95 text-white border {isSketchMode ? 'border-white ring-2 ring-offset-2 ring-[#00274d] shadow-md scale-105' : 'border-black/15 hover:shadow-md'}" 
+                    title={isSketchMode ? `Exit Annotation Mode (Ink: ${textColors[activeTextColorIndex].name})` : `Annotation Tool (Ink: ${textColors[activeTextColorIndex].name} - Right-click to cycle color)`}
                   >
                      <Pencil size={20} strokeWidth={2.2} />
                   </button>
@@ -4031,14 +4671,31 @@
                    </button>
                 {/if}
 
-                <!-- 8. Send button -->
-                <button 
-                  onclick={handleSend}
-                  class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff6b00] hover:bg-[#e15d00] text-white flex items-center justify-center transition-all cursor-pointer border-none shadow-md active:scale-95 shrink-0 hover:scale-105"
-                  title="Send Message"
-                >
-                  <Send size={18} strokeWidth={2.5} class="ml-0.5" />
-                </button>
+                <!-- 8. Send button & anchored jump button -->
+                <div class="relative shrink-0 flex items-center justify-center">
+                  {#if showNewMsgBtn}
+                    <button 
+                      onclick={() => scrollToBottom('smooth')}
+                      aria-label="Scroll to bottom"
+                      class="absolute {replyingToMessage ? 'bottom-[calc(100%+70px)]' : 'bottom-full mb-3'} right-0 z-[45] w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-blue-50/50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#00274d] dark:text-blue-300 border border-blue-600 dark:border-blue-400 shadow-sm flex items-center justify-center active:scale-95 hover:scale-105 transition-all duration-200 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 animate-in fade-in zoom-in-75"
+                    >
+                      <ChevronDown size={18} class="text-[#00274d] dark:text-blue-300 group-hover:translate-y-0.5 transition-transform" strokeWidth={2.5} />
+                      {#if unreadCountBelow > 0}
+                        <span class="absolute -top-1.5 -right-1.5 px-1 min-w-[18px] h-4.5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md tabular-nums border border-white dark:border-slate-800 animate-in zoom-in-75 duration-150">
+                          {unreadCountBelow > 99 ? '99+' : unreadCountBelow}
+                        </span>
+                      {/if}
+                    </button>
+                  {/if}
+
+                  <button 
+                    onclick={handleSend}
+                    class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff6b00] hover:bg-[#e15d00] text-white flex items-center justify-center transition-all cursor-pointer border-none shadow-md active:scale-95 shrink-0 hover:scale-105"
+                    title="Send Message"
+                  >
+                    <Send size={18} strokeWidth={2.5} class="ml-0.5" />
+                  </button>
+                </div>
              </div>
           {/if}
         </div>
@@ -4082,7 +4739,7 @@
       {/if}
 
       <input type="file" accept="image/*" capture="environment" id="camera-input" class="hidden" onchange={handleImageUpload} />
-      <input type="file" accept="image/*" id="image-input" class="hidden" onchange={handleImageUpload} />
+      <input type="file" accept="image/*" id="image-input" class="hidden" multiple onchange={handleImageUpload} />
     </div>
   </div>
 

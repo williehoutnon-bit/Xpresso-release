@@ -34,6 +34,9 @@ export interface StrokeElement {
   coordSpace?: string;
   /** Existing message bubble this stroke annotates; absent for new annotation-only messages. */
   targetMessageId?: string;
+  /** Sub-container target: 'image' when anchored directly to an image, 'text' for text/wrap */
+  targetContainer?: 'image' | 'text' | string;
+  targetElement?: 'image' | 'text' | string;
 }
 
 /**

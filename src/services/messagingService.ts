@@ -552,8 +552,7 @@ export const messagingService = {
                      .from('messages')
                      .update({ status: 'delivered' })
                      .eq('id', doc.id)
-                     .then(() => {})
-                     .catch((err: any) => console.warn('[MessagingService] Failed to send delivery receipt:', err?.message || err));
+                     .then(() => {}, (err: any) => console.warn('[MessagingService] Failed to send delivery receipt:', err?.message || err));
                }
 
                // 3. Update participant lastMessageAt so conversation sorting updates immediately
@@ -1446,17 +1445,24 @@ export const messagingService = {
 
         // Direct fast-path push to Supabase for instant delivery of the uploaded voice note
         const { supabaseAdmin } = await import('./supabaseService');
-        await supabaseAdmin.from('messages').upsert({
-          id: msgId,
-          conversation_id: conversationId,
-          sender_id: user.$id,
-          status: 'sent',
-          content: JSON.stringify({ c: '🎤 Sent a voice message', a: [finalAttachment] }),
-          type: 'f:audio',
-          attachments: [finalAttachment],
-          ip: '0.0.0.0',
-          created_at: localDoc.createdAt || new Date().toISOString()
-        }, { onConflict: 'id' }).catch(() => {});
+        try {
+          const { error: pushError } = await supabaseAdmin.from('messages').upsert({
+            id: msgId,
+            conversation_id: conversationId,
+            sender_id: user.$id,
+            status: 'sent',
+            content: JSON.stringify({ c: '🎤 Sent a voice message', a: [finalAttachment] }),
+            type: 'f:audio',
+            attachments: [finalAttachment],
+            ip: '0.0.0.0',
+            created_at: localDoc.createdAt || new Date().toISOString()
+          }, { onConflict: 'id' });
+          if (pushError) {
+            console.warn('[MessagingService] Direct Supabase push for voice note warning:', pushError);
+          }
+        } catch (pushErr) {
+          console.warn('[MessagingService] Direct Supabase push for voice note warning:', pushErr);
+        }
       } catch (err) {
         console.error('Voice message background task failed:', err);
         const docData = typeof localDoc.toJSON === 'function' ? localDoc.toJSON() : localDoc;
@@ -1466,42 +1472,67 @@ export const messagingService = {
 
     return localDoc;
   },
-  async sendImageMessage(conversationId: string, imageFile: File) {
+  async sendImageMessage(
+    conversationId: string, 
+    imageInput: File | File[] | Array<{ file: File; caption?: string; dominantColor?: string }>, 
+    caption: string = '', 
+    mathMeta: any = null,
+    sections?: Array<{ imageIndex: number; text: string; nodes?: any[] }>
+  ) {
     const user = await authService.getCurrentUser();
     if (!user) throw new Error('Not authenticated');
 
     const msgId = generateUUID();
-    const localImageUrl = URL.createObjectURL(imageFile);
-    
-    let dominantColor = '#e2e8f0';
-    try {
-      dominantColor = await getAverageColor(imageFile);
-    } catch (colorErr) {
-      console.warn('Failed to extract dominant color:', colorErr);
-    }
-    
-    const initialAttachment = {
+    const rawItems: Array<{ file: File; caption?: string; dominantColor?: string }> = Array.isArray(imageInput)
+      ? imageInput.map(item => (item instanceof File ? { file: item } : item))
+      : [{ file: imageInput }];
+
+    const initialAttachments: any[] = [];
+    for (let i = 0; i < rawItems.length; i++) {
+      const it = rawItems[i];
+      const localImageUrl = URL.createObjectURL(it.file);
+      let domColor = it.dominantColor || '#e2e8f0';
+      if (!it.dominantColor) {
+        try {
+          domColor = await getAverageColor(it.file);
+        } catch (colorErr) {
+          console.warn('Failed to extract dominant color:', colorErr);
+        }
+      }
+      initialAttachments.push({
         type: 'image',
-        fileId: 'pending_' + Date.now(),
+        fileId: `pending_${Date.now()}_${i}`,
         url: localImageUrl,
-        dominantColor
-    };
+        dominantColor: domColor,
+        name: it.file.name
+      });
+    }
 
     try {
       const { mediaCacheDB } = await import('./mediaCacheService');
-      await mediaCacheDB.set(msgId, imageFile);
+      if (rawItems.length > 0) {
+        await mediaCacheDB.set(msgId, rawItems[0].file);
+      }
     } catch (e) {
       console.warn('Failed to cache image in mediaCacheDB:', e);
     }
+
+    const finalMathMeta = mathMeta ? { ...mathMeta } : null;
+    const contentPayload = JSON.stringify({ 
+      c: caption, 
+      a: initialAttachments,
+      sections: sections && sections.length > 0 ? sections : undefined
+    });
 
     // 1. Optimistic write to RxDB
     const localDoc = await dbService.sendMessage({
       id: msgId,
       conversationId: conversationId,
       senderId: user.$id,
-      content: JSON.stringify({ c: '', a: [initialAttachment] }),
+      content: contentPayload,
       type: 'f:image',
-      attachments: [initialAttachment]
+      attachments: initialAttachments,
+      mathMeta: finalMathMeta
     });
 
     // Ensure conversation and its participants exist on Supabase
@@ -1511,43 +1542,62 @@ export const messagingService = {
     (async () => {
       try {
         const { mediaService } = await import('./mediaService');
-        const fileId = await mediaService.uploadFile(imageFile);
-        if (!fileId) throw new Error('Upload failed');
+        const finalAttachments: any[] = [];
+        
+        for (let i = 0; i < rawItems.length; i++) {
+          const it = rawItems[i];
+          const fileId = await mediaService.uploadFile(it.file);
+          if (!fileId) throw new Error(`Upload failed for image ${i}`);
+          const imageUrl = mediaService.getFileView(fileId);
+          finalAttachments.push({
+            type: 'image',
+            fileId: fileId,
+            url: imageUrl,
+            dominantColor: initialAttachments[i]?.dominantColor || '#e2e8f0',
+            name: it.file.name
+          });
+        }
 
-        const imageUrl = mediaService.getFileView(fileId);
-        
-        const finalAttachment = {
-          type: 'image',
-          fileId: fileId,
-          url: imageUrl,
-          dominantColor
-        };
-        
+        const updatedPayload = JSON.stringify({ 
+          c: caption, 
+          a: finalAttachments,
+          sections: sections && sections.length > 0 ? sections : undefined
+        });
+
         await dbService.upsertMessage({
           id: msgId,
           conversationId: conversationId,
           senderId: user.$id,
           status: 'sent', 
-          content: JSON.stringify({ c: '', a: [finalAttachment] }),
+          content: updatedPayload,
           type: 'f:image',
-          attachments: [finalAttachment],
+          attachments: finalAttachments,
+          mathMeta: finalMathMeta,
           ip: '0.0.0.0',
           createdAt: localDoc.createdAt || new Date().toISOString()
         });
 
         // Direct fast-path push to Supabase for instant delivery of the uploaded image
         const { supabaseAdmin } = await import('./supabaseService');
-        await supabaseAdmin.from('messages').upsert({
-          id: msgId,
-          conversation_id: conversationId,
-          sender_id: user.$id,
-          status: 'sent',
-          content: JSON.stringify({ c: '', a: [finalAttachment] }),
-          type: 'f:image',
-          attachments: [finalAttachment],
-          ip: '0.0.0.0',
-          created_at: localDoc.createdAt || new Date().toISOString()
-        }, { onConflict: 'id' }).catch(() => {});
+        try {
+          const { error: pushError } = await supabaseAdmin.from('messages').upsert({
+            id: msgId,
+            conversation_id: conversationId,
+            sender_id: user.$id,
+            status: 'sent',
+            content: updatedPayload,
+            type: 'f:image',
+            attachments: finalAttachments,
+            math_meta: finalMathMeta ? JSON.stringify(finalMathMeta) : null,
+            ip: '0.0.0.0',
+            created_at: localDoc.createdAt || new Date().toISOString()
+          }, { onConflict: 'id' });
+          if (pushError) {
+            console.warn('[MessagingService] Direct Supabase push for image message warning:', pushError);
+          }
+        } catch (pushErr) {
+          console.warn('[MessagingService] Direct Supabase push for image message warning:', pushErr);
+        }
       } catch (err) {
         console.error('Image message background task failed:', err);
         const docData = typeof localDoc.toJSON === 'function' ? localDoc.toJSON() : localDoc;

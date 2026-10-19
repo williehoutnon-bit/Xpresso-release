@@ -1543,7 +1543,7 @@
                        <span class="text-[9px] font-bold text-gray-400 mb-0.5 ml-1">{msg.senderName}</span>
                        <div class="px-3 py-2 rounded-2xl {msg.senderId === currentUserId ? 'bg-[#ff6b00] text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'} shadow-sm text-[13px] leading-relaxed w-full">
                           {#if msg.message_type === 'image' && msg.attachments?.[0]?.url}
-                             <img src={msg.attachments[0].url} alt="file" class="max-w-[180px] w-full h-auto rounded-lg object-cover" />
+                             <img src={msg.attachments[0].url} alt="file" class="max-w-[180px] w-full h-auto rounded-none object-cover border-0 shadow-none" style="border-radius: 0;" />
                           {:else if msg.message_type === 'audio' && msg.attachments?.[0]?.url}
                              <AudioMessagePlayer 
                                messageId={msg.id} 

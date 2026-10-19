@@ -47,7 +47,12 @@
 
   function updateMeasurement() {
     if (svgEl) {
-      measuredBox = svgEl.getBoundingClientRect();
+      const r = svgEl.getBoundingClientRect();
+      const w = svgEl.clientWidth || r.width;
+      const h = svgEl.clientHeight || r.height;
+      if (w > 0 && h > 0) {
+        measuredBox = { width: w, height: h } as any;
+      }
     }
   }
 
@@ -127,7 +132,7 @@
               style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible;"
             >
               <path
-                d={s.pathNormalized || dPath}
+                d={s.pathNormalized || (s.segments && Array.isArray(s.segments) ? bezierSegmentsToSvgPath(s.segments) : '') || dPath}
                 stroke={getDisplayStrokeColor(s.color, isMe)}
                 stroke-width={s.width || 2.5}
                 stroke-opacity={s.opacity !== undefined ? s.opacity : 1}
