@@ -347,6 +347,11 @@
         const res = await messagingService.getConversations(forceSync);
         if (myId === fetchCounter) {
           conversations = res ?? [];
+          import('../services/nativeNotificationService')
+            .then(({ nativeNotificationService }) =>
+              nativeNotificationService.syncConversationShortcuts(conversations as any[])
+            )
+            .catch(() => {});
         }
       } catch (err) {
         if (myId === fetchCounter) {

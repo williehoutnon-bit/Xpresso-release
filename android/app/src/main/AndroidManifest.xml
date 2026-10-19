@@ -36,25 +36,19 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- Firebase Cloud Messaging Defaults (WhatsApp-like background notifications) -->
+        <!--
+            Notification defaults. The conversation-notifications plugin reads the icon and colour
+            from here; its own FirebaseMessagingService (priority 100) renders chat messages.
+        -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher_foreground" />
+            android:resource="@drawable/ic_stat_xpresso" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@color/xpresso_orange" />
+            android:resource="@color/xpresso_blue" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="xpresso_messages" />
-
-        <!-- Custom Firebase Messaging Service for WhatsApp-style Conversations & Grouping -->
-        <service
-            android:name=".XpressoFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter android:priority="100">
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+            android:value="chat_messages" />
     </application>
 
     <!-- Permissions -->
