@@ -54,8 +54,12 @@ public class XpressoFirebaseMessagingService extends FirebaseMessagingService {
             senderName = remoteMessage.getNotification().getTitle();
         }
 
+        // Safety net: the server already strips colour markup, but never show raw markup.
+        content = TextSanitizer.toPlainText(content);
+        senderName = senderName == null ? null : TextSanitizer.toPlainText(senderName);
+
         String type = data.get("type");
-        if (content == null || content.trim().isEmpty()) {
+        if (content.isEmpty()) {
             if ("image".equalsIgnoreCase(type)) content = "📷 Photo";
             else if ("audio".equalsIgnoreCase(type)) content = "🎤 Voice message";
             else if ("file".equalsIgnoreCase(type)) content = "📎 Attachment";
@@ -75,9 +79,11 @@ public class XpressoFirebaseMessagingService extends FirebaseMessagingService {
         boolean isGroup = "true".equalsIgnoreCase(data.get("isGroup")) || "true".equalsIgnoreCase(data.get("is_group"));
         String groupTitle = data.get("groupTitle");
         if (groupTitle == null) groupTitle = data.get("group_title");
+        if (groupTitle != null) groupTitle = TextSanitizer.toPlainText(groupTitle);
 
-        // 3. Render native Conversation notification
-        if (conversationId != null && !conversationId.trim().isEmpty()) {
+        // 3. Render native Conversation notification (skipped for the chat currently on screen)
+        if (conversationId != null && !conversationId.trim().isEmpty()
+                && !XpressoNotificationPlugin.isConversationOnScreen(conversationId)) {
             XpressoNotificationHelper.showConversationNotification(
                     this,
                     conversationId,

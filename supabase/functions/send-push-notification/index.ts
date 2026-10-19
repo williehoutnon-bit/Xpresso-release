@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { toPlainText } from "../_shared/sanitize.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -226,7 +227,9 @@ serve(async (req) => {
     const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
     // 5. Construct notification body based on message type
-    let preview = content.trim();
+    // Strip colour markup BEFORE truncating, so a cut can never leave half a command behind.
+    senderDisplayName = toPlainText(senderDisplayName) || "Xpresso Contact";
+    let preview = toPlainText(String(content));
     if (!preview) {
       if (msgType === "image") preview = "📷 Photo";
       else if (msgType === "audio") preview = "🎤 Voice message";
@@ -279,10 +282,9 @@ serve(async (req) => {
         const fcmPayload = {
           message: {
             token: row.token,
-            notification: {
-              title: senderDisplayName,
-              body: preview,
-            },
+            // No top-level `notification` block: on Android that makes the system draw a plain
+            // "Alerts" notification itself whenever the app is backgrounded or killed, bypassing
+            // XpressoFirebaseMessagingService. Data-only lets the app build the Conversation card.
             data: {
               conversationId: String(conversationId || ""),
               senderId: String(senderId || ""),
@@ -293,20 +295,13 @@ serve(async (req) => {
               tag: `conv_${conversationId}`,
             },
             android: {
-              priority: "high",
-              notification: {
-                channel_id: "xpresso_messages",
-                icon: "ic_launcher_foreground",
-                color: "#E58A3A",
-                tag: `conv_${conversationId}`,
-                sound: "default",
-                default_vibrate_timings: true,
-                notification_count: badgeCount, // Dynamically updates launcher badge counter
-              },
+              // HIGH is required for data-only messages to wake a backgrounded/dozing app.
+              priority: "HIGH",
             },
             apns: {
               payload: {
                 aps: {
+                  alert: { title: senderDisplayName, body: preview },
                   badge: badgeCount,
                   sound: "default",
                 },

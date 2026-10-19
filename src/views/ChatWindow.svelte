@@ -77,6 +77,7 @@
   import { audioPlaybackService } from '../services/audioPlaybackService.svelte';
   import { webrtcService } from '../services/webrtcService';
   import { getFallbackColor } from '../utils/dominantColor';
+  import { nativeNotificationService } from '../services/nativeNotificationService';
 
   let loadedImages = $state<Record<string, boolean>>({});
 
@@ -798,6 +799,11 @@
   let isElevating = false;
   let conversationResolutionPromise: Promise<string | null> | null = null;
   let activeConversationId = $state(conversationId);
+  $effect(() => {
+    const id = activeConversationId;
+    void nativeNotificationService.setActiveConversation(id);
+    return () => void nativeNotificationService.setActiveConversation(null);
+  });
   async function ensureRealConversationId(): Promise<string | null> {
     if (!activeConversationId || !activeConversationId.startsWith('local_convo_')) return activeConversationId;
     if (conversationResolutionPromise) return conversationResolutionPromise;

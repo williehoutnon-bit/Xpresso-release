@@ -17,6 +17,12 @@ interface XpressoNotificationPluginInterface {
   }): Promise<{ success: boolean }>;
   dismissConversation(options: { conversationId: string }): Promise<{ success: boolean }>;
   dismissAll(): Promise<{ success: boolean }>;
+  setActiveConversation(options: { conversationId: string | null }): Promise<void>;
+  getPendingConversation(): Promise<{ conversationId: string | null }>;
+  addListener(
+    eventName: 'notificationTapped',
+    listener: (data: { conversationId: string }) => void
+  ): Promise<{ remove: () => Promise<void> }>;
 }
 
 const XpressoNotification = registerPlugin<XpressoNotificationPluginInterface>('XpressoNotification');
@@ -33,6 +39,7 @@ export interface NotificationPayload {
 
 type NotificationClickCallback = (payload: { conversationId?: string; data?: any }) => void;
 const clickListeners: NotificationClickCallback[] = [];
+let pendingClick: { conversationId?: string; data?: any } | null = null;
 
 let isInitialized = false;
 let currentPushToken: string | null = (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
@@ -43,6 +50,11 @@ class NativeNotificationService {
    */
   onNotificationClick(callback: NotificationClickCallback) {
     clickListeners.push(callback);
+    if (pendingClick) {
+      const queued = pendingClick;
+      pendingClick = null;
+      callback(queued);
+    }
     return () => {
       const idx = clickListeners.indexOf(callback);
       if (idx !== -1) clickListeners.splice(idx, 1);
@@ -50,6 +62,11 @@ class NativeNotificationService {
   }
 
   private dispatchNotificationClick(data: { conversationId?: string; data?: any }) {
+    // A cold-start tap can arrive before App.svelte subscribes; hold it for the first listener.
+    if (clickListeners.length === 0) {
+      pendingClick = data;
+      return;
+    }
     clickListeners.forEach((listener) => {
       try {
         listener(data);
@@ -236,6 +253,17 @@ class NativeNotificationService {
         }
         this.dispatchNotificationClick({ conversationId, data });
       });
+
+      // Taps on notifications built natively by XpressoNotificationHelper (all Android pushes now)
+      if (Capacitor.getPlatform() === 'android') {
+        await XpressoNotification.addListener('notificationTapped', ({ conversationId }) => {
+          this.dispatchNotificationClick({ conversationId, data: { conversationId } });
+        });
+        const { conversationId: launchConversationId } = await XpressoNotification.getPendingConversation();
+        if (launchConversationId) {
+          this.dispatchNotificationClick({ conversationId: launchConversationId, data: { conversationId: launchConversationId } });
+        }
+      }
     } catch (pushListenerErr) {
       console.warn('[NotificationService] Failed to bind push notification listeners:', pushListenerErr);
     }
@@ -463,6 +491,15 @@ class NativeNotificationService {
 
   getPushToken() {
     return currentPushToken;
+  }
+
+  /**
+   * Tell the native layer which chat is on screen (null when none) so pushes for it are not shown.
+   */
+  async setActiveConversation(conversationId: string | null) {
+    if (Capacitor.getPlatform() !== 'android') return;
+    const id = conversationId && !conversationId.startsWith('local_convo_') ? conversationId : null;
+    await XpressoNotification.setActiveConversation({ conversationId: id }).catch(() => {});
   }
 }
 
