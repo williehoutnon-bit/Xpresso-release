@@ -2062,6 +2062,20 @@
     }, 50);
   };
 
+  // Suppress the native notification for the chat that is on screen
+  $effect(() => {
+    const openChatId = activeConversationId;
+    if (!openChatId || openChatId.startsWith('local_convo_')) return;
+    let service: typeof import('../services/nativeNotificationService').nativeNotificationService | null = null;
+    import('../services/nativeNotificationService').then(({ nativeNotificationService }) => {
+      service = nativeNotificationService;
+      service.setActiveChat(openChatId);
+    }).catch(() => {});
+    return () => {
+      service?.setActiveChat(null);
+    };
+  });
+
   // Handle Case where conversationId prop changes OR on initial mount
   let lastProcessedProp = '';
   $effect(() => {

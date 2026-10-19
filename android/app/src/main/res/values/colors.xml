@@ -4,5 +4,6 @@
     <color name="colorPrimaryDark">#003EAA</color>
     <color name="colorAccent">#E58A3A</color>
     <color name="xpresso_orange">#E58A3A</color>
+    <color name="xpresso_blue">#0050D8</color>
     <color name="splashBackground">#F7FBFE</color>
 </resources>

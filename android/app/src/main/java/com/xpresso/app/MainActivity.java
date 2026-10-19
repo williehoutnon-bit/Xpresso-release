@@ -11,11 +11,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(CrashReporterPlugin.class);
-        registerPlugin(XpressoNotificationPlugin.class);
         super.onCreate(savedInstanceState);
-
-        // Pre-create high-importance conversation channel on startup
-        XpressoNotificationHelper.createNotificationChannel(this);
 
         // Immediately auto-copy any previous crash log and save to public Downloads
         XpressoApplication.copyCrashLogToClipboardAndDownloads(this);

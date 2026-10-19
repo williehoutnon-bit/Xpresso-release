@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { toPlainText } from "./sanitize.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -153,12 +154,13 @@ serve(async (req) => {
       });
     }
 
-    // 2. Fetch sender profile for display name
+    // 2. Fetch sender profile for display name and avatar
     let senderDisplayName = payload.senderName || "Xpresso Contact";
+    let senderAvatarUrl = "";
     if (senderId) {
       const { data: senderProfile } = await supabase
         .from("profiles")
-        .select("full_name, name, surname, last_name")
+        .select("full_name, name, surname, last_name, avatar_url")
         .eq("user_id", senderId)
         .maybeSingle();
 
@@ -169,6 +171,23 @@ serve(async (req) => {
           senderProfile.name ||
           `${senderProfile.surname || ""} ${senderProfile.last_name || ""}`.trim() ||
           "Xpresso Contact";
+        const avatar = String(senderProfile.avatar_url || "");
+        if (/^https:\/\//i.test(avatar)) senderAvatarUrl = avatar;
+      }
+    }
+
+    // Group conversations are shown under the group title with the sender name per message
+    let isGroup = false;
+    let chatTitle = "";
+    if (conversationId) {
+      const { data: convo } = await supabase
+        .from("conversations")
+        .select("is_group, name")
+        .eq("id", conversationId)
+        .maybeSingle();
+      if (convo) {
+        isGroup = !!convo.is_group;
+        chatTitle = isGroup ? String(convo.name || "") : "";
       }
     }
 
@@ -225,14 +244,14 @@ serve(async (req) => {
     const projectId = serviceAccount.project_id;
     const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
-    // 5. Construct notification body based on message type
-    let preview = content.trim();
-    if (!preview) {
-      if (msgType === "image") preview = "📷 Photo";
-      else if (msgType === "audio") preview = "🎤 Voice message";
-      else if (msgType === "file") preview = "📎 Attachment";
-      else preview = "New message";
-    } else if (preview.length > 120) {
+    // 5. Construct notification body. Colour markup is stripped here; the chat itself keeps it.
+    let preview = toPlainText(content).trim();
+    const fallbackText =
+      msgType === "image" ? "Photo"
+      : msgType === "audio" ? "Voice message"
+      : msgType === "file" ? "Attachment"
+      : "New message";
+    if (preview.length > 120) {
       preview = preview.slice(0, 117) + "...";
     }
 
@@ -276,37 +295,33 @@ serve(async (req) => {
       tokenRows.map(async (row) => {
         const badgeCount = recipientUnreadMap.get(row.user_id) || 1;
 
+        // Data-only message: a `notification` key would make the system draw the notification
+        // itself and bypass the conversation plugin. All data values must be strings.
         const fcmPayload = {
           message: {
             token: row.token,
-            notification: {
-              title: senderDisplayName,
-              body: preview,
-            },
             data: {
-              conversationId: String(conversationId || ""),
+              type: "chat_message",
+              chatId: String(conversationId || ""),
               senderId: String(senderId || ""),
-              senderName: String(senderDisplayName || ""),
-              content: String(preview || ""),
-              type: String(msgType || "text"),
+              senderName: toPlainText(senderDisplayName),
+              text: preview,
+              fallbackText,
+              ts: String(Date.now()),
+              isGroup: String(isGroup),
+              chatTitle: toPlainText(chatTitle),
+              avatarUrl: senderAvatarUrl,
+              msgType: String(msgType || "text"),
               badge: String(badgeCount),
-              tag: `conv_${conversationId}`,
             },
             android: {
-              priority: "high",
-              notification: {
-                channel_id: "xpresso_messages",
-                icon: "ic_launcher_foreground",
-                color: "#E58A3A",
-                tag: `conv_${conversationId}`,
-                sound: "default",
-                default_vibrate_timings: true,
-                notification_count: badgeCount, // Dynamically updates launcher badge counter
-              },
+              priority: "HIGH",
             },
             apns: {
+              headers: { "apns-priority": "10" },
               payload: {
                 aps: {
+                  alert: { title: toPlainText(senderDisplayName), body: preview || fallbackText },
                   badge: badgeCount,
                   sound: "default",
                 },

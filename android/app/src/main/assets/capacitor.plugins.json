@@ -28,6 +28,10 @@
 		"classpath": "io.capawesome.capacitorjs.plugins.badge.BadgePlugin"
 	},
 	{
+		"pkg": "capacitor-conversation-notifications",
+		"classpath": "com.xpresso.convnotif.ConversationNotificationsPlugin"
+	},
+	{
 		"pkg": "@capgo/capacitor-updater",
 		"classpath": "ee.forgr.capacitor_updater.CapacitorUpdaterPlugin"
 	}

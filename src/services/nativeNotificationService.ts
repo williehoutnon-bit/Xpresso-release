@@ -1,25 +1,7 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
 import { Badge } from '@capawesome/capacitor-badge';
-import { PushNotifications, type PushNotificationSchema, type ActionPerformed } from '@capacitor/push-notifications';
-
-export const XPRESSO_ORANGE = '#E58A3A';
-
-interface XpressoNotificationPluginInterface {
-  showConversationNotification(options: {
-    conversationId: string;
-    senderId?: string;
-    senderName?: string;
-    content: string;
-    isGroup?: boolean;
-    groupTitle?: string;
-    unreadCount?: number;
-    totalBadgeCount?: number;
-  }): Promise<{ success: boolean }>;
-  dismissConversation(options: { conversationId: string }): Promise<{ success: boolean }>;
-  dismissAll(): Promise<{ success: boolean }>;
-}
-
-const XpressoNotification = registerPlugin<XpressoNotificationPluginInterface>('XpressoNotification');
+import { PushNotifications, type PushNotificationSchema } from '@capacitor/push-notifications';
+import { ConvNotif } from '../native/conversationNotifications';
 
 export interface NotificationPayload {
   id?: number;
@@ -34,6 +16,7 @@ export interface NotificationPayload {
 type NotificationClickCallback = (payload: { conversationId?: string; data?: any }) => void;
 const clickListeners: NotificationClickCallback[] = [];
 
+let pendingClick: { conversationId?: string; data?: any } | null = null;
 let isInitialized = false;
 let currentPushToken: string | null = (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
 
@@ -43,6 +26,12 @@ class NativeNotificationService {
    */
   onNotificationClick(callback: NotificationClickCallback) {
     clickListeners.push(callback);
+    // A tap that cold-started the app arrives before the UI subscribes; replay it once.
+    if (pendingClick) {
+      const queued = pendingClick;
+      pendingClick = null;
+      callback(queued);
+    }
     return () => {
       const idx = clickListeners.indexOf(callback);
       if (idx !== -1) clickListeners.splice(idx, 1);
@@ -50,6 +39,10 @@ class NativeNotificationService {
   }
 
   private dispatchNotificationClick(data: { conversationId?: string; data?: any }) {
+    if (clickListeners.length === 0) {
+      pendingClick = data;
+      return;
+    }
     clickListeners.forEach((listener) => {
       try {
         listener(data);
@@ -72,16 +65,24 @@ class NativeNotificationService {
     }
 
     try {
-      // 1. Create Android Notification Channel (Required for Android 8.0+)
-      await this.setupChannels().catch((err) => {
-        console.warn('[NotificationService] Channel setup non-fatal error:', err);
-      });
-
-      // 2. Setup FCM Push Notification listeners (FCM is the sole notification pipeline)
+      // 1. FCM token registration (the conversation-notifications plugin renders chat messages)
       if (Capacitor.isPluginAvailable('PushNotifications')) {
         await this.setupPushListeners().catch((pErr) => {
           console.warn('[NotificationService] Push listeners non-fatal error:', pErr);
         });
+      }
+
+      // 2. Notification taps from the conversation-notifications plugin
+      if (Capacitor.getPlatform() === 'android') {
+        await ConvNotif.addListener('chatOpened', ({ chatId }) => {
+          this.dispatchNotificationClick({ conversationId: chatId });
+        }).catch((err) => console.warn('[NotificationService] chatOpened listener error:', err));
+
+        ConvNotif.getPendingChat()
+          .then(({ chatId }) => {
+            if (chatId) this.dispatchNotificationClick({ conversationId: chatId });
+          })
+          .catch(() => {});
       }
 
       // 4. Listen for app foreground / resume to sync unread badge and clear delivered notifications if all read
@@ -109,33 +110,6 @@ class NativeNotificationService {
       }
     } catch (err) {
       console.warn('[NotificationService] Error initializing native notification service:', err);
-    }
-  }
-
-  /**
-   * Create high-importance notification channel with badge support
-   */
-  async setupChannels() {
-    if (!Capacitor.isNativePlatform()) return;
-
-    try {
-      const channel = {
-        id: 'xpresso_messages',
-        name: 'Conversations',
-        description: 'Instant notifications for new direct messages and study group chats',
-        importance: 5, // High: Heads-up banner, sound, vibration
-        visibility: 1, // Public (shows on lock screen)
-        vibration: true,
-        lights: true,
-        lightColor: XPRESSO_ORANGE,
-      };
-
-      if (Capacitor.isPluginAvailable('PushNotifications')) {
-        await PushNotifications.createChannel(channel).catch(() => {});
-      }
-      console.info('[NotificationService] Notification channels configured with Xpresso orange badge support');
-    } catch (err) {
-      console.warn('[NotificationService] Failed to create notification channel:', err);
     }
   }
 
@@ -225,17 +199,6 @@ class NativeNotificationService {
           console.warn('[NotificationService] Foreground push unread refresh error:', rErr);
         }
       });
-
-      // Notification tapped by user
-      await PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
-        const data = notification.notification?.data || {};
-        const conversationId = data.conversationId || data.conversation_id;
-        console.info('[NotificationService] Push notification action performed:', { conversationId, data });
-        if (conversationId) {
-          this.removeDeliveredForConversation(conversationId).catch(() => {});
-        }
-        this.dispatchNotificationClick({ conversationId, data });
-      });
     } catch (pushListenerErr) {
       console.warn('[NotificationService] Failed to bind push notification listeners:', pushListenerErr);
     }
@@ -296,6 +259,9 @@ class NativeNotificationService {
    * Delete push token on logout
    */
   async removePushToken() {
+    if (Capacitor.getPlatform() === 'android') {
+      await ConvNotif.clearAll().catch(() => {});
+    }
     const tokenToRemove = currentPushToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
     if (!tokenToRemove) return;
 
@@ -354,33 +320,34 @@ class NativeNotificationService {
    * Remove delivered notifications for a specific conversation from the notification drawer
    */
   async removeDeliveredForConversation(conversationId: string) {
-    if (!Capacitor.isNativePlatform() || !conversationId) return;
+    if (Capacitor.getPlatform() !== 'android' || !conversationId) return;
+    await ConvNotif.clearChat({ chatId: conversationId }).catch(() => {});
+  }
 
-    try {
-      try {
-        await XpressoNotification.dismissConversation({ conversationId }).catch(() => {});
-      } catch (e) {}
+  /**
+   * Tell the plugin which chat is on screen so it does not notify for it (null when none)
+   */
+  async setActiveChat(conversationId: string | null) {
+    if (Capacitor.getPlatform() !== 'android') return;
+    await ConvNotif.setActiveChat({ chatId: conversationId }).catch(() => {});
+  }
 
-      if (Capacitor.isPluginAvailable('PushNotifications')) {
-        const delivered = await PushNotifications.getDeliveredNotifications().catch(() => null);
-        if (delivered?.notifications?.length) {
-          const matching = delivered.notifications.filter((n) => {
-            const data = n.data || {};
-            const extra = (n as any).extra || {};
-            return (
-              data.conversationId === conversationId ||
-              data.conversation_id === conversationId ||
-              extra.conversationId === conversationId ||
-              extra.conversation_id === conversationId
-            );
-          });
-          if (matching.length > 0) {
-            await PushNotifications.removeDeliveredNotifications({ notifications: matching }).catch(() => {});
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[NotificationService] removeDeliveredForConversation non-fatal warning:', err);
+  /**
+   * Pre-create conversation shortcuts so Android files notifications under Conversations
+   */
+  async syncConversationShortcuts(
+    conversations: { id: string; name?: string; avatarUrl?: string | null; isGroup?: boolean }[]
+  ) {
+    if (Capacitor.getPlatform() !== 'android') return;
+    for (const c of conversations) {
+      if (!c?.id || !c.name) continue;
+      const avatar = c.avatarUrl && /^https:\/\//i.test(c.avatarUrl) ? c.avatarUrl : undefined;
+      await ConvNotif.upsertShortcut({
+        chatId: c.id,
+        name: c.name,
+        avatarUrl: avatar,
+        isGroup: !!c.isGroup,
+      }).catch(() => {});
     }
   }
 
@@ -390,10 +357,6 @@ class NativeNotificationService {
   async clearDeliveredNotifications() {
     if (!Capacitor.isNativePlatform()) return;
     try {
-      try {
-        await XpressoNotification.dismissAll().catch(() => {});
-      } catch (e) {}
-
       if (Capacitor.isPluginAvailable('PushNotifications')) {
         await PushNotifications.removeAllDeliveredNotifications().catch(() => {});
       }
@@ -447,7 +410,7 @@ class NativeNotificationService {
 
   /**
    * Shows notification on web/desktop browser fallback.
-   * On native Android/iOS platforms, all notifications are handled exclusively via FCM.
+   * On native Android/iOS platforms, notifications are rendered by the conversation-notifications plugin from FCM data messages.
    */
   async showLocalNotification(payload: NotificationPayload) {
     if (!Capacitor.isNativePlatform()) {
