@@ -1,4 +1,4 @@
-package com.xpresso.app;
+package com.xpresso.convnotif;
 
 /**
  * Turns a chat message that carries colour markup into the plain text a notification should show.
@@ -9,8 +9,8 @@ package com.xpresso.app;
  *   \textcolor{red}{Hello}            -> Hello
  *   \textcolor[HTML]{FF0000}{Hello}   -> Hello
  *
- * Anything else, including normal text with braces, is left untouched. The TS twin of this class
- * is supabase/functions/_shared/sanitize.ts; keep the two in sync.
+ * Anything else, including normal text with braces, is left untouched. The JS twin of this class
+ * is js/sanitize.ts; keep the two in sync.
  */
 public final class TextSanitizer {
 
@@ -44,10 +44,11 @@ public final class TextSanitizer {
 
             int p = skipBlanks(s, i + cmdLen);
 
+            // Optional [spec], e.g. [#1d4ed8] or [HTML].
             String bracket = null;
             if (p < n && s.charAt(p) == '[') {
                 int close = s.indexOf(']', p);
-                if (close < 0) {
+                if (close < 0) { // malformed: drop the command word only
                     i += cmdLen;
                     continue;
                 }
@@ -55,7 +56,7 @@ public final class TextSanitizer {
                 p = skipBlanks(s, close + 1);
             }
 
-            if (p >= n || s.charAt(p) != '{') {
+            if (p >= n || s.charAt(p) != '{') { // command without a group: drop it (and its [spec])
                 i = p;
                 continue;
             }
@@ -86,13 +87,14 @@ public final class TextSanitizer {
         return out.toString();
     }
 
+    /** Index of the brace closing the group opened at {@code open}, or s.length() if unterminated. */
     private static int groupEnd(String s, int open) {
         int depth = 1;
         int n = s.length();
         int j = open + 1;
         while (j < n) {
             char c = s.charAt(j);
-            if (c == '\\' && j + 1 < n) {
+            if (c == '\\' && j + 1 < n) { // escaped character, e.g. \} stays inside the group
                 j += 2;
                 continue;
             }
