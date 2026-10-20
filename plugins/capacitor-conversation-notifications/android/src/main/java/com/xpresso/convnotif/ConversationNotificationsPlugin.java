@@ -1,6 +1,14 @@
 package com.xpresso.convnotif;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ResolveInfo;
+import android.os.Build;
+
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.pm.ShortcutManagerCompat;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -108,6 +116,55 @@ public class ConversationNotificationsPlugin extends Plugin {
     public void clearAll(PluginCall call) {
         ChatNotifier.cancelAll(getContext());
         call.resolve();
+    }
+
+    /**
+     * Posts a conversation notification locally, with no server or FCM involved. If this one shows
+     * under Conversations, the phone side works and any remaining problem is on the sending side.
+     */
+    @PluginMethod
+    public void showTestNotification(PluginCall call) {
+        IO.execute(() -> {
+            try {
+                ChatNotifier.showMessage(getContext(), "xpresso_self_test", "xpresso_self_test",
+                        "Xpresso test", "If you can read this under Conversations, notifications work on this phone.",
+                        System.currentTimeMillis(), null, false, null);
+                call.resolve();
+            } catch (Throwable e) {
+                call.reject("showTestNotification failed: " + e);
+            }
+        });
+    }
+
+    /** State that decides whether a push can show up: permission, channel, which FCM service wins. */
+    @PluginMethod
+    public void getDiagnostics(PluginCall call) {
+        Context ctx = getContext();
+        JSObject r = new JSObject();
+        r.put("sdk", Build.VERSION.SDK_INT);
+        r.put("notificationsEnabled", NotificationManagerCompat.from(ctx).areNotificationsEnabled());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            NotificationChannel ch = nm == null ? null : nm.getNotificationChannel(ChatNotifier.CHANNEL_ID);
+            // 4 = high (heads-up), 3 = default, 0 = switched off, -1 = channel does not exist yet
+            r.put("channelImportance", ch == null ? -1 : ch.getImportance());
+        }
+        try {
+            Intent probe = new Intent("com.google.firebase.MESSAGING_EVENT").setPackage(ctx.getPackageName());
+            ResolveInfo ri = ctx.getPackageManager().resolveService(probe, 0);
+            // Must end with ChatMessagingService. If it names Capacitor's MessagingService, the plugin never runs.
+            r.put("fcmServiceThatWins", ri == null || ri.serviceInfo == null ? "none" : ri.serviceInfo.name);
+        } catch (Throwable e) {
+            r.put("fcmServiceThatWins", "error: " + e);
+        }
+        try {
+            r.put("dynamicShortcuts", ShortcutManagerCompat.getDynamicShortcuts(ctx).size());
+        } catch (Throwable e) {
+            r.put("dynamicShortcuts", -1);
+        }
+        r.put("appInForeground", foreground);
+        r.put("chatOnScreen", activeChatId == null ? "" : activeChatId);
+        call.resolve(r);
     }
 
     /** Chat that launched the app from a tapped notification (cold start), once. */

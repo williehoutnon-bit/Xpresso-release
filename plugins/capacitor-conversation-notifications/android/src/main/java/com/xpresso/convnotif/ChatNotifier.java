@@ -86,7 +86,18 @@ final class ChatNotifier {
     static void showMessage(Context ctx, String chatId, String senderId, String senderName, String text,
                             long timestamp, @Nullable String avatarUrl, boolean isGroup, @Nullable String chatTitle) {
         ensureChannel(ctx);
-        if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return;
+        if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) {
+            Log.w(TAG, "notifications are disabled for the app (Android 13+ permission or system setting); nothing shown");
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager mgr = ctx.getSystemService(NotificationManager.class);
+            NotificationChannel ch = mgr == null ? null : mgr.getNotificationChannel(CHANNEL_ID);
+            if (ch != null && ch.getImportance() == NotificationManager.IMPORTANCE_NONE) {
+                Log.w(TAG, "channel '" + CHANNEL_ID + "' is switched off in system settings; nothing shown");
+                return;
+            }
+        }
 
         String title = (chatTitle != null && !chatTitle.isEmpty()) ? chatTitle : senderName;
         Person sender = new Person.Builder()
@@ -136,6 +147,7 @@ final class ChatNotifier {
         NotificationManagerCompat nm = NotificationManagerCompat.from(ctx);
         nm.notify(notifId, n);
         postSummary(ctx, nm);
+        Log.i(TAG, "notification posted for chat " + chatId + " (id " + notifId + ")");
     }
 
     /**

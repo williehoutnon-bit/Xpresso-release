@@ -95,10 +95,11 @@ class NativeNotificationService {
               const user = await authService.getCurrentUser();
               if (user) {
                 const { refreshTotalUnreadMessages } = await import('../stores/unread');
-                const unread = await refreshTotalUnreadMessages(user.$id || user.id);
-                if (unread === 0) {
-                  await this.clearDeliveredNotifications();
-                }
+                // Only refresh the badge here. Do NOT wipe the tray when the count is 0: the count
+                // comes from the local database, which lags behind (no Realtime), so 0 can simply
+                // mean "not synced yet" while notifications for new messages are on screen.
+                // Notifications are dismissed per chat when it is read (removeDeliveredForConversation).
+                await refreshTotalUnreadMessages(user.$id || user.id);
               }
             } catch (syncErr) {
               console.warn('[NotificationService] App resume badge sync warning:', syncErr);
@@ -352,7 +353,20 @@ class NativeNotificationService {
   }
 
   /**
-   * Clear all delivered notifications from the notification drawer
+   * Posts a local conversation notification (no server, no FCM) and returns the state that decides
+   * whether pushes can appear. Used to tell phone-side problems from server-side ones.
+   */
+  async runNotificationSelfTest() {
+    if (Capacitor.getPlatform() !== 'android') return null;
+    const diagnostics = await ConvNotif.getDiagnostics();
+    await ConvNotif.showTestNotification();
+    return diagnostics;
+  }
+
+  /**
+   * Clear all delivered notifications from the notification drawer.
+   * Wipes everything the app has shown, including conversation notifications: do not call it from
+   * anything driven by the local unread count.
    */
   async clearDeliveredNotifications() {
     if (!Capacitor.isNativePlatform()) return;
@@ -388,9 +402,10 @@ class NativeNotificationService {
         if (Capacitor.isPluginAvailable('Badge')) {
           await Badge.clear().catch(() => {});
         }
-        // Critical for Android & Samsung One UI:
-        // Clear delivered tray notifications so Samsung Launcher removes the badge dot/counter
-        await this.clearDeliveredNotifications();
+        // Do NOT clear the notification tray here. This runs on every unread recalculation, and the
+        // count is computed from the local database, which lags behind new pushes (no Realtime).
+        // A count of 0 right after a push arrives would delete the notification that was just posted.
+        // Notifications are removed per chat when the chat is read (removeDeliveredForConversation).
       } else {
         if (Capacitor.isPluginAvailable('Badge')) {
           await Badge.set({ count: validCount }).catch(() => {});

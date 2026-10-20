@@ -15,6 +15,18 @@ export interface ConversationNotificationsPlugin {
   clearAll(): Promise<void>;
   /** Chat that cold-started the app from a notification tap; returns once, then null. */
   getPendingChat(): Promise<{ chatId: string | null }>;
+  /** Posts a conversation notification locally (no server, no FCM) to test the phone side. */
+  showTestNotification(): Promise<void>;
+  /** Permission, channel and FCM-service state that decides whether a push can appear. */
+  getDiagnostics(): Promise<{
+    sdk: number;
+    notificationsEnabled: boolean;
+    channelImportance?: number;
+    fcmServiceThatWins: string;
+    dynamicShortcuts: number;
+    appInForeground: boolean;
+    chatOnScreen: string;
+  }>;
   /** App was already running and a notification was tapped. */
   addListener(
     eventName: 'chatOpened',

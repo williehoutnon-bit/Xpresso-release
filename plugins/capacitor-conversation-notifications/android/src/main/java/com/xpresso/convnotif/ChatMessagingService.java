@@ -39,14 +39,24 @@ public class ChatMessagingService extends FirebaseMessagingService {
         Map<String, String> d = message.getData();
         String chatId = d.get("chatId");
 
+        // Visible in logcat with: adb logcat -s ConvNotif
+        Log.i(ChatNotifier.TAG, "FCM received: type=" + d.get("type") + " chatId=" + chatId
+                + " keys=" + d.keySet() + " hasNotificationBlock=" + (message.getNotification() != null));
+
         // Always hand the message to Capacitor's plugin too: when the app is open, the web layer
         // gets its usual "pushNotificationReceived" event (e.g. to refresh the chat list).
         forwardToCapacitor("sendRemoteMessage", RemoteMessage.class, message);
 
-        if (!TYPE_CHAT.equals(d.get("type")) || isBlank(chatId)) return;
+        if (!TYPE_CHAT.equals(d.get("type")) || isBlank(chatId)) {
+            Log.i(ChatNotifier.TAG, "not a chat_message payload; leaving it to Capacitor");
+            return;
+        }
 
         // The user is looking at this very chat: no notification needed.
-        if (ConversationNotificationsPlugin.isChatOnScreen(chatId)) return;
+        if (ConversationNotificationsPlugin.isChatOnScreen(chatId)) {
+            Log.i(ChatNotifier.TAG, "chat is on screen; notification skipped");
+            return;
+        }
 
         String senderName = TextSanitizer.toPlainText(d.get("senderName"));
         if (senderName.isEmpty()) senderName = "New message";
@@ -68,7 +78,7 @@ public class ChatMessagingService extends FirebaseMessagingService {
         try {
             ChatNotifier.showMessage(this, chatId, senderId, senderName, text, ts,
                     d.get("avatarUrl"), isGroup, chatTitle.isEmpty() ? null : chatTitle);
-        } catch (Exception e) {
+        } catch (Throwable e) { // Throwable: a missing class/method must not fail silently either
             Log.e(ChatNotifier.TAG, "could not show chat notification", e);
         }
     }
