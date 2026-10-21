@@ -10,6 +10,18 @@ interface AppVersionRow {
   bundle_url: string;
 }
 
+function isTrustedBundleUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    const base = new URL(SUPABASE_URL);
+    return url.protocol === 'https:' && url.host === base.host &&
+      url.pathname.startsWith('/storage/v1/object/public/app-updates/') &&
+      url.pathname.endsWith('.zip') && !url.pathname.includes('..');
+  } catch {
+    return false;
+  }
+}
+
 const MIN_CHECK_INTERVAL_MS = 60_000;
 
 let checking = false;
@@ -34,6 +46,10 @@ async function checkForUpdate() {
   try {
     const latest = await fetchLatestVersion();
     if (!latest || latest.version === queuedVersion) return;
+    if (!isTrustedBundleUrl(latest.bundle_url)) {
+      console.warn('[LiveUpdate] Ignoring bundle from untrusted URL');
+      return;
+    }
 
     const { bundle: current } = await CapacitorUpdater.current();
     const currentVersion = current.id === 'builtin' ? EMBEDDED_VERSION : current.version;

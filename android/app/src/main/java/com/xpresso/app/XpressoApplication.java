@@ -91,8 +91,9 @@ public class XpressoApplication extends Application {
             }
             Log.e(TAG, "Crash report recorded to " + crashFile.getAbsolutePath() + ":\n" + sw.toString());
 
-            // Attempt immediate clipboard set right before crash exit
+            // Clipboard crash reports are limited to debuggable builds because the clipboard is readable by other apps.
             try {
+                if (!isDebuggable(this)) throw new IllegalStateException("release build");
                 ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
                     ClipData clip = ClipData.newPlainText("Xpresso Crash Report", sw.toString());
@@ -193,8 +194,12 @@ public class XpressoApplication extends Application {
         }
     }
 
+    static boolean isDebuggable(Context context) {
+        return context != null && (context.getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    }
+
     public static void copyCrashLogToClipboardAndDownloads(Context context) {
-        if (context == null) return;
+        if (context == null || !isDebuggable(context)) return;
         try {
             File f1 = new File(context.getFilesDir(), CRASH_FILE_NAME);
             File f2 = new File(context.getFilesDir(), "latest_exit_reason.txt");

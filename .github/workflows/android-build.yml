@@ -36,7 +36,6 @@ jobs:
 
       - name: Build Web Production Assets
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
         run: npm run build

@@ -6,10 +6,6 @@ const supabaseUrl = envUrl && envUrl.startsWith('http') ? envUrl.trim() : 'https
 const envKey = typeof import.meta.env !== 'undefined' ? import.meta.env.VITE_SUPABASE_ANON_KEY : process.env.VITE_SUPABASE_ANON_KEY;
 const supabaseKey = envKey && envKey.trim().length > 0 && envKey !== 'undefined' ? envKey.trim() : 'sb_publishable_zQKul9e9MeAZXi0wH48yCw_AmlQ0rXo';
 
-// Check for service role key for write operations
-const envServiceKey = typeof import.meta.env !== 'undefined' ? import.meta.env.VITE_SUPABASE_SERVICE_KEY : process.env.VITE_SUPABASE_SERVICE_KEY;
-const supabaseServiceKey = envServiceKey && envServiceKey.trim().length > 0 && envServiceKey !== 'undefined' ? envServiceKey.trim() : null;
-
 export const supabase = createClient(
   supabaseUrl,
   supabaseKey,
@@ -42,25 +38,9 @@ export const supabase = createClient(
   }
 );
 
-// Admin client with service role key for write operations (INSERT/UPDATE/DELETE)
-// Falls back to anon client if service key not available (read-only mode)
-export const supabaseAdmin = supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      global: {
-        fetch: async (url, options) => {
-          try {
-            return await fetch(url, options);
-          } catch (err: any) {
-            console.warn("[Supabase Admin Fetch] Failed:", url, err);
-            return new Response(JSON.stringify({ error: err.message || 'Fetch failed' }), {
-              status: 502,
-              headers: { 'Content-Type': 'application/json' }
-            });
-          }
-        }
-      }
-    })
-  : supabase;
+// Security: privileged service-role credentials never ship in the client bundle.
+// Keep this compatibility alias while callers migrate; RLS applies to every request.
+export const supabaseAdmin = supabase;
 
 // We define our core migration adapters here to transition smoothly from Appwrite
 
