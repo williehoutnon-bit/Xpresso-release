@@ -59,6 +59,7 @@ jobs:
 
       - name: Publish Live Update to Supabase
         if: github.event_name != 'pull_request'
+        continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.VITE_SUPABASE_SERVICE_KEY }}
@@ -69,7 +70,7 @@ jobs:
             exit 0
           fi
           (cd dist && zip -qr ../bundle.zip .)
-          node scripts/publish-live-update.mjs || echo "::warning::Live update publish failed, proceeding with APK build."
+          node scripts/publish-live-update.mjs
 
       - name: Setup Google Services for FCM
         env:
