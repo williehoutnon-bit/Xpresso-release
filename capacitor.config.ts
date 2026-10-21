@@ -10,7 +10,8 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: false,
     captureInput: false,
-    webContentsDebuggingEnabled: true,
+    // Enable only for local development; release builds must not expose WebView storage.
+    webContentsDebuggingEnabled: process.env.CAP_WEBVIEW_DEBUG === 'true',
   },
   plugins: {
     CapacitorUpdater: {

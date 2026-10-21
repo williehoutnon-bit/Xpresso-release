@@ -223,23 +223,14 @@ class NativeNotificationService {
         return;
       }
 
-      const { getSupabase, getSupabaseAdmin } = await import('./supabaseService');
-      const adminClient = getSupabaseAdmin();
-      const regularClient = getSupabase();
-      const client = adminClient || regularClient;
+      const { getSupabase } = await import('./supabaseService');
+      const client = getSupabase();
       if (!client) return;
 
-      const { error } = await client
-        .from('user_push_tokens')
-        .upsert(
-          {
-            user_id: targetUserId,
-            token: tokenToSync,
-            platform: Capacitor.getPlatform(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'token' }
-        );
+      const { error } = await client.rpc('register_push_token', {
+        p_token: tokenToSync,
+        p_platform: Capacitor.getPlatform(),
+      });
 
       if (error) {
         console.warn('[NotificationService] Failed to upsert token into user_push_tokens:', error.message);
@@ -284,15 +275,11 @@ class NativeNotificationService {
     if (!tokenToRemove) return;
 
     try {
-      const { getSupabase, getSupabaseAdmin } = await import('./supabaseService');
-      const client = getSupabaseAdmin() || getSupabase();
+      const { getSupabase } = await import('./supabaseService');
+      const client = getSupabase();
       if (!client) return;
 
-      await client
-        .from('user_push_tokens')
-        .delete()
-        .eq('token', tokenToRemove)
-        .catch(() => {});
+      await client.rpc('unregister_push_token', { p_token: tokenToRemove }).then(() => {}, () => {});
 
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('xpresso_fcm_token');

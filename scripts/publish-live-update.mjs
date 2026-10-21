@@ -6,7 +6,7 @@ const {
   PUBLIC_SUPABASE_URL,
   VITE_SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
-  VITE_SUPABASE_SERVICE_KEY,
+
   BUNDLE_VERSION,
   BUNDLE_PATH = 'bundle.zip',
 } = process.env;
@@ -28,7 +28,7 @@ function describeError(err) {
 }
 
 // Secrets pasted into GitHub often carry quotes or whitespace/newlines that make fetch throw "fetch failed".
-const rawKey = (SUPABASE_SERVICE_ROLE_KEY || VITE_SUPABASE_SERVICE_KEY || '')
+const rawKey = (SUPABASE_SERVICE_ROLE_KEY || '')
   .replace(/^["']|["']$/g, '')
   .replace(/\s+/g, '');
 if (!rawKey || rawKey === 'undefined' || rawKey === 'null') {

@@ -45,12 +45,10 @@ jobs:
 
       - name: Build web assets
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
           PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_SERVICE_KEY: ${{ secrets.VITE_SUPABASE_SERVICE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VITE_BUNDLE_VERSION: 1.0.${{ github.run_number }}
         run: npm run build
 
@@ -62,7 +60,7 @@ jobs:
         continue-on-error: true
         env:
           SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL || secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.VITE_SUPABASE_SERVICE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BUNDLE_VERSION: 1.0.${{ github.run_number }}
         run: |
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
