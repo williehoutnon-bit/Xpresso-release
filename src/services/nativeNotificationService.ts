@@ -147,15 +147,13 @@ class NativeNotificationService {
         }
       }
 
-      // Register for FCM tokens safely if granted and push plugin available
+      // Register for FCM tokens directly if granted and push plugin available
       if (pushGranted && Capacitor.isPluginAvailable('PushNotifications')) {
-        setTimeout(async () => {
-          try {
-            await PushNotifications.register();
-          } catch (regErr) {
-            console.warn('[NotificationService] FCM registration safely handled (non-fatal):', regErr);
-          }
-        }, 500);
+        try {
+          await PushNotifications.register();
+        } catch (regErr) {
+          console.warn('[NotificationService] FCM registration safely handled (non-fatal):', regErr);
+        }
       }
 
       return pushGranted;
@@ -191,7 +189,7 @@ class NativeNotificationService {
         console.info('[NotificationService] Push notification received in foreground:', notification);
         try {
           const { authService } = await import('./authService');
-          const user = await authService.getCurrentUser();
+          const user = await authService.getCurrentUser() || authService.getOfflineUser();
           if (user) {
             const { refreshTotalUnreadMessages } = await import('../stores/unread');
             await refreshTotalUnreadMessages(user.$id || user.id);
@@ -208,14 +206,19 @@ class NativeNotificationService {
   /**
    * Post device push token to backend for FCM delivery
    */
-  async syncPushTokenToBackend(token?: string) {
+  async syncPushTokenToBackend(token?: string, explicitUserId?: string) {
     const tokenToSync = token || currentPushToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
     if (!tokenToSync) return;
 
     try {
-      const { authService } = await import('./authService');
-      const user = await authService.getCurrentUser();
-      if (!user) {
+      let targetUserId = explicitUserId;
+      if (!targetUserId) {
+        const { authService } = await import('./authService');
+        const user = await authService.getCurrentUser() || authService.getOfflineUser();
+        targetUserId = user?.$id || user?.id;
+      }
+
+      if (!targetUserId) {
         console.info('[NotificationService] Token held in local storage; awaiting user authentication to sync with profile.');
         return;
       }
@@ -226,12 +229,11 @@ class NativeNotificationService {
       const client = adminClient || regularClient;
       if (!client) return;
 
-      const userId = user.$id || user.id;
       const { error } = await client
         .from('user_push_tokens')
         .upsert(
           {
-            user_id: userId,
+            user_id: targetUserId,
             token: tokenToSync,
             platform: Capacitor.getPlatform(),
             updated_at: new Date().toISOString(),
@@ -242,7 +244,7 @@ class NativeNotificationService {
       if (error) {
         console.warn('[NotificationService] Failed to upsert token into user_push_tokens:', error.message);
       } else {
-        console.info('[NotificationService] Successfully registered push token in Supabase for user:', userId);
+        console.info('[NotificationService] Successfully registered push token in Supabase for user:', targetUserId);
       }
     } catch (err) {
       console.warn('[NotificationService] syncPushTokenToBackend caught error:', err);
@@ -250,10 +252,25 @@ class NativeNotificationService {
   }
 
   /**
+   * Authoritative registration flow: initializes listeners, requests permissions,
+   * registers with FCM, and syncs token with Supabase immediately.
+   */
+  async registerAndSyncPushToken(explicitUserId?: string) {
+    await this.init();
+    if (!Capacitor.isNativePlatform()) return;
+
+    await this.requestPermissions();
+    const token = currentPushToken || (typeof localStorage !== 'undefined' ? localStorage.getItem('xpresso_fcm_token') : null);
+    if (token) {
+      await this.syncPushTokenToBackend(token, explicitUserId);
+    }
+  }
+
+  /**
    * Re-syncs any locally saved push token upon user login/signup
    */
-  async syncSavedPushToken() {
-    await this.syncPushTokenToBackend();
+  async syncSavedPushToken(explicitUserId?: string) {
+    await this.syncPushTokenToBackend(undefined, explicitUserId);
   }
 
   /**

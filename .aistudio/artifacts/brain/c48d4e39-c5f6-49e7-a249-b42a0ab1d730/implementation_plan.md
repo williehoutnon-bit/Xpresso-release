@@ -1,107 +1,82 @@
-# Image Gap Typing & Direct Image Annotation
+# Implementation Plan: Fix Xpresso Conversation Push Notifications
 
-Enable users to attach images with an editable text area below in the draft composer, and fix the annotation engine to allow smooth, uninterrupted drawing directly over images with precise anchor positioning.
+## Problem Analysis & Edge Function / Plugin Audit
 
-> [!IMPORTANT]
-> **Confirmed Decisions**:
-> 1. **Image Gap Typing**: When attaching an image (via the '+' button or camera), the image is staged inside the draft bubble with a text area in the gap directly beneath it. This allows users to compose formulas, handwriting, and notes below the image before sending.
-> 2. **Direct Image Annotation Anchoring**: Annotation strokes starting over an image anchor directly to the image container (`data-image-container`). Strokes scale and position relative to the image geometry, rendering via `InkOverlay` with support for real-time draft marks and synced annotations.
-> 3. **Sketch Mode Interaction Isolation**: In sketch mode, clicking an image will not trigger the full-screen zoom preview, ensuring drawing gestures begin immediately on pointer-down.
+Following your requirements, we performed an in-depth audit of:
+1. **The FCM payload contract in the Supabase Edge Function** (`send-push-notification/index.ts`)
+2. **The custom plugin implementation** (`plugins/capacitor-conversation-notifications`)
+3. **The Android manifest and service registration**
+4. **The client-side push token registration lifecycle**
 
----
+### 1. Edge Function Analysis: Data vs Notification Blocks
+- **Contract Requirement**: As detailed on Page 4 and Page 6 of the implementation guide, Android 11+ conversation notifications **must use pure `data` payloads with NO `notification` block**. 
+- If a top-level `notification: { title, body }` block is present in the FCM message, Android's operating system intercepts the push while the app is in the background or killed, displays a generic card under standard "Alerts", and **never invokes `ChatMessagingService.onMessageReceived()`**.
+- **Current State of the Edge Function**:
+  - The Edge Function currently sends a `data` block, but also includes an `apns` block and lacked parsing for packed JSON attachment payloads (`{"c":"...", "a":[...]}`) used by photo and media messages.
+  - The Edge Function looks up tokens in `user_push_tokens`. Because `user_push_tokens` in Supabase has 0 rows, the Edge Function never actually dispatched any push to FCM.
 
-## 1. Overview & Core Concept
+### 2. Plugin & Android Implementation Mishaps
+- **FCM Service Collision in Manifest**: Both `@capacitor/push-notifications` and your custom plugin declare a `<service>` for `com.google.firebase.MESSAGING_EVENT`. Android only binds to **one** service per app. Because `@capacitor/push-notifications` is higher in Gradle dependency order, its default `MessagingService` can win and swallow pushes, preventing `ChatMessagingService` from ever running.
+- **Missing `ACTION_VIEW` Intent Filter on `MainActivity`**: `ChatNotifier` creates conversation shortcuts and notification pending intents with `Intent.ACTION_VIEW`. In Samsung One UI and other custom Android ROMs, shortcuts require `MainActivity` to declare an intent-filter for `ACTION_VIEW` to prevent system rejection.
+- **Orphaned Summary Notification**: When notifications are dismissed via `cancelChat`, `SUMMARY_ID` was left in the notification drawer on older Android versions if no child notifications remained.
+- **Plugin Copy in `node_modules`**: The plugin is installed via `file:plugins/capacitor-conversation-notifications`, which npm copies into `node_modules`. Any updates to the plugin must be mirrored and synced via `npx cap sync android`.
 
-### What It Does
-- **Staged Image Draft Composer**: Clicking the attachment button (`+`) stages the selected image inside the active draft bubble. A torn-paper styled preview card displays the image, followed by an editable math/text gap below it where users can type formulas, text, or equations. Clicking Send transmits the image, caption text, and any annotations as a unified message.
-- **Direct Image Inking**: In sketch/annotation mode, touching or dragging over any image in the chat (or in the draft) immediately starts drawing without opening the full-screen image viewer. The stroke coordinate space normalizes directly to the image element so ink stays aligned across window resizes, zoom levels, and layout shifts.
-- **Live Draft Annotations on Images**: Pending marks drawn over sent image messages immediately display via the image's `InkOverlay` alongside historical and received strokes.
-
----
-
-## 2. User Experience & Visual Design
-
-### Key User Flows
-1. **Attaching & Typing Under an Image**:
-   - User taps the `+` button in the composer bar.
-   - File picker opens; user selects an image.
-   - The draft bubble activates and expands:
-     - Top section: The selected image rendered with a slight torn-paper shadow and tape badge, plus a subtle top-right remove (`X`) button.
-     - Gap below: The active `AnnotatableText` area with Kalam handwriting font, blinking caret, math keyboard toolbar, and text styling.
-   - User types explanation text, math formulas, or draws annotations over the draft.
-   - User taps Send: The image uploads, and the message is sent containing both the image attachment and the formatted text/math below it.
-2. **Annotating Over Images**:
-   - User activates Sketch Mode (pen icon).
-   - User places finger/mouse on an image message and drags to draw.
-   - The image does not pop open in a lightbox. Instead, the annotation stabilizer immediately draws a live stroke path on the canvas.
-   - On release, the stroke is committed to the image container's coordinate system and rendered in `InkOverlay`.
-   - Undo/Redo and Eraser tools interact seamlessly with image-anchored strokes.
-
-### Visual Identity & Theme
-- **Draft Image Card**: Matches the chat timeline's Polaroid/torn-paper aesthetic (`rotate-[1deg]`, subtle tape motif, soft drop shadow, border dashed `border-ink/20`).
-- **Remove Button**: Compact circular `X` badge at the top-right corner of the draft image for one-tap cancellation before sending.
-- **Typographic Gap**: Generous line spacing matching the chat notebook ruled-paper background with Kalam font styling.
+### 3. Client Lifecycle Gap (Why `user_push_tokens` was 0 rows)
+- In `src/App.svelte`, notification setup (`init()`, `requestPermissions()`, `syncSavedPushToken()`) was wrapped inside `if (activeUser)` in `onMount`.
+- On a fresh install or when logged out, `activeUser` is null on startup.
+- When the user logs in on the login screen, `authService.login()` only called `syncSavedPushToken()`. It never called `init()` or `requestPermissions()`, and `PushNotifications.register()` was never executed.
+- Because `register()` never ran, Google never generated an FCM token, nothing was saved in `localStorage`, and the token was never sent to Supabase.
+- In `messagingService.ts`, `sendImageMessage` never invoked `dispatchPushNotification()`, so sending photos produced zero notifications.
 
 ---
 
-## 3. Technical Architecture & Data Strategy
+## Proposed Changes
 
-```
-┌────────────────────────────────────────────────────────┐
-│                   ChatWindow.svelte                    │
-│                                                        │
-│  ┌────────────────────┐      ┌──────────────────────┐  │
-│  │ ChatAnnotationLayer│ ───► │  resolveTarget()     │  │
-│  │ (pointerdown/move) │      │  • Detects image-box │  │
-│  └─────────┬──────────┘      │  • Prevents lightbox │  │
-│            │                 └──────────┬───────────┘  │
-│            ▼                            ▼              │
-│  ┌────────────────────┐      ┌──────────────────────┐  │
-│  │  onStrokeCommitted │ ───► │  addPendingMark()    │  │
-│  └────────────────────┘      └──────────┬───────────┘  │
-│                                         ▼              │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │ Image Message / Draft Bubble Container           │  │
-│  │  • [data-image-container={m.id}]                 │  │
-│  │  • <InkOverlay strokes={[allImageStrokes]} />    │  │
-│  │  • Staged Draft Image + Dismiss 'X'              │  │
-│  │  • Gap Below: <AnnotatableText isEditor={true} />│  │
-│  └──────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────┘
-```
+### 1. Edge Function Hardening (`supabase/functions/send-push-notification/index.ts`)
+- **Strict Data-Only Android Payload**: Ensure the FCM payload for Android contains **only** the `data` block and `android: { priority: "HIGH" }`, with zero top-level `notification` block.
+- **Payload Sanitization & JSON Media Unpacking**: When message content is packed JSON (`{"c":"caption", "a":[...]}` from media/images), extract the caption before sanitizing with `toPlainText()`. If empty, apply `fallbackText` ("Photo", "Voice message", "Attachment").
+- **Strict String Values**: Verify all keys (`type`, `chatId`, `senderId`, `senderName`, `text`, `fallbackText`, `ts`, `isGroup`, `chatTitle`, `avatarUrl`, `msgType`, `badge`) are guaranteed string primitives as required by the FCM data specification.
 
-### Component & State Changes
-1. **`src/views/ChatWindow.svelte`**:
-   - Add `stagedImage` state: `{ file: File, url: string, dominantColor: string } | null`.
-   - Update `handleImageUpload`: Stage the selected file into `stagedImage` and activate `showMathKeyboard = true` instead of sending instantly.
-   - Draft Bubble Markup: Render the staged image above `<AnnotatableText>`, followed by the text gap.
-   - `handleSend`: If `stagedImage` is present, upload the image via `messagingService` with the draft `msg` content and `currentStrokes`.
-   - Image Message Template:
-     - Add `data-image-container={m.id}` to image wrapper.
-     - Prevent zoom preview if `isSketchMode` is active (`onclick={() => { if (!isSketchMode) zoomedImageId = m.id; }}`).
-     - Update `InkOverlay` in `msgType === 'image'` to render all strokes: `[...(imageStrokes || []), ...(receivedMarksByTarget[m.id] ?? []), ...(pendingMarks[m.id] ?? [])]`.
-2. **`src/components/ChatAnnotationLayer.svelte`**:
-   - In `resolveTarget(clientX, clientY)`, add explicit check for `el.closest('[data-image-container]')`.
-   - When an image container is hit, anchor `targetRect` to the image container's bounding rectangle.
-   - For staged images in the draft, anchor to the draft image container or draft target.
-3. **`src/components/InkOverlay.svelte`**:
-   - Ensure pointer events are non-blocking (`pointer-events-none`) and SVG viewBox/scaling correctly respects image aspect ratios.
+### 2. Android Manifest & Plugin Fixes
+#### File: `android/app/src/main/AndroidManifest.xml`
+- Add `xmlns:tools="http://schemas.android.com/tools"` to `<manifest>`.
+- Add `<service android:name="com.capacitorjs.plugins.pushnotifications.MessagingService" tools:node="remove" />` to remove Capacitor's default listener.
+- Explicitly register `com.xpresso.convnotif.ChatMessagingService` as the authoritative receiver for `com.google.firebase.MESSAGING_EVENT`.
+- Add the `android.intent.action.VIEW` intent filter to `MainActivity` for shortcut handling.
+
+#### File: `plugins/capacitor-conversation-notifications/android/src/main/java/com/xpresso/convnotif/ChatNotifier.java`
+- In `cancelChat`, check if active notifications for the app are now empty; if so, cancel the summary notification (`SUMMARY_ID`) so no empty drawer items persist.
+- Sync changes to `node_modules/capacitor-conversation-notifications` and run `npx cap sync android`.
+
+### 3. Push Token Registration & Auth Lifecycle
+#### File: `src/services/nativeNotificationService.ts`
+- Implement an authoritative `registerAndSyncPushToken(userId?: string)`:
+  - Initializes push listeners unconditionally.
+  - Calls `PushNotifications.requestPermissions()` and `PushNotifications.register()`.
+  - When the token arrives (via `registration` listener or cached in `localStorage`/memory), immediately upserts into `user_push_tokens` in Supabase with `onConflict: 'token'`.
+  - Includes retry resilience if the network is briefly offline during app boot.
+
+#### File: `src/services/authService.ts` & `src/App.svelte`
+- Call `nativeNotificationService.registerAndSyncPushToken()` on:
+  - App startup (for restored sessions).
+  - Successful user login (`authService.login`).
+  - Successful user signup (`authService.signup`).
+- Clean up the token on `authService.logout()`.
+
+#### File: `src/services/messagingService.ts`
+- In `sendImageMessage`, add the `dispatchPushNotification` call after the image is saved to Supabase, matching the text message flow.
 
 ---
 
-## 4. Verification Plan
+## Verification Plan
 
-1. **Compilation & Linting**: Run `compile_applet` and `lint_applet` to confirm clean builds.
-2. **Draft Image Gap Typing**:
-   - Select an image via the `+` button.
-   - Verify image preview renders inside the draft bubble.
-   - Verify caret appears in the gap below the image and user can type text and math formulas.
-   - Send the message; verify it renders in the chat timeline with the image on top and text below.
-   - Test removing the staged image using the `X` button.
-3. **Direct Image Annotation**:
-   - Toggle sketch/annotation mode on.
-   - Click and drag directly on an image message.
-   - Verify lightbox does NOT open.
-   - Verify live stroke renders smoothly during drawing.
-   - Verify stroke remains visible and perfectly positioned over the image after pointer release.
-   - Verify strokes persist through window resizing.
+1. **Compilation & Build Check**:
+   - Run `compile_applet` to verify that all TypeScript services and Svelte files compile without errors.
+2. **Capacitor Android Sync**:
+   - Run `npx cap sync android` to ensure the updated manifest and plugin changes are properly compiled into the Android project.
+3. **Real User-to-User Testing**:
+   - Log into Account A on your physical Android device.
+   - The app will automatically register the device with FCM and store the token in Supabase `user_push_tokens`.
+   - Log into Account B on the web preview.
+   - Send a message (e.g. `\color[#1d4ed8]{Hello}`) from Account B to Account A while Account A has the app closed or in the background.
+   - Check the Android notification shade: verify it appears under **Conversations** with the sender's avatar circle, name, and clean text `Hello` (no markup).

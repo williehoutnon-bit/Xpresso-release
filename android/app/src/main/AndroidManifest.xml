@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:name=".XpressoApplication"
@@ -24,6 +25,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Required for dynamic conversation shortcuts and notification taps -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -37,8 +44,25 @@
         </provider>
 
         <!--
+            Explicitly remove Capacitor's default MessagingService so it cannot intercept
+            com.google.firebase.MESSAGING_EVENT. ChatMessagingService handles conversation
+            notifications and forwards non-chat messages and token updates to Capacitor.
+        -->
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
+
+        <service
+            android:name="com.xpresso.convnotif.ChatMessagingService"
+            android:exported="false">
+            <intent-filter android:priority="100">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!--
             Notification defaults. The conversation-notifications plugin reads the icon and colour
-            from here; its own FirebaseMessagingService (priority 100) renders chat messages.
+            from here; its own FirebaseMessagingService renders chat messages.
         -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

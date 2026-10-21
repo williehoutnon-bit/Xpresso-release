@@ -242,9 +242,7 @@
           // Initialize Native Notifications and Badge tracking
           import('./services/nativeNotificationService').then(async ({ nativeNotificationService }) => {
             try {
-              await nativeNotificationService.init();
-              await nativeNotificationService.requestPermissions();
-              await nativeNotificationService.syncSavedPushToken();
+              await nativeNotificationService.registerAndSyncPushToken(user.$id || user.id);
             } catch (err) {
               console.warn('App: Native notification setup non-fatal error:', err);
             }

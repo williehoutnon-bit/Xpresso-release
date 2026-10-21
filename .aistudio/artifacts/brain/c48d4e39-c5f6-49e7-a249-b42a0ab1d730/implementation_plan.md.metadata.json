@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for enabling typing in the gap below attached images in the draft bubble and fixing annotation stroke drawing directly over images.",
-  "updatedAt": "2026-10-17T21:06:14.784574426Z",
-  "requestFeedback": true,
-  "userFacing": true
+  "summary":  "Revised implementation plan tailored to direct user-to-user messaging testing (no test/mock panels). Addresses the data-only FCM payload contract in the Edge Function, fixes AndroidManifest service collision and activity intent filters, eliminates the token registration gap on login/startup, and handles image message push dispatches.",
+  "updatedAt":  "2026-10-21T09:27:58.982859879Z",
+  "requestFeedback":  true,
+  "userFacing":  true
 }

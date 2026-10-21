@@ -82,6 +82,9 @@ export const authService = {
       cachedCurrentUser = enrichedUser;
       localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
       localStorage.setItem('exup_persistent_session', JSON.stringify(cachedCurrentUser));
+      import('./nativeNotificationService').then(({ nativeNotificationService }) => {
+        nativeNotificationService.registerAndSyncPushToken(user.id).catch(() => {});
+      }).catch(() => {});
       return cachedCurrentUser;
     } catch (error: any) {
       console.error('Signup failed:', error);
@@ -131,7 +134,7 @@ export const authService = {
      await dbService.upsertProfile(localProfile);
       
       import('./nativeNotificationService').then(({ nativeNotificationService }) => {
-        nativeNotificationService.syncSavedPushToken().catch(() => {});
+        nativeNotificationService.registerAndSyncPushToken(user.id).catch(() => {});
       }).catch(() => {});
 
       return enrichedUser;
@@ -370,7 +373,7 @@ export const authService = {
       localStorage.setItem('exup_offline_user', JSON.stringify(cachedCurrentUser));
       localStorage.setItem('exup_persistent_session', JSON.stringify(cachedCurrentUser));
       import('./nativeNotificationService').then(({ nativeNotificationService }) => {
-        nativeNotificationService.syncSavedPushToken().catch(() => {});
+        nativeNotificationService.registerAndSyncPushToken(uid).catch(() => {});
       }).catch(() => {});
       return cachedCurrentUser;
     } catch (err) {

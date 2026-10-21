@@ -169,7 +169,30 @@ final class ChatNotifier {
     }
 
     static void cancelChat(Context ctx, String chatId) {
-        NotificationManagerCompat.from(ctx).cancel(notificationId(chatId));
+        NotificationManagerCompat nm = NotificationManagerCompat.from(ctx);
+        nm.cancel(notificationId(chatId));
+        // Dismiss the summary notification if no other chat notifications are active
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                NotificationManager sysNm = ctx.getSystemService(NotificationManager.class);
+                if (sysNm != null) {
+                    StatusBarNotification[] active = sysNm.getActiveNotifications();
+                    boolean hasOtherChat = false;
+                    if (active != null) {
+                        for (StatusBarNotification sbn : active) {
+                            if (sbn.getId() != SUMMARY_ID) {
+                                hasOtherChat = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!hasOtherChat) {
+                        nm.cancel(SUMMARY_ID);
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     static void cancelAll(Context ctx) {

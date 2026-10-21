@@ -1594,6 +1594,30 @@ export const messagingService = {
           }, { onConflict: 'id' });
           if (pushError) {
             console.warn('[MessagingService] Direct Supabase push for image message warning:', pushError);
+          } else {
+            // Dispatch push notification to offline recipients for image messages
+            import('./nativeNotificationService').then(async ({ nativeNotificationService }) => {
+              let recipientIds: string[] = [];
+              const currentUserId = user.id || user.$id;
+              try {
+                const db = await dbService.getRawDB();
+                const partDocs = await db.participants.find({
+                  selector: { conversationId }
+                }).exec();
+                recipientIds = partDocs
+                  .map((p: any) => p.userId || p.user_id)
+                  .filter((uid: string) => uid && uid !== currentUserId);
+              } catch (pErr) {}
+
+              nativeNotificationService.dispatchPushNotification({
+                conversationId,
+                senderId: currentUserId,
+                senderName: user.name || user.prefs?.lastName || 'Xpresso User',
+                content: caption ? caption : 'Photo',
+                type: 'f:image',
+                recipientIds: recipientIds.length > 0 ? recipientIds : undefined,
+              });
+            }).catch(() => {});
           }
         } catch (pushErr) {
           console.warn('[MessagingService] Direct Supabase push for image message warning:', pushErr);

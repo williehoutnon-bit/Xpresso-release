@@ -414,7 +414,7 @@
   }
 </script>
 
-<div class="annotatable-wrap relative inline-block w-full overflow-visible" style={isSketchMode ? 'touch-action: none;' : undefined}>
+<div class="annotatable-wrap relative block w-full overflow-visible" style={isSketchMode ? 'touch-action: none;' : undefined}>
   {#if isEditor}
     <div 
       bind:this={textEl}
@@ -441,7 +441,7 @@
   {/if}
 
   <!-- SVG Annotation Overlay anchored directly to text element's box -->
-  {#if isSketchMode || allAnnotations.length > 0 || drawing || (box.width > 0 && box.height > 0)}
+  {#if allAnnotations.length > 0 || drawing || (enableDirectDrawing && isSketchMode)}
     <svg
       bind:this={svgEl}
       class="annotation-overlay pointer-events-none absolute inset-0 z-20 overflow-visible select-none"
@@ -486,12 +486,16 @@
 <style>
   .annotatable-wrap {
     position: relative;
-    display: inline-block;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
   .annotation-overlay {
     position: absolute;
     top: 0;
     left: 0;
     touch-action: none;
+    display: block;
   }
 </style>

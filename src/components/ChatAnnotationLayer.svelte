@@ -61,12 +61,28 @@
     };
   }
 
-  function resolveTarget(clientX: number, clientY: number): { id: string; isDraft: boolean; targetContainer?: 'image' | 'text'; targetRect: DOMRect; targetEl?: HTMLElement } {
+  function resolveTarget(clientX: number, clientY: number): { id: string; isDraft: boolean; targetContainer?: 'image' | 'text' | 'content'; targetRect: DOMRect; targetEl?: HTMLElement } {
     // 1. Raycast direct elements from point
     if (typeof document !== 'undefined' && typeof document.elementsFromPoint === 'function') {
       const elements = document.elementsFromPoint(clientX, clientY);
       for (const el of elements) {
         if (el === svgEl || (svgEl && svgEl.contains(el))) continue;
+
+        // Unified Content Group Priority 1: Multi-image / gap draft content container
+        const draftContent = el.closest<HTMLElement>('[data-draft-content]') || el.closest<HTMLElement>('[data-draft-id]')?.querySelector<HTMLElement>('[data-draft-content]');
+        if (draftContent) {
+          return { id: DRAFT_TARGET, isDraft: true, targetContainer: 'content', targetRect: draftContent.getBoundingClientRect(), targetEl: draftContent };
+        }
+
+        // Unified Content Group Priority 2: Multi-image message content container
+        const msgContent = el.closest<HTMLElement>('[data-message-content]') || el.closest<HTMLElement>('[data-message-id]')?.querySelector<HTMLElement>('[data-message-content]');
+        if (msgContent) {
+          const msgParent = el.closest<HTMLElement>('[data-message-id]');
+          const targetId = msgParent?.dataset.messageId || msgContent.getAttribute('data-message-content') || '';
+          if (targetId) {
+            return { id: targetId, isDraft: false, targetContainer: 'content', targetRect: msgContent.getBoundingClientRect(), targetEl: msgContent };
+          }
+        }
 
         // Check if cursor is directly on or inside an image container or img element
         const imgContainer = el.closest<HTMLElement>('[data-image-container], .group\\/img, [data-media-container]');
@@ -114,27 +130,13 @@
 
         const draft = el.closest<HTMLElement>('[data-draft-id]');
         if (draft) {
-          const img = draft.querySelector<HTMLElement>('[data-image-container]');
-          if (img) {
-            const imgRect = img.getBoundingClientRect();
-            if (clientY >= imgRect.top - 5 && clientY <= imgRect.bottom + 5) {
-              return { id: DRAFT_TARGET, isDraft: true, targetContainer: 'image', targetRect: imgRect, targetEl: img };
-            }
-          }
-          const wrap = draft.querySelector<HTMLElement>('.annotatable-wrap') || draft;
-          return { id: DRAFT_TARGET, isDraft: true, targetContainer: 'text', targetRect: wrap.getBoundingClientRect(), targetEl: wrap };
+          const content = draft.querySelector<HTMLElement>('[data-draft-content]') || draft.querySelector<HTMLElement>('.annotatable-wrap') || draft;
+          return { id: DRAFT_TARGET, isDraft: true, targetContainer: 'content', targetRect: content.getBoundingClientRect(), targetEl: content };
         }
         const bubble = el.closest<HTMLElement>('[data-message-id]');
         if (bubble && bubble.dataset.messageId) {
-          const img = bubble.querySelector<HTMLElement>('[data-image-container]');
-          if (img) {
-            const imgRect = img.getBoundingClientRect();
-            if (clientY >= imgRect.top - 5 && clientY <= imgRect.bottom + 5) {
-              return { id: bubble.dataset.messageId, isDraft: false, targetContainer: 'image', targetRect: imgRect, targetEl: img };
-            }
-          }
-          const wrap = bubble.querySelector<HTMLElement>('.annotatable-wrap') || bubble;
-          return { id: bubble.dataset.messageId, isDraft: false, targetContainer: 'text', targetRect: wrap.getBoundingClientRect(), targetEl: wrap };
+          const content = bubble.querySelector<HTMLElement>('[data-message-content]') || bubble.querySelector<HTMLElement>('.annotatable-wrap') || bubble;
+          return { id: bubble.dataset.messageId, isDraft: false, targetContainer: 'content', targetRect: content.getBoundingClientRect(), targetEl: content };
         }
       }
     }
@@ -166,6 +168,10 @@
       if (bestEl) {
         const isDraft = bestEl.hasAttribute('data-draft-id');
         const id = isDraft ? DRAFT_TARGET : (bestEl.dataset.messageId || DRAFT_TARGET);
+        const content = bestEl.querySelector<HTMLElement>('[data-draft-content], [data-message-content]');
+        if (content) {
+          return { id, isDraft, targetContainer: 'content', targetRect: content.getBoundingClientRect(), targetEl: content };
+        }
         const img = bestEl.querySelector<HTMLElement>('[data-image-container]');
         if (img) {
           const imgRect = img.getBoundingClientRect();
@@ -182,8 +188,8 @@
     if (typeof document !== 'undefined') {
       const draftFallback = document.querySelector<HTMLElement>('[data-draft-id]');
       if (draftFallback) {
-        const wrap = draftFallback.querySelector<HTMLElement>('.annotatable-wrap') || draftFallback;
-        return { id: DRAFT_TARGET, isDraft: true, targetContainer: 'text', targetRect: wrap.getBoundingClientRect(), targetEl: wrap };
+        const content = draftFallback.querySelector<HTMLElement>('[data-draft-content]') || draftFallback.querySelector<HTMLElement>('.annotatable-wrap') || draftFallback;
+        return { id: DRAFT_TARGET, isDraft: true, targetContainer: 'content', targetRect: content.getBoundingClientRect(), targetEl: content };
       }
     }
 

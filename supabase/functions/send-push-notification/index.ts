@@ -245,11 +245,25 @@ serve(async (req) => {
     const fcmEndpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
 
     // 5. Construct notification body. Colour markup is stripped here; the chat itself keeps it.
-    let preview = toPlainText(content).trim();
+    let rawText = content;
+    if (typeof rawText === "string" && rawText.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(rawText);
+        if (parsed && typeof parsed.c === "string") {
+          rawText = parsed.c;
+        } else if (parsed && typeof parsed.text === "string") {
+          rawText = parsed.text;
+        }
+      } catch (_) {
+        // Not JSON or parse error, retain original string
+      }
+    }
+
+    let preview = toPlainText(rawText).trim();
     const fallbackText =
-      msgType === "image" ? "Photo"
-      : msgType === "audio" ? "Voice message"
-      : msgType === "file" ? "Attachment"
+      msgType === "image" || msgType === "f:image" ? "Photo"
+      : msgType === "audio" || msgType === "f:audio" ? "Voice message"
+      : msgType === "file" || msgType === "f:file" ? "Attachment"
       : "New message";
     if (preview.length > 120) {
       preview = preview.slice(0, 117) + "...";
@@ -295,39 +309,46 @@ serve(async (req) => {
       tokenRows.map(async (row) => {
         const badgeCount = recipientUnreadMap.get(row.user_id) || 1;
 
-        // Data-only message: a `notification` key would make the system draw the notification
-        // itself and bypass the conversation plugin. All data values must be strings.
-        const fcmPayload = {
-          message: {
-            token: row.token,
-            data: {
-              type: "chat_message",
-              chatId: String(conversationId || ""),
-              senderId: String(senderId || ""),
-              senderName: toPlainText(senderDisplayName),
-              text: preview,
-              fallbackText,
-              ts: String(Date.now()),
-              isGroup: String(isGroup),
-              chatTitle: toPlainText(chatTitle),
-              avatarUrl: senderAvatarUrl,
-              msgType: String(msgType || "text"),
-              badge: String(badgeCount),
-            },
-            android: {
-              priority: "HIGH",
-            },
-            apns: {
-              headers: { "apns-priority": "10" },
-              payload: {
-                aps: {
-                  alert: { title: toPlainText(senderDisplayName), body: preview || fallbackText },
-                  badge: badgeCount,
-                  sound: "default",
-                },
+        // Data-only message: NO top-level `notification` key. A `notification` key makes the Android
+        // system tray draw a generic alert and bypasses the custom conversation plugin completely.
+        // All data values must be strings.
+        const isAndroid = !row.platform || row.platform === "android";
+        const fcmMessage: Record<string, any> = {
+          token: row.token,
+          data: {
+            type: "chat_message",
+            chatId: String(conversationId || ""),
+            senderId: String(senderId || ""),
+            senderName: toPlainText(senderDisplayName),
+            text: preview,
+            fallbackText: String(fallbackText),
+            ts: String(Date.now()),
+            isGroup: String(isGroup),
+            chatTitle: toPlainText(chatTitle),
+            avatarUrl: String(senderAvatarUrl || ""),
+            msgType: String(msgType || "text"),
+            badge: String(badgeCount),
+          },
+          android: {
+            priority: "HIGH",
+          },
+        };
+
+        if (!isAndroid) {
+          fcmMessage.apns = {
+            headers: { "apns-priority": "10" },
+            payload: {
+              aps: {
+                alert: { title: toPlainText(senderDisplayName), body: preview || fallbackText },
+                badge: badgeCount,
+                sound: "default",
               },
             },
-          },
+          };
+        }
+
+        const fcmPayload = {
+          message: fcmMessage,
         };
 
         const fcmRes = await fetch(fcmEndpoint, {
