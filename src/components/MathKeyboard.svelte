@@ -13,6 +13,7 @@
   export let selectionAnchorPath: CursorPath | null = null;
   export let selectedNodeIds: Set<string> = new Set();
   import { deleteNodes } from "../math/mathOperations";
+  import { deleteSelectionWithCaret } from "../math/mathSelectionHelpers";
   import { keyHaptic } from '../native';
   export let value: string | undefined = undefined;
   export let isOpen = true;
@@ -259,8 +260,15 @@
 
   const deleteSelection = () => {
     if (selectedNodeIds && selectedNodeIds.size > 0 && selectionAnchorPath) {
-      currentTree = deleteNodes(currentTree, selectedNodeIds);
-      currentCursorPath = { containerPath: [], offset: 0 };
+      // Caret goes where the selection started (it used to jump to the start of the document).
+      const r = deleteSelectionWithCaret(currentTree, selectedNodeIds);
+      if (r) {
+        currentTree = r.tree;
+        currentCursorPath = r.cursor;
+      } else {
+        currentTree = deleteNodes(currentTree, selectedNodeIds);
+        currentCursorPath = { containerPath: [], offset: 0 };
+      }
       selectionAnchorPath = null;
       selectedNodeIds = new Set();
     } else {

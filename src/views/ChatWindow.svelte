@@ -21,7 +21,7 @@
   }
   import { onMount, tick, onDestroy, untrack } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { Plus, ChevronLeft, Pencil, ChevronRight, ChevronDown, Send, Phone, Video, PlayCircle, Mic, Paperclip, Camera, Image as ImageIcon, Check, CheckCheck, X, Clock, Pause, Play, Trash2, Share, Pin, CornerUpLeft, MessageSquare, Download, Pi, Keyboard, Palette, Baseline, Undo, Redo, Type, Eraser } from 'lucide-svelte';
+  import { Plus, ChevronLeft, Pencil, ChevronRight, ChevronDown, Send, Phone, Video, PlayCircle, Mic, Paperclip, Camera, Image as ImageIcon, Check, CheckCheck, X, Clock, Pause, Play, Trash2, Share, Pin, CornerUpLeft, MessageSquare, Download, Pi, Keyboard, Palette, Baseline, Undo, Redo, Type, Eraser, Copy } from 'lucide-svelte';
   import { jsPDF } from 'jspdf';
   // @ts-ignore
   import audioPlaybackServiceRaw from '../services/audioPlaybackService.svelte.ts?raw';
@@ -40,6 +40,8 @@
   import { sliceTree } from '../math/treeSlice';
   import { collectCursorCandidates, resolveTapToCursor, resolveSpatialTap, getSelectedNodeIds } from '../math/mathPointerResolver';
   import { deleteNodes } from '../math/mathOperations';
+  import { buildClipboardPayload, deleteSelectionWithCaret, insertNodesAtCaret, selectAllRange, expandToWord } from '../math/mathSelectionHelpers';
+  import { copyNodes, readNodes, rememberCopy, nodesFromClipboard } from '../native/xpressoClipboard';
   import MathNodeRenderer from '../math/MathNodeRenderer.svelte';
   import StaticMathRenderer from '../math/StaticMathRenderer.svelte';
   import InkOverlay from '../components/InkOverlay.svelte';
@@ -424,92 +426,74 @@
     contextMenuPos = { x: e.clientX, y: e.clientY };
   }
 
-  async function copyToClipboard(text: string) {
-    if (!navigator.clipboard) {
-      fallbackCopyTextToClipboard(text);
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      fallbackCopyTextToClipboard(text);
-    }
+  // ---------------------------------------------------------------------------
+  // Selection + clipboard actions (composer).
+  // One implementation shared by: the long-press menu, DOM copy/cut/paste events
+  // (hardware keyboard / desktop) and the custom MathKeyboard.
+  // Clipboard I/O lives in src/native/xpressoClipboard.ts (Android plugin + web fallback).
+  // ---------------------------------------------------------------------------
+  function currentSelectionNodes(): MathNode[] {
+    return selectedNodeIds && selectedNodeIds.size > 0 ? sliceTree(currentTree, selectedNodeIds) : [];
   }
 
-  function fallbackCopyTextToClipboard(text: string) {
-    var textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      document.execCommand('copy');
-    } catch (err) {
-      console.error('Fallback: Oops, unable to copy', err);
-    }
-    document.body.removeChild(textArea);
+  /** Delete the selection and put the caret where it started (NOT at the document start). */
+  function deleteCurrentSelection(): boolean {
+    const r = deleteSelectionWithCaret(currentTree, selectedNodeIds);
+    if (!r) return false;
+    currentTree = r.tree;
+    currentCursorPath = r.cursor;
+    selectionAnchorPath = null;
+    return true;
   }
 
-  function execCopy() {
-    if (selectedNodeIds && selectedNodeIds.size > 0) {
-      const selectedNodes = sliceTree(currentTree, selectedNodeIds);
-      const str = serializeTree(selectedNodes);
-      copyToClipboard(str);
-    }
+  function insertPastedNodes(nodes: MathNode[]) {
+    if (!nodes || nodes.length === 0) return;
+    deleteCurrentSelection();
+    const currentColor = textColors[activeTextColorIndex].displayColor;
+    const stamped = stampUncoloredNodes(nodes, currentColor);
+    const r = insertNodesAtCaret(currentTree, currentCursorPath || { containerPath: [], offset: 0 }, stamped);
+    currentTree = r.tree;
+    currentCursorPath = r.cursor;
+    selectionAnchorPath = null;
+  }
+
+  async function execCopy() {
     showContextMenu = false;
+    await copyNodes(currentSelectionNodes());
   }
 
-  function execCut() {
-    if (selectedNodeIds && selectedNodeIds.size > 0) {
-      const selectedNodes = sliceTree(currentTree, selectedNodeIds);
-      const str = serializeTree(selectedNodes);
-      copyToClipboard(str);
-      
-      currentTree = deleteNodes(currentTree, selectedNodeIds);
-      selectionAnchorPath = null;
-      currentCursorPath = { containerPath: [], offset: 0 };
-    }
+  async function execCut() {
     showContextMenu = false;
+    if (await copyNodes(currentSelectionNodes())) deleteCurrentSelection();
   }
-
-  
 
   async function execPaste() {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        if (selectedNodeIds && selectedNodeIds.size > 0) {
-            currentTree = deleteNodes(currentTree, selectedNodeIds);
-            selectionAnchorPath = null;
-            currentCursorPath = { containerPath: [], offset: 0 };
-        }
-        
-        const parsed = deserializeTree(text);
-        if (parsed.length > 0) {
-            const currentColor = textColors[activeTextColorIndex].displayColor;
-            const stamped = stampUncoloredNodes(parsed, currentColor);
-            const container = getContainer(currentTree, currentCursorPath?.containerPath || []);
-            const offset = currentCursorPath?.offset || 0;
-            const newContainer = [
-                ...container.slice(0, offset),
-                ...stamped,
-                ...container.slice(offset)
-            ];
-            currentTree = replaceContainer(currentTree, currentCursorPath?.containerPath || [], newContainer);
-            currentCursorPath = {
-                containerPath: currentCursorPath?.containerPath || [],
-                offset: offset + stamped.length
-            };
-        }
-      }
-    } catch (err) {
-      console.error('Failed to read clipboard', err);
-      alert('Clipboard access denied or not supported. Please use keyboard shortcut (Ctrl+V or Cmd+V) to paste.');
-    }
     showContextMenu = false;
+    try {
+      insertPastedNodes(await readNodes());
+    } catch (err) {
+      console.error('Paste failed', err);
+    }
+  }
+
+  /** Keeps the menu open so Copy / Cut can be tapped right after. */
+  function execSelectAll() {
+    const r = selectAllRange(currentTree);
+    if (!r) return;
+    selectionAnchorPath = r.anchor;
+    currentCursorPath = r.focus;
+  }
+
+  /** Copy a sent/received message (rich: keeps fractions, roots... when pasted back into Xpresso). */
+  async function copyMessage(m: any) {
+    let nodes: MathNode[] = m?.mathMeta?.nodes ?? [];
+    if (!nodes.length) {
+      const raw = getDisplayContent(m);
+      if (raw) nodes = deserializeTree(raw);
+    }
+    if (await copyNodes(nodes)) {
+      triggerNotification('Copied', { body: 'Message copied to clipboard', type: 'success' });
+    }
   }
 
   type TouchGestureType = 'undetermined' | 'single_tap' | 'scroll' | 'long_press' | 'drag_select';
@@ -558,6 +542,23 @@
         if (!hasMovedBeyondSlop && touchGestureType === 'undetermined') {
             // Touch type is definitively determined: LONG PRESS!
             touchGestureType = 'long_press';
+            // Select the word (or the structure) under the finger so Copy / Cut have something to act on.
+            // Only if resolveSpatialTap did not have to modify the tree (it inserts newlines/spaces
+            // when you press in empty space below/after the text; never do that on a long-press).
+            const lpEl = pointerDownTargetEl || textareaEl;
+            if (lpEl) {
+              const hit = resolveSpatialTap(startPointerPos.x, startPointerPos.y, lpEl, currentTree);
+              if (hit && hit.tree === currentTree) {
+                const word = expandToWord(currentTree, hit.path);
+                if (word) {
+                  selectionAnchorPath = word.anchor;
+                  currentCursorPath = word.focus;
+                } else {
+                  selectionAnchorPath = null;
+                  currentCursorPath = hit.path;
+                }
+              }
+            }
             showContextMenu = true;
             contextMenuPos = { x: startPointerPos.x, y: startPointerPos.y - 40 };
             cleanupPointerListeners();
@@ -566,9 +567,26 @@
     }, 380);
   }
 
+  /** Move the selection focus to the finger. Never lets resolveSpatialTap edit the tree mid-drag. */
+  function updateDragFocus(e: PointerEvent) {
+    const activeEl = pointerDownTargetEl || textareaEl;
+    if (!activeEl) return;
+    const res = resolveSpatialTap(e.clientX, e.clientY, activeEl, currentTree);
+    if (res && res.tree === currentTree) {
+      currentCursorPath = res.path;
+    }
+  }
+
   function handlePointerMove(e: PointerEvent) {
     if (touchGestureType === 'scroll' || touchGestureType === 'long_press') return;
-    
+
+    // Once a drag-select has started, it stays a drag-select: normal finger wobble (>= 6px
+    // vertical) used to flip it to 'scroll' and cancel the selection mid-drag.
+    if (touchGestureType === 'drag_select') {
+      updateDragFocus(e);
+      return;
+    }
+
     const dx = e.clientX - startPointerPos.x;
     const dy = e.clientY - startPointerPos.y;
     const dist = Math.hypot(dx, dy);
@@ -594,10 +612,13 @@
           touchGestureType = 'drag_select';
           const activeEl = pointerDownTargetEl || textareaEl;
           if (activeEl) {
-            const res = resolveSpatialTap(e.clientX, e.clientY, activeEl, currentTree);
-            if (res) {
-              currentTree = res.tree;
-              currentCursorPath = res.path;
+            // ANCHOR = where the finger went down. Without it selectedNodeIds is always empty.
+            const anchor = resolveSpatialTap(startPointerPos.x, startPointerPos.y, activeEl, currentTree);
+            if (anchor && anchor.tree === currentTree) {
+              selectionAnchorPath = anchor.path;
+              updateDragFocus(e);
+            } else {
+              selectionAnchorPath = null;
             }
           }
        }
@@ -674,24 +695,17 @@
   function handleCopy(e: ClipboardEvent) {
     if (selectedNodeIds.size > 0) {
       e.preventDefault();
-      // Extract selected nodes and serialize
-      const selectedNodes = sliceTree(currentTree, selectedNodeIds);
-      const str = serializeTree(selectedNodes); // Wait, this just serializes the top-level matching nodes?
-      // Actually serializeTree on the whole tree but only keeping selected node logic is better,
-      // but users copy simple text mostly, or we can just serialize the raw text they highlighted.
-      // For now let's just write a quick serialization.
-      e.clipboardData?.setData('text/plain', str);
+      const payload = buildClipboardPayload(currentSelectionNodes());
+      rememberCopy(payload);
+      e.clipboardData?.setData('text/plain', payload.text);
+      e.clipboardData?.setData('text/html', payload.html);
     }
   }
 
   function handleCut(e: ClipboardEvent) {
     if (selectedNodeIds.size > 0) {
       handleCopy(e);
-      // Delete selected nodes
-      currentTree = deleteNodes(currentTree, selectedNodeIds);
-      selectionAnchorPath = null;
-      // We should probably reset currentCursorPath to something valid.
-      currentCursorPath = { containerPath: [], offset: 0 };
+      deleteCurrentSelection();
     }
   }
 
@@ -707,30 +721,10 @@
     }
 
     const text = e.clipboardData?.getData('text/plain');
-    if (text) {
+    const html = e.clipboardData?.getData('text/html');
+    if (text || html) {
       e.preventDefault();
-      if (selectedNodeIds && selectedNodeIds.size > 0) {
-        currentTree = deleteNodes(currentTree, selectedNodeIds);
-        selectionAnchorPath = null;
-        currentCursorPath = { containerPath: [], offset: 0 };
-      }
-      const parsed = deserializeTree(text);
-      if (parsed.length > 0) {
-        const currentColor = textColors[activeTextColorIndex].displayColor;
-        const stamped = stampUncoloredNodes(parsed, currentColor);
-        const container = getContainer(currentTree, currentCursorPath?.containerPath || []);
-        const offset = currentCursorPath?.offset || 0;
-        const newContainer = [
-          ...container.slice(0, offset),
-          ...stamped,
-          ...container.slice(offset)
-        ];
-        currentTree = replaceContainer(currentTree, currentCursorPath?.containerPath || [], newContainer);
-        currentCursorPath = {
-          containerPath: currentCursorPath?.containerPath || [],
-          offset: offset + stamped.length
-        };
-      }
+      insertPastedNodes(nodesFromClipboard({ text, html }));
     }
   }
   let textareaEl = $state<HTMLElement | null>(null);
@@ -4300,6 +4294,7 @@
                              {/if}
                           </div>
                           <button onclick={() => setReplyingTo(m)} class="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0" title="Reply"><CornerUpLeft size={11} /></button>
+                          <button onclick={() => copyMessage(m)} class="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0" title="Copy"><Copy size={11} /></button>
                           <button onclick={() => handleShare(m)} class="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0" title="Share"><Share size={11} /></button>
                        </div>
                     </div>
@@ -4587,9 +4582,7 @@
                                    if (isSketchMode) return;
                                    if (e.key === 'Backspace' && selectedNodeIds.size > 0) {
                                      e.preventDefault();
-                                     currentTree = deleteNodes(currentTree, selectedNodeIds);
-                                     selectionAnchorPath = null;
-                                     currentCursorPath = { containerPath: [], offset: 0 };
+                                     deleteCurrentSelection();
                                    }
                                  }}
                                  onpointerdown={!isSketchMode ? handlePointerDown : undefined}
@@ -4657,9 +4650,7 @@
                            if (isSketchMode) return;
                            if (e.key === 'Backspace' && selectedNodeIds.size > 0) {
                              e.preventDefault();
-                             currentTree = deleteNodes(currentTree, selectedNodeIds);
-                             selectionAnchorPath = null;
-                             currentCursorPath = { containerPath: [], offset: 0 };
+                             deleteCurrentSelection();
                            }
                          }}
                          onpointerdown={!isSketchMode ? handlePointerDown : undefined}
@@ -4980,14 +4971,20 @@
       style="left: {Math.max(10, Math.min(window.innerWidth - 150, contextMenuPos.x))}px; top: {Math.max(10, contextMenuPos.y)}px;"
     >
       {#if selectedNodeIds && selectedNodeIds.size > 0}
-        <button 
+        <button
           class="px-4 py-3 text-sm font-medium hover:bg-gray-50 border-r border-gray-200 text-gray-800"
           onclick={(e) => { e.stopPropagation(); execCopy(); }}
         >Copy</button>
-        <button 
+        <button
           class="px-4 py-3 text-sm font-medium hover:bg-gray-50 border-r border-gray-200 text-gray-800"
           onclick={(e) => { e.stopPropagation(); execCut(); }}
         >Cut</button>
+      {/if}
+      {#if currentTree.length > 0}
+        <button
+          class="px-4 py-3 text-sm font-medium hover:bg-gray-50 border-r border-gray-200 text-gray-800"
+          onclick={(e) => { e.stopPropagation(); execSelectAll(); }}
+        >Select all</button>
       {/if}
       <button 
         class="px-4 py-3 text-sm font-medium hover:bg-gray-50 text-gray-800"
@@ -5072,7 +5069,7 @@
       </div>
 
       <div class="mt-8 flex items-center gap-6 mb-10">
-        <button 
+        <button
           onclick={toggleMute} 
           class="w-16 h-16 rounded-full flex items-center justify-center cursor-pointer border-none shadow-lg transition-colors text-white {isMuted ? 'bg-red-650' : 'bg-theme-card/10 hover:bg-theme-card/20'}"
           title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
@@ -5082,7 +5079,7 @@
         <button onclick={endCall} class="w-20 h-20 rounded-full bg-red-600 flex items-center justify-center cursor-pointer border-none shadow-lg hover:bg-red-700 text-white" title="End Call">
           <Phone size={32} class="rotate-[135deg]" />
         </button>
-        <button 
+        <button
           onclick={toggleCamera} 
           class="w-16 h-16 rounded-full flex items-center justify-center cursor-pointer border-none shadow-lg transition-colors text-white {!isCameraOn ? 'bg-red-650' : 'bg-theme-card/10 hover:bg-theme-card/20'}"
           title={isCameraOn ? "Turn Camera Off" : "Turn Camera On"}

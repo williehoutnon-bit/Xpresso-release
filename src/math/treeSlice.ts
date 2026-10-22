@@ -19,8 +19,13 @@ export function sliceTree(tree: MathNode[], ids: Set<string>): MathNode[] {
                 result.push({ ...node, index: sliceTree(node.index, ids), content: sliceTree(node.content, ids) });
             } else if (node.type === 'longdiv') {
                 result.push({ ...node, index: sliceTree(node.index, ids), content: sliceTree(node.content, ids), quotient: sliceTree(node.quotient || [], ids) });
-            } else if (node.type === 'bracket') {
-                result.push({ ...node, content: sliceTree(node.content, ids) });
+            } else if (node.type === 'bracket' || node.type === 'integral') {
+                result.push({
+                    ...node,
+                    content: sliceTree(node.content, ids),
+                    ...(node.subscript ? { subscript: sliceTree(node.subscript, ids) } : {}),
+                    ...(node.superscript ? { superscript: sliceTree(node.superscript, ids) } : {})
+                });
             } else {
                 result.push(node);
             }
@@ -50,9 +55,18 @@ export function sliceTree(tree: MathNode[], ids: Set<string>): MathNode[] {
                 const c = sliceTree(node.content, ids);
                 const q = sliceTree(node.quotient || [], ids);
                 if (i.length > 0 || c.length > 0 || q.length > 0) result.push({ ...node, index: i, content: c, quotient: q });
-            } else if (node.type === 'bracket') {
+            } else if (node.type === 'bracket' || node.type === 'integral') {
                 const c = sliceTree(node.content, ids);
-                if (c.length > 0) result.push({ ...node, content: c });
+                const sub = node.subscript ? sliceTree(node.subscript, ids) : undefined;
+                const sup = node.superscript ? sliceTree(node.superscript, ids) : undefined;
+                if (c.length > 0 || (sub && sub.length > 0) || (sup && sup.length > 0)) {
+                    result.push({
+                        ...node,
+                        content: c,
+                        ...(sub ? { subscript: sub } : {}),
+                        ...(sup ? { superscript: sup } : {})
+                    });
+                }
             } else if (node.type === 'underbrace') {
                 const c = sliceTree(node.content, ids);
                 const l = sliceTree(node.label, ids);

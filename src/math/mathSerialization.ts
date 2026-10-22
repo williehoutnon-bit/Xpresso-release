@@ -101,7 +101,9 @@ export function deserializeTree(str: string): MathNode[] {
             
             if (cmd === 'color' || cmd === 'textcolor') {
                 let col = '';
+                let hadBracketSpec = false;
                 if (str[i] === '[') {
+                    hadBracketSpec = true;
                     i++; // skip '['
                     let c = '';
                     while (i < str.length && str[i] !== ']') {
@@ -111,7 +113,9 @@ export function deserializeTree(str: string): MathNode[] {
                     col = c;
                     if (str[i] === ']') i++; // skip ']'
                 }
-                if (str[i] === '{') {
+                // \color[spec]{content} is already fully specified above: the next '{' is the CONTENT,
+                // not a second colour spec (it used to be swallowed here, dropping all coloured text).
+                if (!hadBracketSpec && str[i] === '{') {
                     i++; // skip '{'
                     let c = '';
                     while (i < str.length && str[i] !== '}') {
@@ -288,6 +292,7 @@ export function mathNodesToPlainText(nodes: MathNode[]): string {
                 switch (node.bracketKind) {
                     case 'square': return `[${inner}]`;
                     case 'curly': return `{${inner}}`;
+                    case 'absolute':
                     case 'abs': return `|${inner}|`;
                     case 'norm': return `||${inner}||`;
                     default: return `(${inner})`;

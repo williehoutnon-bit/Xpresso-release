@@ -55,9 +55,11 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Validate Live Update publisher
+        run: node --check scripts/publish-live-update.mjs
+
       - name: Publish Live Update to Supabase
-        if: github.event_name != 'pull_request'
-        continue-on-error: true
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.VITE_SUPABASE_SERVICE_KEY || secrets.SUPABASE_SERVICE_KEY || secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
@@ -66,10 +68,18 @@ jobs:
         run: |
           TARGET_KEY="${SUPABASE_SERVICE_ROLE_KEY:-$VITE_SUPABASE_SERVICE_KEY}"
           if [ -z "$TARGET_KEY" ]; then
-            echo "::warning::No Supabase service role key secret set (SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_SERVICE_KEY). Skipping live update publish."
-            exit 0
+            echo "::error::Required Supabase service-role key is missing; refusing to skip live-update publishing."
+            exit 1
+          fi
+          if [ ! -d dist ] || [ -z "$(find dist -type f -print -quit)" ]; then
+            echo "::error::No built files found in dist; refusing to publish an empty bundle."
+            exit 1
           fi
           (cd dist && zip -qr ../bundle.zip .)
+          if [ ! -s bundle.zip ]; then
+            echo "::error::Bundle ZIP was not created or is empty."
+            exit 1
+          fi
           node scripts/publish-live-update.mjs
 
       - name: Setup Google Services for FCM

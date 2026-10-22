@@ -419,7 +419,7 @@
     <div 
       bind:this={textEl}
       class="m-0 break-words whitespace-pre-wrap tracking-normal w-full text-left math-root {isSketchMode ? 'touch-none' : ''} outline-none focus:outline-none focus-visible:outline-none {isItalic ? 'italic' : ''} {isUnderlined ? 'underline underline-offset-4 decoration-2' : ''}"
-      style="font-size: var(--chat-font-size, 1.0625rem); line-height: var(--chat-line-height, 1.75rem); color: {textColor}; font-weight: {isBold ? '550' : '400'}; min-height: var(--chat-line-height, 1.75rem); cursor: text; font-family: {fontFamily}; user-select: text; -webkit-user-select: text;"
+      style="font-size: var(--chat-font-size, 1.0625rem); line-height: var(--chat-line-height, 1.75rem); color: {textColor}; font-weight: {isBold ? '550' : '400'}; min-height: var(--chat-line-height, 1.75rem); cursor: text; font-family: {fontFamily}; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: {isSketchMode ? 'none' : 'pan-y'};"
       data-container-path="[]"
       tabindex={isSketchMode ? -1 : 0}
       {oncopy}

@@ -480,8 +480,13 @@ export function deleteNodes(tree: MathNode[], idsToDelete: Set<string>): MathNod
             return { ...n, index: deleteNodes(n.index, idsToDelete), content: deleteNodes(n.content, idsToDelete) };
         } else if (n.type === 'longdiv') {
             return { ...n, index: deleteNodes(n.index, idsToDelete), content: deleteNodes(n.content, idsToDelete), quotient: deleteNodes(n.quotient || [], idsToDelete) };
-        } else if (n.type === 'bracket') {
-            return { ...n, content: deleteNodes(n.content, idsToDelete) };
+        } else if (n.type === 'bracket' || n.type === 'integral') {
+            return {
+                ...n,
+                content: deleteNodes(n.content, idsToDelete),
+                ...(n.subscript ? { subscript: deleteNodes(n.subscript, idsToDelete) } : {}),
+                ...(n.superscript ? { superscript: deleteNodes(n.superscript, idsToDelete) } : {})
+            };
         } else if (n.type === 'underbrace') {
             return { ...n, content: deleteNodes(n.content, idsToDelete), label: deleteNodes(n.label, idsToDelete) };
         }

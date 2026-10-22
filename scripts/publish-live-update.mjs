@@ -26,6 +26,12 @@ function describeError(err) {
   return parts.join(' | ');
 }
 
+function isMissingBucketError(err) {
+  const status = String(err?.statusCode ?? err?.status ?? '');
+  const message = String(err?.message || err?.error || '');
+  return status === '404' || /bucket not found/i.test(message);
+}
+
 function resolveSupabaseUrl(candidates) {
   for (const raw of candidates) {
     if (!raw) continue;
@@ -77,12 +83,11 @@ const rawKey = resolveSupabaseKey([
 ]);
 
 if (!rawKey) {
-  console.warn('::warning::Supabase service role key is missing or empty. Skipping live update publish.');
-  process.exit(0);
+  fail('Supabase service-role key is missing or empty. Configure the SUPABASE_SERVICE_ROLE_KEY GitHub Actions secret.');
 }
 
 if (rawKey.startsWith('sb_publishable_')) {
-  console.warn('::warning::The service key provided starts with "sb_publishable_". If storage upload fails, make sure you configure the secret with the service_role key instead of the anon/publishable key.');
+  fail('The configured Supabase key is publishable, not a server-side service key. Configure SUPABASE_SERVICE_ROLE_KEY with a service-role/secret key.');
 }
 
 const version = process.env.BUNDLE_VERSION || `1.0.${Date.now()}`;
@@ -112,18 +117,21 @@ async function withRetry(fn, retries = 3, delayMs = 1500) {
 
 try {
   const file = await readFile(bundlePath);
+  if (file.length === 0) throw new Error('Bundle ZIP is empty; refusing to publish.');
 
-  // 1. Ensure bucket exists or create it
-  try {
-    const { data: bucket, error: bucketLookupError } = await withRetry(() => supabase.storage.getBucket(BUCKET), 2, 1000);
-    if (bucketLookupError || !bucket) {
-      const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: true });
-      if (createError && !/already exists/i.test(createError.message)) {
-        console.warn(`[LiveUpdate] Bucket create warning: ${createError.message}. Continuing with upload attempt...`);
-      }
-    }
-  } catch (bucketErr) {
-    console.warn(`[LiveUpdate] Bucket verification notice: ${describeError(bucketErr)}. Continuing with upload...`);
+  // 1. Retry bucket lookup errors; create only when Supabase confirms the bucket is missing.
+  const bucketResult = await withRetry(async () => {
+    const { data, error } = await supabase.storage.getBucket(BUCKET);
+    if (error && !isMissingBucketError(error)) throw error;
+    return { data, missing: Boolean(error) };
+  }, 3, 1500);
+
+  if (bucketResult.missing || !bucketResult.data) {
+    await withRetry(async () => {
+      const { error } = await supabase.storage.createBucket(BUCKET, { public: true });
+      if (error && !/already exists/i.test(error.message || '')) throw error;
+      return true;
+    }, 3, 1500);
   }
 
   // 2. Upload zip bundle with retry
