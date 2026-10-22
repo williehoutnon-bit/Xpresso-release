@@ -20,6 +20,7 @@
     node.setAttribute('virtualkeyboardpolicy', 'manual');
   }
   import { onMount, tick, onDestroy, untrack } from 'svelte';
+  import { fade } from 'svelte/transition';
   import { Plus, ChevronLeft, Pencil, ChevronRight, ChevronDown, Send, Phone, Video, PlayCircle, Mic, Paperclip, Camera, Image as ImageIcon, Check, CheckCheck, X, Clock, Pause, Play, Trash2, Share, Pin, CornerUpLeft, MessageSquare, Download, Pi, Keyboard, Palette, Baseline, Undo, Redo, Type, Eraser } from 'lucide-svelte';
   import { jsPDF } from 'jspdf';
   // @ts-ignore
@@ -846,13 +847,44 @@
   let prevMessageCount = 0;
   let isInitialScrollDone = false;
   let participantLastReadAt = $state('1970-01-01T00:00:00.000Z');
+  let isParticipantLoaded = $state(false);
 
-  // First unread message index
+  // First unread message index (never considers messages sent by current user, or messages with status === 'read')
   const firstUnreadIndex = $derived.by(() => {
+    if (!isParticipantLoaded) return -1;
+
+    const lastReadTime = (participantLastReadAt && participantLastReadAt !== '1970-01-01T00:00:00.000Z')
+      ? new Date(participantLastReadAt).getTime()
+      : 0;
+
     return renderedMessages.findIndex(m => {
-       return !m.isMe && new Date((m.createdAt ?? m.created_at)).getTime() > new Date(participantLastReadAt).getTime();
+       // Never consider our own messages unread
+       if (m.isMe || m.senderId === currentUserId || m.sender_id === currentUserId) return false;
+       // If the message is already marked read, it is never unread
+       if (m.status === 'read') return false;
+       // If we have a valid lastReadAt watermark, only messages newer than it are unread
+       if (lastReadTime > 0) {
+         return new Date((m.createdAt ?? m.created_at)).getTime() > lastReadTime;
+       }
+       // If no watermark exists at all, only messages explicitly marked 'delivered' or 'sent'
+       return m.status === 'delivered' || m.status === 'sent';
     });
   });
+
+  const checkMessagesBelow = () => {
+    if (!messagesContainer) return;
+    const viewportBottom = messagesContainer.scrollTop + messagesContainer.clientHeight;
+    const msgEls = messagesContainer.querySelectorAll('[data-message-id]');
+    let count = 0;
+    for (let i = 0; i < msgEls.length; i++) {
+      const el = msgEls[i] as HTMLElement;
+      if (el.offsetTop > viewportBottom - 40) {
+        count++;
+      }
+    }
+    unreadCountBelow = count;
+    showNewMsgBtn = count > 0;
+  };
 
   $effect(() => {
     if (messages.length > 0) {
@@ -911,13 +943,36 @@
 
   $effect(() => {
     // This effect acts like afterUpdate in Svelte 4, running after DOM update.
-    if (!isInitialScrollDone && messages.length > 0 && messagesContainer) {
-      scrollToBottom('instant');
+    if (!isInitialScrollDone && messages.length > 0 && messagesContainer && isParticipantLoaded) {
       isInitialScrollDone = true;
-      throttledMarkAsRead(activeConversationId, true);
       prevMessageCount = messages.length;
-      unreadCountBelow = 0;
-      showNewMsgBtn = false;
+
+      const unreadIdx = firstUnreadIndex;
+      if (unreadIdx !== -1 && unreadIdx < renderedMessages.length) {
+        // Expose the unread messages by scrolling to the unread marker or first unread message
+        tick().then(() => {
+          if (unreadMarkerEl && messagesContainer) {
+            unreadMarkerEl.scrollIntoView({ block: 'start', behavior: 'instant' });
+          } else {
+            const firstUnreadMsg = renderedMessages[unreadIdx];
+            if (firstUnreadMsg) {
+              const el = document.getElementById(`msg-${firstUnreadMsg.id}`);
+              if (el && messagesContainer) {
+                const containerRect = messagesContainer.getBoundingClientRect();
+                const elRect = el.getBoundingClientRect();
+                const relativeTop = elRect.top - containerRect.top + messagesContainer.scrollTop;
+                messagesContainer.scrollTop = Math.max(0, relativeTop - 30);
+              }
+            }
+          }
+          checkMessagesBelow();
+        });
+      } else {
+        scrollToBottom('instant');
+        throttledMarkAsRead(activeConversationId, true);
+        unreadCountBelow = 0;
+        showNewMsgBtn = false;
+      }
       return;
     }
     
@@ -2169,21 +2224,21 @@
     if (scrollTimeout) return;
     scrollTimeout = setTimeout(() => {
       scrollTimeout = null;
+      checkMessagesBelow();
+      
       const threshold = 100;
       const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      
       isNearBottom = distanceToBottom < threshold;
       
       if (isNearBottom) {
         showNewMsgBtn = false;
         unreadCountBelow = 0;
-      } else {
-        showNewMsgBtn = true;
+        throttledMarkAsRead(activeConversationId);
       }
     }, 50);
   };
 
-  // Suppress the native notification for the chat that is on screen
+  // Suppress the native notification for the chat that is on screen and clear any delivered notification
   $effect(() => {
     const openChatId = activeConversationId;
     if (!openChatId || openChatId.startsWith('local_convo_')) return;
@@ -2191,6 +2246,7 @@
     import('../services/nativeNotificationService').then(({ nativeNotificationService }) => {
       service = nativeNotificationService;
       service.setActiveChat(openChatId);
+      service.removeDeliveredForConversation(openChatId);
     }).catch(() => {});
     return () => {
       service?.setActiveChat(null);
@@ -2203,12 +2259,35 @@
     if (conversationId && conversationId !== lastProcessedProp) {
         lastProcessedProp = conversationId;
         isInitialScrollDone = false;
+        isParticipantLoaded = false;
         showNewMsgBtn = false;
         unreadCountBelow = 0;
         stagedImages = [];
         selectedDraftImageId = null;
         lastSelectedDraftImageId = null;
         focusedGapImageId = null;
+
+        // Fetch participant watermark immediately to avoid racing message render
+        const checkUserId = currentUserId || authService.getCachedUser()?.id || authService.getCachedUser()?.$id;
+        if (checkUserId && !conversationId.startsWith('local_convo_')) {
+          dbService.getRawDB().then(async (db: any) => {
+            try {
+              const part = await db.participants.findOne({
+                selector: { conversationId: conversationId, userId: checkUserId }
+              }).exec();
+              if (part) {
+                participantLastReadAt = part.lastReadAt || part.last_read_at || part.clearedAt || '1970-01-01T00:00:00.000Z';
+              }
+              isParticipantLoaded = true;
+            } catch {
+              isParticipantLoaded = true;
+            }
+          }).catch(() => {
+            isParticipantLoaded = true;
+          });
+        } else {
+          isParticipantLoaded = true;
+        }
         
         // Fast-path: check in-memory cache first for instant 0ms render
         const memCached = messagingService.getCachedMessages(conversationId);
@@ -4667,6 +4746,26 @@
       <footer class="w-full px-3 sm:px-5 pt-3 sm:pt-4 {showMathKeyboard ? 'pb-2 sm:pb-3' : 'pb-6 sm:pb-10'} flex justify-center pointer-events-none transition-all duration-300">
         <div class="w-full max-w-lg pointer-events-auto bg-transparent relative">
         
+        {#if showNewMsgBtn}
+          <div class="w-full flex justify-center pointer-events-none absolute {replyingToMessage ? '-top-24' : '-top-14'} left-0 right-0 z-[45]">
+            <button 
+              onclick={() => {
+                scrollToBottom('smooth');
+                throttledMarkAsRead(activeConversationId, true);
+              }}
+              aria-label="Scroll to bottom"
+              class="pointer-events-auto w-10 h-10 rounded-full bg-white hover:bg-blue-50/70 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#00274d] dark:text-blue-300 border border-blue-600 dark:border-blue-400 shadow-md flex items-center justify-center active:scale-95 hover:scale-105 transition-all duration-200 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 animate-in fade-in zoom-in-75 relative"
+            >
+              <ChevronDown size={20} class="text-[#00274d] dark:text-blue-300 group-hover:translate-y-0.5 transition-transform" strokeWidth={2.5} />
+              {#if unreadCountBelow > 0}
+                <span class="absolute -top-1.5 -right-1.5 px-1 min-w-[18px] h-4.5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md tabular-nums border border-white dark:border-slate-800 animate-in zoom-in-75 duration-150">
+                  {unreadCountBelow > 99 ? '99+' : unreadCountBelow}
+                </span>
+              {/if}
+            </button>
+          </div>
+        {/if}
+
         {#if replyingToMessage}
           <div class="mb-3 p-3 bg-theme-card rounded-2xl shadow-[0_10px_25px_rgba(0,0,0,0.1)] border border-gray-100 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2 fade-in duration-200">
              <div class="flex items-center gap-2 min-w-0 flex-1 self-stretch">
@@ -4780,8 +4879,8 @@
                   <button 
                     onclick={toggleSketchMode} 
                     oncontextmenu={(e) => { e.preventDefault(); selectTextColor((activeTextColorIndex + 1) % textColors.length); }}
-                    style="background-color: {textColors[activeTextColorIndex].displayColor};"
-                    class="transition-all shadow-sm cursor-pointer flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 hover:scale-105 active:scale-95 text-white border {isSketchMode ? 'border-white ring-2 ring-offset-2 ring-[#00274d] shadow-md scale-105' : 'border-black/15 hover:shadow-md'}" 
+                    style={isSketchMode ? `background-color: ${textColors[activeTextColorIndex].displayColor};` : ''}
+                    class="transition-all shadow-sm cursor-pointer flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full shrink-0 hover:scale-105 active:scale-95 {isSketchMode ? 'text-white border-transparent shadow-md scale-105' : 'text-[#00274d] hover:bg-blue-50/50 bg-white border border-blue-600'}" 
                     title={isSketchMode ? `Exit Annotation Mode (Ink: ${textColors[activeTextColorIndex].name})` : `Annotation Tool (Ink: ${textColors[activeTextColorIndex].name} - Right-click to cycle color)`}
                   >
                      <Pencil size={20} strokeWidth={2.2} />
@@ -4858,23 +4957,8 @@
                    </button>
                 {/if}
 
-                <!-- 8. Send button & anchored jump button -->
+                <!-- 8. Send button -->
                 <div class="relative shrink-0 flex items-center justify-center">
-                  {#if showNewMsgBtn}
-                    <button 
-                      onclick={() => scrollToBottom('smooth')}
-                      aria-label="Scroll to bottom"
-                      class="absolute {replyingToMessage ? 'bottom-[calc(100%+70px)]' : 'bottom-full mb-3'} right-0 z-[45] w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-blue-50/50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#00274d] dark:text-blue-300 border border-blue-600 dark:border-blue-400 shadow-sm flex items-center justify-center active:scale-95 hover:scale-105 transition-all duration-200 cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 animate-in fade-in zoom-in-75"
-                    >
-                      <ChevronDown size={18} class="text-[#00274d] dark:text-blue-300 group-hover:translate-y-0.5 transition-transform" strokeWidth={2.5} />
-                      {#if unreadCountBelow > 0}
-                        <span class="absolute -top-1.5 -right-1.5 px-1 min-w-[18px] h-4.5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md tabular-nums border border-white dark:border-slate-800 animate-in zoom-in-75 duration-150">
-                          {unreadCountBelow > 99 ? '99+' : unreadCountBelow}
-                        </span>
-                      {/if}
-                    </button>
-                  {/if}
-
                   <button 
                     onclick={handleSend}
                     class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#ff6b00] hover:bg-[#e15d00] text-white flex items-center justify-center transition-all cursor-pointer border-none shadow-md active:scale-95 shrink-0 hover:scale-105"

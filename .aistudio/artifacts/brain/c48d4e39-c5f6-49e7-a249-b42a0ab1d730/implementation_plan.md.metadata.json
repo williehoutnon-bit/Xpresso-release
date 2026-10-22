@@ -1,6 +1,6 @@
 {
-  "summary":  "Revised implementation plan tailored to direct user-to-user messaging testing (no test/mock panels). Addresses the data-only FCM payload contract in the Edge Function, fixes AndroidManifest service collision and activity intent filters, eliminates the token registration gap on login/startup, and handles image message push dispatches.",
-  "updatedAt":  "2026-10-21T09:27:58.982859879Z",
+  "summary":  "Implementation plan for sender profile avatar in notification tray, accurate launcher badge counting, automatic notification dismissal upon reading, badge reduction based on read messages, and explicit Xpresso branding/icons on notification cards.",
+  "updatedAt":  "2026-10-22T10:46:29.742161599Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

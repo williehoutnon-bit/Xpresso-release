@@ -58,9 +58,10 @@ final class ChatNotifier {
     static void ensureChannel(Context ctx) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-        if (nm == null || nm.getNotificationChannel(CHANNEL_ID) != null) return;
-        NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Messages", NotificationManager.IMPORTANCE_HIGH);
-        ch.setDescription("New chat messages");
+        if (nm == null) return;
+        NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Xpresso Messages", NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("Xpresso chat conversations");
+        ch.setShowBadge(true);
         nm.createNotificationChannel(ch);
     }
 
@@ -84,7 +85,8 @@ final class ChatNotifier {
 
     @SuppressLint("MissingPermission")
     static void showMessage(Context ctx, String chatId, String senderId, String senderName, String text,
-                            long timestamp, @Nullable String avatarUrl, boolean isGroup, @Nullable String chatTitle) {
+                            long timestamp, @Nullable String avatarUrl, boolean isGroup, @Nullable String chatTitle,
+                            int badgeCount) {
         ensureChannel(ctx);
         if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) {
             Log.w(TAG, "notifications are disabled for the app (Android 13+ permission or system setting); nothing shown");
@@ -134,6 +136,8 @@ final class ChatNotifier {
                 .setSmallIcon(smallIcon(ctx))
                 .setStyle(style)
                 .setShortcutId(chatId)
+                .setSubText("Xpresso")
+                .setNumber(Math.max(1, badgeCount))
                 .setGroup(GROUP_KEY)
                 .setColor(accentColor(ctx))
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -147,7 +151,13 @@ final class ChatNotifier {
         NotificationManagerCompat nm = NotificationManagerCompat.from(ctx);
         nm.notify(notifId, n);
         postSummary(ctx, nm);
-        Log.i(TAG, "notification posted for chat " + chatId + " (id " + notifId + ")");
+        Log.i(TAG, "notification posted for chat " + chatId + " (id " + notifId + ", badge " + badgeCount + ")");
+    }
+
+    /** Overload for local/test calls without explicit badge */
+    static void showMessage(Context ctx, String chatId, String senderId, String senderName, String text,
+                            long timestamp, @Nullable String avatarUrl, boolean isGroup, @Nullable String chatTitle) {
+        showMessage(ctx, chatId, senderId, senderName, text, timestamp, avatarUrl, isGroup, chatTitle, 1);
     }
 
     /**
@@ -158,6 +168,7 @@ final class ChatNotifier {
     private static void postSummary(Context ctx, NotificationManagerCompat nm) {
         Notification summary = new NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(smallIcon(ctx))
+                .setContentTitle("Xpresso")
                 .setColor(accentColor(ctx))
                 .setStyle(new NotificationCompat.InboxStyle().setSummaryText("Xpresso"))
                 .setGroup(GROUP_KEY)
@@ -270,24 +281,46 @@ final class ChatNotifier {
 
     /** Blocking, short timeouts: FCM gives onMessageReceived ~20 s in total. https only. */
     @Nullable
-    private static Bitmap fetchAvatar(@Nullable String url) {
-        if (url == null || !url.startsWith("https://")) return null;
+    private static Bitmap fetchAvatar(@Nullable String urlStr) {
+        if (urlStr == null || !urlStr.startsWith("http")) return null;
+        // Rasterize any Dicebear SVG URL to PNG so Android can decode it
+        String targetUrl = urlStr.replace("/svg?", "/png?").replace("/svg/", "/png/");
+        if (!targetUrl.startsWith("https://")) return null;
+
         HttpURLConnection c = null;
         try {
-            c = (HttpURLConnection) new URL(url).openConnection();
-            c.setConnectTimeout(3000);
-            c.setReadTimeout(3000);
-            c.setInstanceFollowRedirects(true);
-            if (c.getResponseCode() != 200) return null;
-            try (InputStream in = c.getInputStream()) {
-                Bitmap raw = BitmapFactory.decodeStream(in);
-                return raw == null ? null : circle(raw);
+            int redirects = 0;
+            URL curUrl = new URL(targetUrl);
+            while (redirects < 4) {
+                c = (HttpURLConnection) curUrl.openConnection();
+                c.setConnectTimeout(3500);
+                c.setReadTimeout(3500);
+                c.setInstanceFollowRedirects(true);
+                int code = c.getResponseCode();
+                if (code == HttpURLConnection.HTTP_MOVED_PERM || code == HttpURLConnection.HTTP_MOVED_TEMP
+                        || code == 307 || code == 308) {
+                    String loc = c.getHeaderField("Location");
+                    if (loc != null && loc.startsWith("http")) {
+                        c.disconnect();
+                        curUrl = new URL(loc);
+                        redirects++;
+                        continue;
+                    }
+                }
+                if (code != 200) return null;
+                try (InputStream in = c.getInputStream()) {
+                    Bitmap raw = BitmapFactory.decodeStream(in);
+                    return raw == null ? null : circle(raw);
+                }
             }
+            return null;
         } catch (Exception e) {
             Log.w(TAG, "avatar fetch failed: " + e.getMessage());
             return null;
         } finally {
-            if (c != null) c.disconnect();
+            if (c != null) {
+                try { c.disconnect(); } catch (Exception ignored) {}
+            }
         }
     }
 

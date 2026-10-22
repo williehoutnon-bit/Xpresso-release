@@ -1,8 +1,16 @@
 import { App } from '@capacitor/app';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = (rawSupabaseUrl && typeof rawSupabaseUrl === 'string' && rawSupabaseUrl.startsWith('http') && !rawSupabaseUrl.includes('YOUR_PROJECT_ID'))
+  ? rawSupabaseUrl.trim().replace(/\/+$/, '')
+  : 'https://oujijpepbkqpgzgegoqf.supabase.co';
+
+const rawSupabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_KEY = (rawSupabaseKey && typeof rawSupabaseKey === 'string' && rawSupabaseKey.trim().length > 0 && rawSupabaseKey !== 'undefined')
+  ? rawSupabaseKey.trim()
+  : 'sb_publishable_zQKul9e9MeAZXi0wH48yCw_AmlQ0rXo';
+
 const EMBEDDED_VERSION: string = import.meta.env.VITE_BUNDLE_VERSION || 'builtin';
 
 interface AppVersionRow {

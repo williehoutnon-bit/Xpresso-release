@@ -1,16 +1,15 @@
 import { readFile } from 'node:fs/promises';
+import dns from 'node:dns';
 import { createClient } from '@supabase/supabase-js';
 
-const {
-  SUPABASE_URL,
-  PUBLIC_SUPABASE_URL,
-  VITE_SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
+// Prefer IPv4 in GitHub Actions / CI environments to avoid IPv6 connectivity hangs
+try {
+  dns.setDefaultResultOrder?.('ipv4first');
+} catch {
+  // Ignore on runtimes where not supported
+}
 
-  BUNDLE_VERSION,
-  BUNDLE_PATH = 'bundle.zip',
-} = process.env;
-
+const KNOWN_PROJECT_URL = 'https://oujijpepbkqpgzgegoqf.supabase.co';
 const BUCKET = 'app-updates';
 
 function fail(message) {
@@ -27,69 +26,130 @@ function describeError(err) {
   return parts.join(' | ');
 }
 
-// Secrets pasted into GitHub often carry quotes or whitespace/newlines that make fetch throw "fetch failed".
-const rawKey = (SUPABASE_SERVICE_ROLE_KEY || '')
-  .replace(/^["']|["']$/g, '')
-  .replace(/\s+/g, '');
-if (!rawKey || rawKey === 'undefined' || rawKey === 'null') {
+function resolveSupabaseUrl(candidates) {
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const cleaned = String(raw).trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+    if (!cleaned || cleaned === 'undefined' || cleaned === 'null') continue;
+    // Reject secrets mistakenly put into the URL variable (e.g. sb_secret_..., sb_publishable_..., eyJ...)
+    if (cleaned.startsWith('sb_') || cleaned.startsWith('eyJ') || cleaned.includes('YOUR_PROJECT_ID')) {
+      console.warn(`[LiveUpdate] Ignoring invalid SUPABASE_URL candidate (looks like key or placeholder): "${cleaned.substring(0, 14)}..."`);
+      continue;
+    }
+    let url = cleaned;
+    if (!/^https?:\/\//i.test(url)) {
+      url = url.includes('.') ? `https://${url}` : `https://${url}.supabase.co`;
+    }
+    try {
+      new URL(url);
+      return url;
+    } catch {
+      // Not a valid URL, try next candidate
+    }
+  }
+  return KNOWN_PROJECT_URL;
+}
+
+function resolveSupabaseKey(candidates) {
+  for (const raw of candidates) {
+    if (!raw) continue;
+    let key = String(raw).trim().replace(/^["']|["']$/g, '');
+    key = key.replace(/^([A-Z0-9_]+)=/i, ''); // e.g. SUPABASE_SERVICE_ROLE_KEY=...
+    key = key.replace(/^Bearer\s+/i, '');
+    key = key.replace(/\s+/g, '');
+    if (!key || key === 'undefined' || key === 'null') continue;
+    return key;
+  }
+  return '';
+}
+
+const rawUrl = resolveSupabaseUrl([
+  process.env.SUPABASE_URL,
+  process.env.PUBLIC_SUPABASE_URL,
+  process.env.VITE_SUPABASE_URL,
+]);
+
+const rawKey = resolveSupabaseKey([
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.VITE_SUPABASE_SERVICE_KEY,
+  process.env.SUPABASE_SERVICE_KEY,
+  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+]);
+
+if (!rawKey) {
   console.warn('::warning::Supabase service role key is missing or empty. Skipping live update publish.');
   process.exit(0);
 }
-if (!/^[A-Za-z0-9._-]+$/.test(rawKey)) {
-  fail('The service role key contains characters that are not valid in a key. Re-create the GitHub secret with only the raw key value.');
+
+if (rawKey.startsWith('sb_publishable_')) {
+  console.warn('::warning::The service key provided starts with "sb_publishable_". If storage upload fails, make sure you configure the secret with the service_role key instead of the anon/publishable key.');
 }
 
-let rawUrl = (SUPABASE_URL || PUBLIC_SUPABASE_URL || VITE_SUPABASE_URL || '').replace(/\s+/g, '').replace(/^["']|["']$/g, '');
-if (!rawUrl || rawUrl === 'undefined' || rawUrl === 'null') {
-  rawUrl = 'https://oujijpepbkqpgzgegoqf.supabase.co';
-} else if (!/^https?:\/\//i.test(rawUrl)) {
-  rawUrl = rawUrl.includes('.') ? `https://${rawUrl}` : `https://${rawUrl}.supabase.co`;
-}
-rawUrl = rawUrl.replace(/\/+$/, '');
-
-try {
-  new URL(rawUrl);
-} catch {
-  fail(`Supabase URL "${rawUrl}" is not a valid URL.`);
-}
-
-const version = BUNDLE_VERSION || `1.0.${Date.now()}`;
+const version = process.env.BUNDLE_VERSION || `1.0.${Date.now()}`;
+const bundlePath = process.env.BUNDLE_PATH || 'bundle.zip';
 const objectPath = `bundles/${version}.zip`;
+
+console.log(`[LiveUpdate] Target URL: ${rawUrl}`);
+console.log(`[LiveUpdate] Publishing bundle version ${version}...`);
 
 const supabase = createClient(rawUrl, rawKey, { auth: { persistSession: false } });
 
-try {
-  const file = await readFile(BUNDLE_PATH);
-
-  // Create the bucket when missing so the first publish does not depend on manual setup.
-  const { error: bucketLookupError } = await supabase.storage.getBucket(BUCKET);
-  if (bucketLookupError) {
-    const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: true });
-    if (createError && !/already exists/i.test(createError.message)) {
-      fail(`Could not find or create the "${BUCKET}" bucket: ${createError.message}`);
+async function withRetry(fn, retries = 3, delayMs = 1500) {
+  let lastErr;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < retries - 1) {
+        console.warn(`[LiveUpdate] Attempt ${i + 1} failed (${describeError(err)}). Retrying in ${delayMs}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
     }
   }
+  throw lastErr;
+}
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(objectPath, file, { contentType: 'application/zip', upsert: true });
-  if (uploadError) {
-    fail(`Bundle upload to "${BUCKET}" failed: ${uploadError.message}`);
+try {
+  const file = await readFile(bundlePath);
+
+  // 1. Ensure bucket exists or create it
+  try {
+    const { data: bucket, error: bucketLookupError } = await withRetry(() => supabase.storage.getBucket(BUCKET), 2, 1000);
+    if (bucketLookupError || !bucket) {
+      const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: true });
+      if (createError && !/already exists/i.test(createError.message)) {
+        console.warn(`[LiveUpdate] Bucket create warning: ${createError.message}. Continuing with upload attempt...`);
+      }
+    }
+  } catch (bucketErr) {
+    console.warn(`[LiveUpdate] Bucket verification notice: ${describeError(bucketErr)}. Continuing with upload...`);
   }
 
+  // 2. Upload zip bundle with retry
+  const uploadResult = await withRetry(async () => {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .upload(objectPath, file, { contentType: 'application/zip', upsert: true });
+    if (error) throw error;
+    return data;
+  }, 3, 2000);
+
+  console.log(`[LiveUpdate] Uploaded ${bundlePath} to ${BUCKET}/${objectPath}`);
+
+  // 3. Obtain public URL
   const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(objectPath);
+  const bundleUrl = urlData.publicUrl;
 
-  const { error: insertError } = await supabase
-    .from('app_versions')
-    .upsert({ version, bundle_url: urlData.publicUrl }, { onConflict: 'version' });
-  if (insertError) {
-    fail(
-      `Could not write to app_versions: ${insertError.message}. ` +
-        'Run supabase/migrations/20261021_live_updates.sql in the Supabase SQL editor.',
-    );
-  }
+  // 4. Record new version in app_versions table with retry
+  await withRetry(async () => {
+    const { error: insertError } = await supabase
+      .from('app_versions')
+      .upsert({ version, bundle_url: bundleUrl }, { onConflict: 'version' });
+    if (insertError) throw insertError;
+  }, 3, 2000);
 
-  console.log(`Successfully published live update ${version} -> ${urlData.publicUrl}`);
+  console.log(`Successfully published live update ${version} -> ${bundleUrl}`);
 } catch (err) {
-  fail(`Unexpected error contacting ${rawUrl}: ${describeError(err)}`);
+  fail(`Unexpected error publishing live update to ${rawUrl}: ${describeError(err)}`);
 }

@@ -75,9 +75,15 @@ public class ChatMessagingService extends FirebaseMessagingService {
         } catch (NumberFormatException ignored) {
         }
 
+        int badgeCount = 1;
+        try {
+            if (!isBlank(d.get("badge"))) badgeCount = Math.max(1, Integer.parseInt(d.get("badge").trim()));
+        } catch (Exception ignored) {
+        }
+
         try {
             ChatNotifier.showMessage(this, chatId, senderId, senderName, text, ts,
-                    d.get("avatarUrl"), isGroup, chatTitle.isEmpty() ? null : chatTitle);
+                    d.get("avatarUrl"), isGroup, chatTitle.isEmpty() ? null : chatTitle, badgeCount);
         } catch (Throwable e) { // Throwable: a missing class/method must not fail silently either
             Log.e(ChatNotifier.TAG, "could not show chat notification", e);
         }

@@ -1,9 +1,9 @@
 // Supabase Edge Function: send-push-notification
 // Dispatches Firebase Cloud Messaging (FCM) v1 payloads to recipient device tokens.
+// Self-contained: includes text sanitizer so it can be deployed directly via Supabase Dashboard.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
-import { toPlainText } from "./sanitize.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -26,7 +26,102 @@ interface PushRequest {
   recipientIds?: string[];
 }
 
-// Generate Google OAuth2 Access Token for FCM HTTP v1 using Service Account JSON
+// ============================================================================
+// Text Sanitizer (Strips LaTeX formatting & colour commands for notification tray)
+// ============================================================================
+const TEXTCOLOR = "\\textcolor";
+const COLOR = "\\color";
+const MAX_DEPTH = 20;
+
+const isLetter = (c: string) => /[A-Za-z]/.test(c);
+
+function skipBlanks(s: string, p: number): number {
+  while (p < s.length && (s[p] === " " || s[p] === "\t")) p++;
+  return p;
+}
+
+function groupEnd(s: string, open: number): number {
+  let depth = 1;
+  let j = open + 1;
+  while (j < s.length) {
+    const c = s[j];
+    if (c === "\\" && j + 1 < s.length) {
+      j += 2;
+      continue;
+    }
+    if (c === "{") depth++;
+    else if (c === "}" && --depth === 0) return j;
+    j++;
+  }
+  return s.length;
+}
+
+function strip(s: string, depth: number): string {
+  if (depth > MAX_DEPTH) return s;
+  const n = s.length;
+  let out = "";
+  let i = 0;
+  while (i < n) {
+    const isText = s.startsWith(TEXTCOLOR, i);
+    const isColor = !isText && s.startsWith(COLOR, i);
+    const cmdLen = isText ? TEXTCOLOR.length : isColor ? COLOR.length : 0;
+    if (cmdLen === 0 || (i + cmdLen < n && isLetter(s[i + cmdLen]))) {
+      out += s[i++];
+      continue;
+    }
+
+    let p = skipBlanks(s, i + cmdLen);
+
+    let bracket: string | null = null;
+    if (p < n && s[p] === "[") {
+      const close = s.indexOf("]", p);
+      if (close < 0) {
+        i += cmdLen;
+        continue;
+      }
+      bracket = s.slice(p + 1, close);
+      p = skipBlanks(s, close + 1);
+    }
+
+    if (p >= n || s[p] !== "{") {
+      i = p;
+      continue;
+    }
+
+    const g1Close = groupEnd(s, p);
+    const g1 = s.slice(p + 1, g1Close);
+    let next = Math.min(g1Close + 1, n);
+
+    const hashBracket = bracket !== null && bracket.trim().startsWith("#");
+    const secondFollows = !hashBracket && next < n && s[next] === "{";
+
+    let text: string;
+    if (hashBracket) {
+      text = g1;
+    } else if (secondFollows) {
+      const g2Close = groupEnd(s, next);
+      text = s.slice(next + 1, g2Close);
+      next = Math.min(g2Close + 1, n);
+    } else if (isColor && bracket !== null) {
+      text = "";
+    } else {
+      text = g1;
+    }
+
+    out += strip(text, depth + 1);
+    i = next;
+  }
+  return out;
+}
+
+export function toPlainText(input: string | null | undefined): string {
+  if (input == null) return "";
+  return strip(input, 0).replace(/[ \t]+/g, " ").trim();
+}
+
+// ============================================================================
+// Google OAuth2 Access Token for FCM HTTP v1 using Service Account JSON
+// ============================================================================
 async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -98,6 +193,9 @@ async function getGoogleAccessToken(serviceAccount: any): Promise<string> {
   return data.access_token;
 }
 
+// ============================================================================
+// Main HTTP Handler
+// ============================================================================
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -171,8 +269,15 @@ serve(async (req) => {
           senderProfile.name ||
           `${senderProfile.surname || ""} ${senderProfile.last_name || ""}`.trim() ||
           "Xpresso Contact";
-        const avatar = String(senderProfile.avatar_url || "");
-        if (/^https:\/\//i.test(avatar)) senderAvatarUrl = avatar;
+        const avatar = String(senderProfile.avatar_url || "").trim();
+        if (avatar.startsWith("https://") || avatar.startsWith("http://")) {
+          // If it is a Dicebear avatar SVG, convert to PNG so Android BitmapFactory can decode it natively
+          senderAvatarUrl = avatar.replace(/\/svg\b/g, "/png");
+        } else if (avatar && !avatar.startsWith("data:")) {
+          // Storage bucket path in Supabase
+          const baseUrl = (SUPABASE_URL || "https://oujijpepbkqpgzgegoqf.supabase.co").replace(/\/+$/, "");
+          senderAvatarUrl = `${baseUrl}/storage/v1/object/public/chat_media/${avatar}`;
+        }
       }
     }
 

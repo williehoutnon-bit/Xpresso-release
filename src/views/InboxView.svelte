@@ -1051,7 +1051,12 @@
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div 
-                  onclick={() => onopenchat?.(convo.id, convo.name || 'Anonymous')} 
+                  onclick={() => {
+                    import('../services/nativeNotificationService').then(({ nativeNotificationService }) => {
+                      nativeNotificationService.removeDeliveredForConversation(convo.id);
+                    }).catch(() => {});
+                    onopenchat?.(convo.id, convo.name || 'Anonymous');
+                  }} 
                   ontouchstart={(e) => handleTouchStart(e, convo.id)}
                   ontouchmove={handleTouchMove}
                   ontouchend={handleTouchEnd}
