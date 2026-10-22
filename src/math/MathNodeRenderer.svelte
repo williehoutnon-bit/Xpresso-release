@@ -48,7 +48,7 @@
 </script>
 
 {#each nodes as node, i (node.id)}{#if isCursorHere(containerPath, i, currentCursorPath)}<span class="math-caret" class:blinking={true}></span>{/if}{#if node.type === 'char'}<span class="math-char {selectedNodeIds.has(node.id) ? 'math-selected' : ''}" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>{node.value}</span>{:else if node.type === 'fraction'}
-    <span class="math-fraction" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-fraction" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <span class="numerator" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'numerator' }])}>
         <span class="numerator-inner">
           <svelte:self
@@ -69,7 +69,7 @@
       </span>
     </span>
   {:else if node.type === 'exponent'}
-    <span class="math-exponent-group" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-exponent-group" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <span class="base" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'base' }])}>
         <svelte:self
           nodes={node.base}
@@ -86,7 +86,7 @@
       </span>
     </span>
   {:else if node.type === 'sqrt'}
-    <span class="math-sqrt" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-sqrt" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <SqrtWrapper>
         <span class="radicand" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'content' }])}>
           <svelte:self
@@ -98,7 +98,7 @@
       </SqrtWrapper>
     </span>
   {:else if node.type === 'nthroot'}
-    <span class="math-sqrt" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-sqrt" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <SqrtWrapper index={indexSnippet}>
         {#snippet indexSnippet()}
           <span class="nthroot-index" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'index' }])}>
@@ -120,7 +120,7 @@
     </span>
   
   {:else if node.type === 'longdiv'}
-    <span class="math-longdiv" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-longdiv" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <LongdivWrapper index={indexSnippet} quotient={node.quotient && node.quotient.length > 0 ? quotientSnippet : null}>
         {#snippet indexSnippet()}
           <span class="longdiv-index" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'index' }])}>
@@ -150,7 +150,7 @@
       </LongdivWrapper>
     </span>
   {:else if node.type === 'subscript'}
-    <span class="math-subscript-group" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-subscript-group" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <span class="base" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'base' }])}>
         <svelte:self
           nodes={node.base}
@@ -167,7 +167,7 @@
       </span>
     </span>
   {:else if node.type === 'bracket'}
-    <span class="math-bracket" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-bracket" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <BracketWrapper type={node.bracketKind} closed={node.closed !== false}>
         <span class="bracket-content" data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'content' }])}>
           <svelte:self
@@ -197,7 +197,7 @@
       {/if}
     </span>
   {:else if node.type === 'integral'}
-    <span class="math-bracket" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-bracket" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <IntegralWrapper>
         <span slot="limits" class="integral-limits" style="margin-right: 2px;">
           {#if node.subscript || node.superscript}
@@ -227,7 +227,7 @@
       </IntegralWrapper>
     </span>
   {:else if node.type === 'underbrace'}
-    <span class="math-underbrace" data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
+    <span class="math-underbrace" class:math-selected={selectedNodeIds.has(node.id)} data-node-id={node.id} style={node.color ? `color: ${node.color};` : ''}>
       <UnderbraceWrapper label={labelSnippet}>
         {#snippet labelSnippet()}
           <span class="underbrace-label" class:is-empty={node.label.length === 0} data-container-path={JSON.stringify([...containerPath, { nodeId: node.id, slot: 'label' }])}>

@@ -1,116 +1,3 @@
-import { getContainer, replaceContainer, generateId, type MathNode, type CursorPath, getNodeById } from './mathModel';
-
-function findLastIndex<T>(arr: T[], predicate: (val: T, index: number, obj: T[]) => boolean): number {
-    for (let i = arr.length - 1; i >= 0; i--) {
-        if (predicate(arr[i], i, arr)) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-export function insertFraction(tree: MathNode[], cursor: CursorPath, color?: string): { tree: MathNode[]; cursor: CursorPath } {
-    const container = getContainer(tree, cursor.containerPath);
-    const newFractionId = generateId();
-    
-    const fractionNode: MathNode = {
-        id: newFractionId, 
-        type: 'fraction',
-        numerator: [], 
-        denominator: [],
-        ...(color ? { color } : {})
-    };
-    
-    const newContainer = [
-        ...container.slice(0, cursor.offset),
-        fractionNode,
-        ...container.slice(cursor.offset),
-    ];
-    
-    const newTree = replaceContainer(tree, cursor.containerPath, newContainer);
-    
-    const newCursor: CursorPath = {
-        containerPath: [...cursor.containerPath, { nodeId: newFractionId, slot: 'numerator' }],
-        offset: 0,
-    };
-    
-    return { tree: newTree, cursor: newCursor };
-}
-
-export function jumpToOppositeFractionSlot(tree: MathNode[], cursor: CursorPath): CursorPath {
-    const idx = findLastIndex(cursor.containerPath, c => c.slot === 'numerator' || c.slot === 'denominator');
-    if (idx === -1) return cursor; // not inside a fraction, no-op
-    
-    const fractionEntry = cursor.containerPath[idx];
-    const targetSlot = fractionEntry.slot === 'numerator' ? 'denominator' : 'numerator';
-    
-    const newContainerPath = [
-        ...cursor.containerPath.slice(0, idx),
-        { nodeId: fractionEntry.nodeId, slot: targetSlot as any },
-    ];
-    
-    const targetContainer = getContainer(tree, newContainerPath);
-    return { containerPath: newContainerPath, offset: targetContainer.length }; // land at end of existing content in that slot
-}
-
-export function exitFraction(tree: MathNode[], cursor: CursorPath): CursorPath {
-    const idx = findLastIndex(cursor.containerPath, c => c.slot === 'numerator' || c.slot === 'denominator');
-    if (idx === -1) return cursor;
-    
-    const fractionNodeId = cursor.containerPath[idx].nodeId;
-    const parentContainerPath = cursor.containerPath.slice(0, idx);
-    const parentContainer = getContainer(tree, parentContainerPath);
-    const fractionIndexInParent = parentContainer.findIndex(n => n.id === fractionNodeId);
-    
-    return { 
-        containerPath: parentContainerPath, 
-        offset: fractionIndexInParent + 1 
-    }; // land immediately after the fraction
-}
-
-export function insertExponent(tree: MathNode[], cursor: CursorPath, color?: string): { tree: MathNode[]; cursor: CursorPath } {
-    const container = getContainer(tree, cursor.containerPath);
-    
-    // Check if the previous node is something we can attach an exponent to
-    let baseNodes: MathNode[] = [];
-    let precedingNodes = container.slice(0, cursor.offset);
-    let followingNodes = container.slice(cursor.offset);
-    
-    if (precedingNodes.length > 0) {
-        // Pop the last node to be the base
-        baseNodes = [precedingNodes.pop()!];
-    }
-    
-    const newExponentId = generateId();
-    const exponentNode: MathNode = {
-        id: newExponentId,
-        type: 'exponent',
-        base: baseNodes,
-        exponent: [],
-        ...(color ? { color } : {})
-    };
-    
-    const newContainer = [
-        ...precedingNodes,
-        exponentNode,
-        ...followingNodes
-    ];
-    
-    const newTree = replaceContainer(tree, cursor.containerPath, newContainer);
-    const newCursor: CursorPath = {
-        containerPath: [...cursor.containerPath, { nodeId: newExponentId, slot: 'exponent' }],
-        offset: 0
-    };
-    
-    return { tree: newTree, cursor: newCursor };
-}
-
-export function jumpOrExitExponent(tree: MathNode[], cursor: CursorPath): CursorPath {
-    const idx = findLastIndex(cursor.containerPath, c => c.slot === 'exponent' && getNodeById(tree, c.nodeId)?.type === 'exponent');
-    if (idx === -1) return cursor;
-    
-    const exponentNodeId = cursor.containerPath[idx].nodeId;
-    const parentContainerPath = cursor.containerPath.slice(0, idx);
     const parentContainer = getContainer(tree, parentContainerPath);
     const indexInParent = parentContainer.findIndex(n => n.id === exponentNodeId);
     
@@ -480,8 +367,13 @@ export function deleteNodes(tree: MathNode[], idsToDelete: Set<string>): MathNod
             return { ...n, index: deleteNodes(n.index, idsToDelete), content: deleteNodes(n.content, idsToDelete) };
         } else if (n.type === 'longdiv') {
             return { ...n, index: deleteNodes(n.index, idsToDelete), content: deleteNodes(n.content, idsToDelete), quotient: deleteNodes(n.quotient || [], idsToDelete) };
-        } else if (n.type === 'bracket') {
-            return { ...n, content: deleteNodes(n.content, idsToDelete) };
+        } else if (n.type === 'bracket' || n.type === 'integral') {
+            return {
+                ...n,
+                content: deleteNodes(n.content, idsToDelete),
+                ...(n.subscript ? { subscript: deleteNodes(n.subscript, idsToDelete) } : {}),
+                ...(n.superscript ? { superscript: deleteNodes(n.superscript, idsToDelete) } : {})
+            };
         } else if (n.type === 'underbrace') {
             return { ...n, content: deleteNodes(n.content, idsToDelete), label: deleteNodes(n.label, idsToDelete) };
         }

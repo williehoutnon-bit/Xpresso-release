@@ -131,8 +131,10 @@ export function getSelectedNodeIds(tree: MathNode[], start: CursorPath, end: Cur
                 traverse(node.index, [...containerPath, { nodeId: node.id, slot: 'index' }]);
                 traverse(node.content, [...containerPath, { nodeId: node.id, slot: 'content' }]);
                 if (node.quotient) traverse(node.quotient, [...containerPath, { nodeId: node.id, slot: 'quotient' }]);
-            } else if (node.type === 'bracket') {
+            } else if (node.type === 'bracket' || node.type === 'integral') {
                 traverse(node.content, [...containerPath, { nodeId: node.id, slot: 'content' }]);
+                if (node.subscript) traverse(node.subscript, [...containerPath, { nodeId: node.id, slot: 'subscript' }]);
+                if (node.superscript) traverse(node.superscript, [...containerPath, { nodeId: node.id, slot: 'superscript' }]);
             } else if (node.type === 'underbrace') {
                 traverse(node.content, [...containerPath, { nodeId: node.id, slot: 'content' }]);
                 traverse(node.label, [...containerPath, { nodeId: node.id, slot: 'label' }]);
