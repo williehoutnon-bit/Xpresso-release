@@ -1,3 +1,491 @@
+<script lang="ts">
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
+  import { Delete, CornerDownLeft, ChevronLeft, ChevronRight, Send } from 'lucide-svelte';
+  import { type MathNode, type CursorPath, getContainer } from '../math/mathModel';
+  import { insertFraction, jumpToOppositeFractionSlot, exitFraction, insertExponent, jumpOrExitExponent, insertSqrt, exitSqrt, insertNthroot, jumpToOppositeNthrootSlot, exitNthroot,
+  insertLongdiv, jumpToOppositeLongdivSlot, jumpToLongdivQuotientSlot, exitLongdiv, insertChar, backspace, insertSubscript, jumpOrExitSubscript, insertBracket, closeAndExitBracket, handleEvaluationBracket, insertIntegral, insertIntegralWithLimits, handleEvaluationBar, insertEvaluationBar, insertUnderbrace, jumpToOppositeUnderbraceSlot, exitUnderbrace } from '../math/mathOperations';
+
+  import { serializeTree, deserializeTree } from '../math/mathSerialization';
+  import { getNodeById } from '../math/mathModel';
+
+  export let currentTree: MathNode[] = [];
+  export let currentCursorPath: CursorPath | null = null;
+  export let selectionAnchorPath: CursorPath | null = null;
+  export let selectedNodeIds: Set<string> = new Set();
+  import { deleteNodes } from "../math/mathOperations";
+  import { deleteSelectionWithCaret } from "../math/mathSelectionHelpers";
+  import { keyHaptic } from '../native';
+  export let value: string | undefined = undefined;
+  export let isOpen = true;
+  export let activeColor: string = '#1d4ed8';
+  export let onsend: (() => void) | null = null;
+  export let textareaRef: HTMLTextAreaElement | null = null;
+
+  // Sync value -> currentTree only when value changes externally
+  let prevValue = value;
+  $: if (value !== undefined && value !== prevValue) {
+    prevValue = value;
+    const serialized = serializeTree(currentTree);
+    if (value !== serialized) {
+      currentTree = deserializeTree(value);
+      currentCursorPath = { containerPath: [], offset: currentTree.length };
+    }
+  }
+
+  function getPrecedingText(): string {
+    if (!currentCursorPath) return '';
+    const container = getContainer(currentTree, currentCursorPath.containerPath);
+    const precedingNodes = container.slice(0, currentCursorPath.offset);
+    let text = '';
+    for (const node of precedingNodes) {
+      if (node.type === 'char') {
+        text += node.value;
+      } else {
+        text += ' ';
+      }
+    }
+    return text;
+  }
+
+  function autoCapitalizeIfNeeded() {
+    if (shiftState === 'capslock') return;
+    const text = getPrecedingText();
+    const shouldCapitalize = /(^|[\.\?!]|\n)\s*$/.test(text);
+    if (shouldCapitalize) {
+      shiftState = 'once';
+      abcMode = 'upper';
+    } else {
+      shiftState = 'none';
+      abcMode = 'lower';
+    }
+  }
+
+  onMount(() => {
+    autoCapitalizeIfNeeded();
+  });
+
+  $: if (activeTab === 'abc' && (currentTree || currentCursorPath)) {
+    autoCapitalizeIfNeeded();
+  }
+
+  // Helper to sync currentTree -> value internally
+  function syncValue() {
+    if (value !== undefined) {
+      const serialized = serializeTree(currentTree);
+      if (value !== serialized) {
+        value = serialized;
+        prevValue = value;
+      }
+    }
+  }
+
+  let activeTab: '123' | 'fn' | 'abc' | 'greek' | 'sym' = 'abc';
+  let abcMode: 'lower' | 'upper' = 'lower';
+  let shiftState: 'none' | 'once' | 'capslock' = 'none';
+  let shiftLongPressTimer: any = null;
+  let isShiftLongPressed = false;
+
+  function handleShiftDown(e: PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    isShiftLongPressed = false;
+    
+    // Start long press timer
+    shiftLongPressTimer = setTimeout(() => {
+      shiftState = 'capslock';
+      abcMode = 'upper';
+      isShiftLongPressed = true;
+    }, 500); // 500ms long press threshold
+  }
+
+  function handleShiftUp(e: PointerEvent) {
+    e.stopPropagation();
+    if (shiftLongPressTimer) {
+      clearTimeout(shiftLongPressTimer);
+      shiftLongPressTimer = null;
+    }
+    
+    if (!isShiftLongPressed) {
+      // Toggle logic
+      if (shiftState === 'none') {
+        shiftState = 'once';
+        abcMode = 'upper';
+      } else {
+        shiftState = 'none';
+        abcMode = 'lower';
+      }
+    }
+    isShiftLongPressed = false;
+  }
+
+  function clearShiftTimer() {
+    if (shiftLongPressTimer) {
+      clearTimeout(shiftLongPressTimer);
+      shiftLongPressTimer = null;
+    }
+  }
+
+  let fractionState: 'none' | 'num' | 'den' = 'none';
+  let fractionTapTimer: any = null;
+  let fractionTapCount = 0;
+  let underbraceState: 'none' | 'content' | 'label' = 'none';
+
+  onDestroy(() => {
+    if (fractionTapTimer) {
+      clearTimeout(fractionTapTimer);
+    }
+  });
+
+  function executeFractionAction(count: number) {
+    if (!currentCursorPath) return;
+    if (count >= 2) {
+      const result = insertFraction(currentTree, currentCursorPath, activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+    } else {
+      if (fractionState === 'none') {
+        const result = insertFraction(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+        fractionState = 'num';
+      } else if (fractionState === 'num') {
+        currentCursorPath = jumpToOppositeFractionSlot(currentTree, currentCursorPath);
+        fractionState = 'den';
+      } else if (fractionState === 'den') {
+        currentCursorPath = exitFraction(currentTree, currentCursorPath);
+        fractionState = 'none';
+      }
+    }
+    syncValue();
+  }
+
+  let nthrootState: 'none' | 'index' | 'content' = 'none';
+  let longdivState: 'none' | 'index' | 'content' | 'quotient' = 'none';
+  let isInsideSuperscript = false;
+  let isInsideSubscript = false;
+  let isInsideSquareLimit = false;
+  let isInsideSquareSuperscript = false;
+  let isInsideSquareSubscript = false;
+  
+  let isInsideEvalBarLimit = false;
+  let isInsideEvalBarSuperscript = false;
+  let isInsideEvalBarSubscript = false;
+  let isInsideIntegralLimit = false;
+  let isInsideIntegralSuperscript = false;
+  let isInsideIntegralSubscript = false;
+  let isSquareRootMode = false;
+  let isBracketMode = false;
+
+  function updateActiveStates() {
+    if (!currentCursorPath) {
+      fractionState = 'none';
+      nthrootState = 'none';
+      longdivState = 'none';
+      underbraceState = 'none';
+      isInsideSuperscript = false;
+      isInsideSubscript = false;
+      isInsideSquareLimit = false;
+      isInsideSquareSuperscript = false;
+      isInsideSquareSubscript = false;
+      isInsideEvalBarLimit = false;
+      isInsideEvalBarSuperscript = false;
+      isInsideEvalBarSubscript = false;
+      isInsideIntegralLimit = false;
+      isInsideIntegralSuperscript = false;
+      isInsideIntegralSubscript = false;
+      isSquareRootMode = false;
+      isBracketMode = false;
+      return;
+    }
+    
+    const idxFrac = currentCursorPath.containerPath.findLastIndex(c => c.slot === 'numerator' || c.slot === 'denominator');
+    fractionState = idxFrac !== -1 ? (currentCursorPath.containerPath[idxFrac].slot === 'numerator' ? 'num' : 'den') : 'none';
+
+    const idxNth = currentCursorPath.containerPath.findIndex(c => {
+      const node = getNodeById(currentTree, c.nodeId);
+      return node?.type === 'nthroot' && (c.slot === 'index' || c.slot === 'content');
+    });
+    nthrootState = idxNth !== -1 ? (currentCursorPath.containerPath[idxNth].slot === 'index' ? 'index' : 'content') : 'none';
+
+    const idxUnder = currentCursorPath.containerPath.findIndex(c => {
+      const node = getNodeById(currentTree, c.nodeId);
+      return node?.type === 'underbrace' && (c.slot === 'content' || c.slot === 'label');
+    });
+    underbraceState = idxUnder !== -1 ? (currentCursorPath.containerPath[idxUnder].slot as any) : 'none';
+
+    const idxLong = currentCursorPath.containerPath.findIndex(c => {
+      const node = getNodeById(currentTree, c.nodeId);
+      return node?.type === 'longdiv' && (c.slot === 'index' || c.slot === 'content' || c.slot === 'quotient');
+    });
+    longdivState = idxLong !== -1 ? (currentCursorPath.containerPath[idxLong].slot as any) : 'none';
+
+    // Normal exponent and subscript
+    isInsideSuperscript = currentCursorPath.containerPath.some(c => c.slot === 'exponent' && getNodeById(currentTree, c.nodeId)?.type === 'exponent');
+    isInsideSubscript = currentCursorPath.containerPath.some(c => c.slot === 'subscript' && getNodeById(currentTree, c.nodeId)?.type === 'subscript');
+
+    // Evaluation and Square limits
+    const squareBracketIdx = currentCursorPath.containerPath.findIndex(c => {
+      const node = getNodeById(currentTree, c.nodeId);
+      return c.nodeId !== 'root' && node?.type === 'bracket' && node.bracketKind === 'square' && (c.slot === 'subscript' || c.slot === 'superscript');
+    });
+    isInsideSquareLimit = squareBracketIdx !== -1;
+    isInsideSquareSuperscript = currentCursorPath.containerPath.some(c => c.slot === 'superscript' && getNodeById(currentTree, c.nodeId)?.type === 'bracket' && getNodeById(currentTree, c.nodeId)?.bracketKind === 'square');
+    isInsideSquareSubscript = currentCursorPath.containerPath.some(c => c.slot === 'subscript' && getNodeById(currentTree, c.nodeId)?.type === 'bracket' && getNodeById(currentTree, c.nodeId)?.bracketKind === 'square');
+
+    const evalBarBracketIdx = currentCursorPath.containerPath.findIndex(c => {
+      const node = getNodeById(currentTree, c.nodeId);
+      return c.nodeId !== 'root' && node?.type === 'bracket' && node.bracketKind === 'evaluation' && (c.slot === 'subscript' || c.slot === 'superscript');
+    });
+    isInsideEvalBarLimit = evalBarBracketIdx !== -1;
+    isInsideEvalBarSuperscript = currentCursorPath.containerPath.some(c => c.slot === 'superscript' && getNodeById(currentTree, c.nodeId)?.type === 'bracket' && getNodeById(currentTree, c.nodeId)?.bracketKind === 'evaluation');
+    isInsideEvalBarSubscript = currentCursorPath.containerPath.some(c => c.slot === 'subscript' && getNodeById(currentTree, c.nodeId)?.type === 'bracket' && getNodeById(currentTree, c.nodeId)?.bracketKind === 'evaluation');
+
+    const integralLimitIdx = currentCursorPath.containerPath.findIndex(c => c.nodeId !== 'root' && getNodeById(currentTree, c.nodeId)?.type === 'integral' && (c.slot === 'subscript' || c.slot === 'superscript'));
+    isInsideIntegralLimit = integralLimitIdx !== -1;
+    isInsideIntegralSuperscript = currentCursorPath.containerPath.some(c => c.slot === 'superscript' && getNodeById(currentTree, c.nodeId)?.type === 'integral');
+    isInsideIntegralSubscript = currentCursorPath.containerPath.some(c => c.slot === 'subscript' && getNodeById(currentTree, c.nodeId)?.type === 'integral');
+
+    isSquareRootMode = currentCursorPath.containerPath.some(c => c.slot === 'content' && c.nodeId !== 'root' && getNodeById(currentTree, c.nodeId)?.type === 'sqrt');
+    isBracketMode = currentCursorPath.containerPath.some(c => c.slot === 'content' && c.nodeId !== 'root' && getNodeById(currentTree, c.nodeId)?.type === 'bracket');
+  }
+
+  $: {
+    // Reactive dependency on currentCursorPath to update states
+    if (currentCursorPath || !currentCursorPath) {
+      updateActiveStates();
+    }
+  }
+
+  const dispatch = createEventDispatcher();
+
+  const deleteSelection = () => {
+    if (selectedNodeIds && selectedNodeIds.size > 0 && selectionAnchorPath) {
+      // Caret goes where the selection started (it used to jump to the start of the document).
+      const r = deleteSelectionWithCaret(currentTree, selectedNodeIds);
+      if (r) {
+        currentTree = r.tree;
+        currentCursorPath = r.cursor;
+      } else {
+        currentTree = deleteNodes(currentTree, selectedNodeIds);
+        currentCursorPath = { containerPath: [], offset: 0 };
+      }
+      selectionAnchorPath = null;
+      selectedNodeIds = new Set();
+    } else {
+      selectionAnchorPath = null;
+      syncValue();
+    }
+  };
+
+  const handleChar = (char: string) => {
+    if (!currentCursorPath) return;
+    deleteSelection();
+    const result = insertChar(currentTree, currentCursorPath, char, activeColor);
+    currentTree = result.tree;
+    currentCursorPath = result.cursor;
+  };
+
+  const handleBackspace = () => {
+    if (!currentCursorPath) return;
+    if (selectedNodeIds && selectedNodeIds.size > 0 && selectionAnchorPath) {
+      deleteSelection();
+      syncValue();
+      return;
+    }
+    const result = backspace(currentTree, currentCursorPath);
+    currentTree = result.tree;
+    currentCursorPath = result.cursor;
+    syncValue();
+  };
+
+  const moveCursor = (dir: -1 | 1) => {
+    // Implement tree traversal based cursor movement
+    // For simplicity right now, this requires walking the tree
+    // However, the spec mostly requires tap-based repositioning, so we can defer complex keyboard movement
+  };
+
+  const onPress = (key: string) => {
+    if (!currentCursorPath) return;
+
+    if (key !== 'fraction') {
+      if (fractionTapTimer) {
+        clearTimeout(fractionTapTimer);
+        fractionTapTimer = null;
+        const count = fractionTapCount;
+        fractionTapCount = 0;
+        executeFractionAction(count);
+      }
+    }
+
+    if (key !== 'BACKSPACE' && key !== 'ENTER' && key !== 'LEFT' && key !== 'RIGHT') {
+      deleteSelection();
+    }
+
+    if (key === 'fraction') {
+      fractionTapCount++;
+      if (!fractionTapTimer) {
+        fractionTapTimer = setTimeout(() => {
+          const count = fractionTapCount;
+          fractionTapCount = 0;
+          fractionTapTimer = null;
+          executeFractionAction(count);
+        }, 250);
+      }
+      return;
+    }
+
+    if (key === '□ⁿ' || key === 'e^' || key === '10^') {
+      const idx = currentCursorPath.containerPath.findLastIndex(c => c.slot === 'exponent' && getNodeById(currentTree, c.nodeId)?.type === 'exponent');
+      if (idx === -1) {
+        if (key === 'e^') handleChar('e');
+        if (key === '10^') { handleChar('1'); handleChar('0'); }
+        const result = insertExponent(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+      } else {
+        currentCursorPath = jumpOrExitExponent(currentTree, currentCursorPath);
+      }
+      return;
+    }
+
+    if (key === '√') {
+      const idx = currentCursorPath.containerPath.findIndex(c => c.slot === 'content' && c.nodeId !== 'root' && getNodeById(currentTree, c.nodeId)?.type === 'sqrt');
+      if (idx === -1) {
+        const result = insertSqrt(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+      } else {
+        currentCursorPath = exitSqrt(currentTree, currentCursorPath);
+      }
+      return;
+    }
+
+    
+    if (key === 'longdiv') {
+      if (longdivState === 'none') {
+        const result = insertLongdiv(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+        longdivState = 'index';
+      } else if (longdivState === 'index') {
+        currentCursorPath = jumpToOppositeLongdivSlot(currentTree, currentCursorPath);
+        longdivState = 'content';
+      } else if (longdivState === 'content') {
+        currentCursorPath = jumpToLongdivQuotientSlot(currentTree, currentCursorPath);
+        longdivState = 'quotient';
+      } else if (longdivState === 'quotient') {
+        currentCursorPath = exitLongdiv(currentTree, currentCursorPath);
+        longdivState = 'none';
+      }
+      return;
+    }
+
+    if (key === 'nthroot') {
+      if (nthrootState === 'none') {
+        const result = insertNthroot(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+        nthrootState = 'index';
+      } else if (nthrootState === 'index') {
+        currentCursorPath = jumpToOppositeNthrootSlot(currentTree, currentCursorPath);
+        nthrootState = 'content';
+      } else if (nthrootState === 'content') {
+        currentCursorPath = exitNthroot(currentTree, currentCursorPath);
+        nthrootState = 'none';
+      }
+      return;
+    }
+
+    if (key === '□ₙ') {
+      const idx = currentCursorPath.containerPath.findLastIndex(c => c.slot === 'subscript' && getNodeById(currentTree, c.nodeId)?.type === 'subscript');
+      if (idx === -1) {
+        const result = insertSubscript(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+      } else {
+        currentCursorPath = jumpOrExitSubscript(currentTree, currentCursorPath);
+      }
+      return;
+    }
+
+    if (key === 'underbrace') {
+      if (underbraceState === 'none') {
+        const result = insertUnderbrace(currentTree, currentCursorPath, activeColor);
+        currentTree = result.tree;
+        currentCursorPath = result.cursor;
+        underbraceState = 'content';
+      } else if (underbraceState === 'content') {
+        currentCursorPath = jumpToOppositeUnderbraceSlot(currentTree, currentCursorPath);
+        underbraceState = 'label';
+      } else if (underbraceState === 'label') {
+        currentCursorPath = exitUnderbrace(currentTree, currentCursorPath);
+        underbraceState = 'none';
+      }
+      syncValue();
+      return;
+    }
+
+    if (key === '|□|') {
+      const result = insertBracket(currentTree, currentCursorPath, 'absolute', activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      return;
+    }
+
+    if (key === '()' || key === '(') {
+      const result = insertBracket(currentTree, currentCursorPath, 'parentheses', activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      return;
+    }
+
+    if (key === '[' || key === '{') {
+      const result = insertBracket(currentTree, currentCursorPath, key === '[' ? 'square' : 'curly', activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      return;
+    }
+
+    if (key === ']subsup') {
+      const result = handleEvaluationBracket(currentTree, currentCursorPath, activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      syncValue();
+      return;
+    }
+
+    if (key === 'evaluation') {
+      const result = insertEvaluationBar(currentTree, currentCursorPath, activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      syncValue();
+      return;
+    }
+
+    if (key === 'evaluation_subsup') {
+      const result = handleEvaluationBar(currentTree, currentCursorPath, activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      syncValue();
+      return;
+    }
+
+    if (key === 'integration') {
+      const result = insertIntegral(currentTree, currentCursorPath, activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      syncValue();
+      return;
+    }
+
+    if (key === 'integration_subsup') {
+      const result = insertIntegralWithLimits(currentTree, currentCursorPath, activeColor);
+      currentTree = result.tree;
+      currentCursorPath = result.cursor;
+      syncValue();
+      return;
+    }
+
     if (key === ')' || key === ']' || key === '}') {
       const result = closeAndExitBracket(currentTree, currentCursorPath, key);
       currentTree = result.tree;
