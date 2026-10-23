@@ -55,8 +55,10 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Validate Live Update publisher
-        run: node --check scripts/publish-live-update.mjs
+      - name: Validate Live Update publishers
+        run: |
+          node --check scripts/publish-live-update.mjs
+          node --check scripts/publish-apk.mjs
 
       - name: Publish Live Update to Supabase
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -80,6 +82,9 @@ jobs:
             echo "::error::Bundle ZIP was not created or is empty."
             exit 1
           fi
+          # Lowest installed APK that can run this bundle; bump android/min-native-version.txt whenever
+          # the JS starts depending on new native (Java) code.
+          export MIN_NATIVE_VERSION="$(tr -d ' \r\n' < android/min-native-version.txt)"
           node scripts/publish-live-update.mjs
 
       - name: Setup Google Services for FCM
@@ -104,6 +109,9 @@ jobs:
       - name: Build Android APKs
         working-directory: android
         env:
+          # Same number as the web bundle (1.0.N): Android only accepts an APK update with a higher versionCode.
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -136,6 +144,23 @@ jobs:
 
           echo "Keystore credentials verified. Building Signed Release APK..."
           KEYSTORE_PATH="release.keystore" ./gradlew assembleRelease --no-daemon
+
+      # Only the SIGNED release APK can replace an installed release build (debug builds use a different,
+      # per-runner key), so a debug-only run publishes no APK.
+      - name: Publish APK for in-app updates
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL || 'https://oujijpepbkqpgzgegoqf.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.VITE_SUPABASE_SERVICE_KEY || secrets.SUPABASE_SERVICE_KEY || secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          BUNDLE_VERSION: 1.0.${{ github.run_number }}
+          VERSION_CODE: ${{ github.run_number }}
+          APK_PATH: android/app/build/outputs/apk/release/app-release.apk
+        run: |
+          if [ -f "$APK_PATH" ]; then
+            node scripts/publish-apk.mjs
+          else
+            echo "::warning::No signed release APK was built (keystore secrets missing or invalid); skipping in-app APK publish."
+          fi
 
       - name: Upload Testing APKs
         uses: actions/upload-artifact@v4

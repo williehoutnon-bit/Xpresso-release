@@ -12,6 +12,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(CrashReporterPlugin.class);
         registerPlugin(XpressoClipboardPlugin.class);
+        registerPlugin(XpressoUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Immediately auto-copy any previous crash log and save to public Downloads

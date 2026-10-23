@@ -1,5 +1,7 @@
 import { App } from '@capacitor/app';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { decideUpdate, parseInstalledBuild, type AppVersionRow } from './native/updatePolicy';
+import { offerNativeUpdate } from './services/nativeUpdateService';
 
 const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || import.meta.env.PUBLIC_SUPABASE_URL;
 const SUPABASE_URL = (rawSupabaseUrl && typeof rawSupabaseUrl === 'string' && rawSupabaseUrl.startsWith('http') && !rawSupabaseUrl.includes('YOUR_PROJECT_ID'))
@@ -12,11 +14,6 @@ const SUPABASE_KEY = (rawSupabaseKey && typeof rawSupabaseKey === 'string' && ra
   : 'sb_publishable_zQKul9e9MeAZXi0wH48yCw_AmlQ0rXo';
 
 const EMBEDDED_VERSION: string = import.meta.env.VITE_BUNDLE_VERSION || 'builtin';
-
-interface AppVersionRow {
-  version: string;
-  bundle_url: string;
-}
 
 function isTrustedBundleUrl(raw: string): boolean {
   try {
@@ -38,7 +35,7 @@ let queuedVersion: string | null = null;
 
 async function fetchLatestVersion(): Promise<AppVersionRow | null> {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/app_versions?select=version,bundle_url&order=created_at.desc&limit=1`,
+    `${SUPABASE_URL}/rest/v1/app_versions?select=version,bundle_url,min_native_version,native_version,apk_url,apk_sha256,apk_size&order=created_at.desc&limit=1`,
     { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
   );
   if (!res.ok) throw new Error(`app_versions query failed: ${res.status}`);
@@ -56,6 +53,19 @@ async function checkForUpdate() {
     if (!latest || latest.version === queuedVersion) return;
     if (!isTrustedBundleUrl(latest.bundle_url)) {
       console.warn('[LiveUpdate] Ignoring bundle from untrusted URL');
+      return;
+    }
+
+    // A bundle may need newer native code than this APK has. Such installs must not download it
+    // (new JS would call native methods that do not exist); they are offered the new APK instead.
+    const info = await App.getInfo().catch(() => null);
+    const decision = decideUpdate(latest, parseInstalledBuild(info?.build), SUPABASE_URL);
+    if (decision.nativeUpdate) offerNativeUpdate(decision.nativeUpdate);
+    if (!decision.allowWebBundle) {
+      console.info(
+        `[LiveUpdate] Bundle ${latest.version} needs a newer app build than ${info?.build}; ` +
+          (decision.nativeUpdate ? 'APK update offered.' : 'APK not published yet.'),
+      );
       return;
     }
 

@@ -7,8 +7,11 @@ android {
         applicationId "com.xpresso.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI passes the workflow run number so every APK is newer than the last one. Android refuses to
+        // update an installed app with an APK whose versionCode is not higher. Local builds default to 1.
+        def envVersionCode = System.getenv("VERSION_CODE")
+        versionCode((envVersionCode != null && envVersionCode.trim().isInteger()) ? envVersionCode.trim().toInteger() : 1)
+        versionName(System.getenv("VERSION_NAME") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

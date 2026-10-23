@@ -94,6 +94,13 @@ const version = process.env.BUNDLE_VERSION || `1.0.${Date.now()}`;
 const bundlePath = process.env.BUNDLE_PATH || 'bundle.zip';
 const objectPath = `bundles/${version}.zip`;
 
+// Lowest installed APK (versionCode) that can run this bundle. Devices below it do not download the
+// bundle; they are offered the new APK instead. Read from android/min-native-version.txt by CI.
+const minNativeVersion = Number.parseInt(process.env.MIN_NATIVE_VERSION ?? '1', 10);
+if (!Number.isInteger(minNativeVersion) || minNativeVersion < 1) {
+  fail(`MIN_NATIVE_VERSION must be a positive integer, got "${process.env.MIN_NATIVE_VERSION}".`);
+}
+
 console.log(`[LiveUpdate] Target URL: ${rawUrl}`);
 console.log(`[LiveUpdate] Publishing bundle version ${version}...`);
 
@@ -153,7 +160,7 @@ try {
   await withRetry(async () => {
     const { error: insertError } = await supabase
       .from('app_versions')
-      .upsert({ version, bundle_url: bundleUrl }, { onConflict: 'version' });
+      .upsert({ version, bundle_url: bundleUrl, min_native_version: minNativeVersion }, { onConflict: 'version' });
     if (insertError) throw insertError;
   }, 3, 2000);
 

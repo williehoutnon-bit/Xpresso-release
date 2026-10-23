@@ -43,6 +43,7 @@
   import { messagingService } from './services/messagingService';
   import { dbService } from './services/dbService';
   import CrashLogModal from './components/CrashLogModal.svelte';
+  import UpdatePrompt from './components/UpdatePrompt.svelte';
   import { checkAndRetrieveCrashLog, type CrashLogsResult } from './services/crashReporterService';
   
   // Instant WhatsApp-style persistent login state:
@@ -657,4 +658,5 @@
     <CrashLogModal crashData={detectedCrash} onclose={() => detectedCrash = null} />
   {/if}
 {/if}
+  <UpdatePrompt />
 </div>
