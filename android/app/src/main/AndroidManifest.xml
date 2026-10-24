@@ -59,6 +59,11 @@
             android:name=".UpdateInstallReceiver"
             android:exported="false" />
 
+        <!-- Fired when a chat notification is swiped away, so its unread count is dropped too. -->
+        <receiver
+            android:name="com.xpresso.convnotif.NotificationDismissReceiver"
+            android:exported="false" />
+
         <service
             android:name="com.xpresso.convnotif.ChatMessagingService"
             android:exported="false">

@@ -11,6 +11,8 @@ export interface ConversationNotificationsPlugin {
   setActiveChat(o: { chatId: string | null }): Promise<void>;
   /** Dismiss a chat's notification, e.g. once its messages are read. */
   clearChat(o: { chatId: string }): Promise<void>;
+  /** Unread messages currently represented by notifications on this phone (the launcher badge). */
+  getUnreadTotal(): Promise<{ total: number; chats: number }>;
   /** Dismiss everything and drop all shortcuts (logout). */
   clearAll(): Promise<void>;
   /** Chat that cold-started the app from a notification tap; returns once, then null. */

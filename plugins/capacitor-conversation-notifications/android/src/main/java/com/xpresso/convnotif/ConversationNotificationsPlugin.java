@@ -111,6 +111,18 @@ public class ConversationNotificationsPlugin extends Plugin {
         call.resolve();
     }
 
+    /**
+     * Unread messages currently represented by notifications on this phone: { total, chats }.
+     * The JS badge writer uses it so it never lowers the launcher badge below this number.
+     */
+    @PluginMethod
+    public void getUnreadTotal(PluginCall call) {
+        JSObject r = new JSObject();
+        r.put("total", UnreadLedger.total(getContext()));
+        r.put("chats", UnreadLedger.chats(getContext()));
+        call.resolve(r);
+    }
+
     /** Dismiss every notification and drop all shortcuts (call on logout). */
     @PluginMethod
     public void clearAll(PluginCall call) {

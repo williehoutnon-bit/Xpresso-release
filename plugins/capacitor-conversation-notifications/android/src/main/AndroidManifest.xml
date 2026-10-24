@@ -10,6 +10,11 @@
             default priority (0), so this one (100) wins. For anything that is not a chat
             message, ChatMessagingService forwards the message to Capacitor's plugin itself.
         -->
+        <!-- Fired when a chat notification is swiped away, so its unread count is dropped too. -->
+        <receiver
+            android:name="com.xpresso.convnotif.NotificationDismissReceiver"
+            android:exported="false" />
+
         <service
             android:name="com.xpresso.convnotif.ChatMessagingService"
             android:exported="false">

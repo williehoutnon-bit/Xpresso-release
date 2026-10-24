@@ -47,6 +47,16 @@ final class ChatNotifier {
     static final String EXTRA_CHAT_ID = "chatId";
     static final String GROUP_KEY = "xpresso_chats";
     private static final int SUMMARY_ID = 0x58505245;
+    static final String ACTION_DISMISSED = "com.xpresso.convnotif.NOTIFICATION_DISMISSED";
+
+    /**
+     * true  = Android "Conversations" layout: large avatar with the app icon as a small badge.
+     *         Android does NOT draw the app-name header on these cards (platform rule); the
+     *         "Xpresso" header appears on the collapsed bundle when 2+ chats are active.
+     * false = ordinary messaging card: always has the "[app icon] Xpresso" header and the avatar
+     *         as the large icon, but is no longer filed under "Conversations".
+     */
+    static final boolean CONVERSATION_LAYOUT = true;
 
     private static final int MAX_HISTORY = 7; // previous messages kept, + the new one
     private static final int AVATAR_PX = 192;
@@ -83,10 +93,22 @@ final class ChatNotifier {
         ShortcutManagerCompat.pushDynamicShortcut(ctx, sb.build());
     }
 
-    @SuppressLint("MissingPermission")
+    /**
+     * @param serverBadgeHint the server's "total unread" from the FCM payload. Only logged: it knows
+     *        nothing about notifications swiped away on this phone, and it depends on the deployed
+     *        Edge Function. The number shown comes from the on-device UnreadLedger.
+     */
     static void showMessage(Context ctx, String chatId, String senderId, String senderName, String text,
                             long timestamp, @Nullable String avatarUrl, boolean isGroup, @Nullable String chatTitle,
-                            int badgeCount) {
+                            int serverBadgeHint) {
+        showMessage(ctx, chatId, senderId, senderName, text, timestamp, avatarUrl, isGroup, chatTitle,
+                serverBadgeHint, true);
+    }
+
+    @SuppressLint("MissingPermission")
+    private static void showMessage(Context ctx, String chatId, String senderId, String senderName, String text,
+                                    long timestamp, @Nullable String avatarUrl, boolean isGroup,
+                                    @Nullable String chatTitle, int serverBadgeHint, boolean countUnread) {
         ensureChannel(ctx);
         if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) {
             Log.w(TAG, "notifications are disabled for the app (Android 13+ permission or system setting); nothing shown");
@@ -102,10 +124,16 @@ final class ChatNotifier {
         }
 
         String title = (chatTitle != null && !chatTitle.isEmpty()) ? chatTitle : senderName;
+
+        // Unread messages this chat now has on this phone: the number on the notification and,
+        // summed over chats, on the launcher icon. (The self-test notification is not counted.)
+        int chatUnread = countUnread ? UnreadLedger.increment(ctx, chatId, title, text, timestamp) : 1;
+
+        Bitmap avatarBmp = avatarBitmap(avatarUrl, senderName);
         Person sender = new Person.Builder()
                 .setKey(senderId)
                 .setName(senderName)
-                .setIcon(avatarIcon(avatarUrl, senderName))
+                .setIcon(IconCompat.createWithBitmap(avatarBmp))
                 .setImportant(true)
                 .build();
 
@@ -132,12 +160,11 @@ final class ChatNotifier {
         PendingIntent tap = PendingIntent.getActivity(ctx, notifId, chatIntent(ctx, chatId, Intent.ACTION_VIEW),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        Notification n = new NotificationCompat.Builder(ctx, CHANNEL_ID)
+        NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(smallIcon(ctx))
                 .setStyle(style)
-                .setShortcutId(chatId)
                 .setSubText("Xpresso")
-                .setNumber(Math.max(1, badgeCount))
+                .setNumber(Math.max(1, chatUnread))
                 .setGroup(GROUP_KEY)
                 .setColor(accentColor(ctx))
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -146,67 +173,82 @@ final class ChatNotifier {
                 .setShowWhen(true)
                 .setAutoCancel(true)
                 .setContentIntent(tap)
-                .build();
+                .setDeleteIntent(dismissIntent(ctx, chatId, notifId));
+        if (CONVERSATION_LAYOUT) {
+            b.setShortcutId(chatId);
+        } else {
+            b.setLargeIcon(avatarBmp);
+        }
 
         NotificationManagerCompat nm = NotificationManagerCompat.from(ctx);
-        nm.notify(notifId, n);
-        postSummary(ctx, nm);
-        Log.i(TAG, "notification posted for chat " + chatId + " (id " + notifId + ", badge " + badgeCount + ")");
+        nm.notify(notifId, b.build());
+        if (countUnread) refreshSummary(ctx);
+        Log.i(TAG, "notification posted for chat " + chatId + " (id " + notifId + ", chat unread " + chatUnread
+                + ", total unread " + UnreadLedger.total(ctx) + ", server hint " + serverBadgeHint + ")");
     }
 
     /** Overload for local/test calls without explicit badge */
     static void showMessage(Context ctx, String chatId, String senderId, String senderName, String text,
                             long timestamp, @Nullable String avatarUrl, boolean isGroup, @Nullable String chatTitle) {
-        showMessage(ctx, chatId, senderId, senderName, text, timestamp, avatarUrl, isGroup, chatTitle, 1);
+        showMessage(ctx, chatId, senderId, senderName, text, timestamp, avatarUrl, isGroup, chatTitle, 1, false);
     }
 
     /**
-     * Bundles the per-chat notifications under one collapsed entry ("5 messages from 3 chats"),
-     * the way WhatsApp does. Alerts come from the child notifications only.
+     * The collapsed "Xpresso" bundle, like WhatsApp's "35 messages from 7 chats" card. Android draws
+     * the app icon and name on it, and (with 2+ chats active) groups the chat cards under it.
+     * With a single chat Android shows that chat's card on its own: that is platform behaviour.
+     *
+     * It carries the TOTAL unread number, is silent (alerts come from the chat cards), and is rebuilt
+     * from the ledger on every change, so its numbers and lines are always current. Removed when no
+     * chat has unread messages.
      */
     @SuppressLint("MissingPermission")
-    private static void postSummary(Context ctx, NotificationManagerCompat nm) {
+    static void refreshSummary(Context ctx) {
+        NotificationManagerCompat nm = NotificationManagerCompat.from(ctx);
+        List<UnreadLedgerCore.Row> rows = UnreadLedger.snapshot(ctx);
+        if (rows.isEmpty()) {
+            nm.cancel(SUMMARY_ID);
+            return;
+        }
+        int total = 0;
+        for (UnreadLedgerCore.Row r : rows) total += r.count;
+        String line = NotificationText.summaryLine(total, rows.size());
+
+        NotificationCompat.InboxStyle inbox = new NotificationCompat.InboxStyle()
+                .setBigContentTitle("Xpresso")
+                .setSummaryText(line);
+        for (int i = 0; i < Math.min(rows.size(), 6); i++) {
+            inbox.addLine(NotificationText.inboxLine(rows.get(i).title, rows.get(i).lastText));
+        }
+
         Notification summary = new NotificationCompat.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(smallIcon(ctx))
                 .setContentTitle("Xpresso")
+                .setContentText(line)
+                .setStyle(inbox)
+                .setNumber(total)
                 .setColor(accentColor(ctx))
-                .setStyle(new NotificationCompat.InboxStyle().setSummaryText("Xpresso"))
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .setGroup(GROUP_KEY)
                 .setGroupSummary(true)
                 .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+                .setOnlyAlertOnce(true)
                 .setAutoCancel(true)
+                .setContentIntent(launchPending(ctx))
+                .setDeleteIntent(dismissIntent(ctx, null, SUMMARY_ID))
                 .build();
         nm.notify(SUMMARY_ID, summary);
     }
 
+    /** The chat was read or opened: drop its notification and its unread count (the badge goes down). */
     static void cancelChat(Context ctx, String chatId) {
-        NotificationManagerCompat nm = NotificationManagerCompat.from(ctx);
-        nm.cancel(notificationId(chatId));
-        // Dismiss the summary notification if no other chat notifications are active
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-                NotificationManager sysNm = ctx.getSystemService(NotificationManager.class);
-                if (sysNm != null) {
-                    StatusBarNotification[] active = sysNm.getActiveNotifications();
-                    boolean hasOtherChat = false;
-                    if (active != null) {
-                        for (StatusBarNotification sbn : active) {
-                            if (sbn.getId() != SUMMARY_ID) {
-                                hasOtherChat = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!hasOtherChat) {
-                        nm.cancel(SUMMARY_ID);
-                    }
-                }
-            } catch (Throwable ignored) {
-            }
-        }
+        NotificationManagerCompat.from(ctx).cancel(notificationId(chatId));
+        UnreadLedger.clear(ctx, chatId);
+        refreshSummary(ctx); // re-numbers the bundle, or removes it when no chat is left
     }
 
     static void cancelAll(Context ctx) {
+        UnreadLedger.clearAll(ctx);
         NotificationManagerCompat.from(ctx).cancelAll();
         try {
             ShortcutManagerCompat.removeAllDynamicShortcuts(ctx);
@@ -220,6 +262,23 @@ final class ChatNotifier {
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /** Sent when the user swipes the notification away; chatId == null means the whole bundle. */
+    private static PendingIntent dismissIntent(Context ctx, @Nullable String chatId, int requestCode) {
+        Intent i = new Intent(ctx, NotificationDismissReceiver.class).setAction(ACTION_DISMISSED);
+        if (chatId != null) i.putExtra(EXTRA_CHAT_ID, chatId);
+        return PendingIntent.getBroadcast(ctx, requestCode, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    @Nullable
+    private static PendingIntent launchPending(Context ctx) {
+        Intent launch = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
+        if (launch == null) return null;
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        return PendingIntent.getActivity(ctx, SUMMARY_ID, launch,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
 
     private static Intent chatIntent(Context ctx, String chatId, String action) {
         Intent launch = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
@@ -274,9 +333,12 @@ final class ChatNotifier {
     }
 
     private static IconCompat avatarIcon(@Nullable String avatarUrl, String name) {
+        return IconCompat.createWithBitmap(avatarBitmap(avatarUrl, name));
+    }
+
+    private static Bitmap avatarBitmap(@Nullable String avatarUrl, String name) {
         Bitmap bmp = fetchAvatar(avatarUrl);
-        if (bmp == null) bmp = letterAvatar(name);
-        return IconCompat.createWithBitmap(bmp);
+        return bmp != null ? bmp : letterAvatar(name);
     }
 
     /** Blocking, short timeouts: FCM gives onMessageReceived ~20 s in total. https only. */

@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Badge } from '@capawesome/capacitor-badge';
 import { PushNotifications, type PushNotificationSchema } from '@capacitor/push-notifications';
 import { ConvNotif } from '../native/conversationNotifications';
+import { effectiveBadgeCount } from '../native/badgeCount';
 
 export interface NotificationPayload {
   id?: number;
@@ -386,8 +387,8 @@ class NativeNotificationService {
   /**
    * Set the unread badge count on the launcher icon (1, 2, 3...)
    */
-  async setBadge(count: number) {
-    const validCount = Math.max(0, Math.round(count));
+  async setBadge(count: number, opts: { force?: boolean } = {}) {
+    let validCount = Math.max(0, Math.round(count));
 
     if (!Capacitor.isNativePlatform()) {
       // PWA Badging API fallback
@@ -399,6 +400,18 @@ class NativeNotificationService {
         }
       }
       return;
+    }
+
+    // Android: never go below the unread count the native side holds for the notification tray.
+    // `count` comes from the local database, which lags behind new pushes, so a stale 1 used to
+    // overwrite the real number. Older APKs without getUnreadTotal() just keep using `count`.
+    if (!opts.force && Capacitor.getPlatform() === 'android') {
+      try {
+        const { total } = await ConvNotif.getUnreadTotal();
+        validCount = effectiveBadgeCount(validCount, total);
+      } catch {
+        /* native side too old to know: keep the database count */
+      }
     }
 
     try {
@@ -424,7 +437,7 @@ class NativeNotificationService {
    * Clear the unread badge from the app icon
    */
   async clearBadge() {
-    await this.setBadge(0);
+    await this.setBadge(0, { force: true });
   }
 
   /**
